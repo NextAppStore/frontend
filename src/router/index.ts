@@ -73,6 +73,12 @@ const router = createRouter({
       component: () => import('@/views/CallbackView.vue'),
       meta: { layout: "auth" },
     },
+    {
+      path: "/lti/callback",
+      name: "lti-callback",
+      component: () => import('@/views/LtiCallbackView.vue'),
+      meta: { layout: "auth" },
+    },
 
     // APP LAYOUT
     {
@@ -214,7 +220,7 @@ router.beforeEach(async (to, _from, next) => {
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 
-  if (!authStore.user && to.path !== '/callback' && to.path !== '/login') {
+  if (!authStore.user && to.path !== '/callback' && to.path !== '/lti/callback' && to.path !== '/login') {
     await authStore.initialize()
   }
 

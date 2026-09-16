@@ -1,5 +1,6 @@
 import axios, { type AxiosError } from 'axios'
 import { useKeycloak } from '@/composables/useKeycloak'
+import { useLtiSession, getActiveAccessToken } from '@/composables/useLtiSession'
 import { env } from '@/env'
 
 const api = axios.create({
@@ -10,12 +11,11 @@ const api = axios.create({
   },
 })
 
-// Token from Keycloak automatically added to requests
+// Token from the active session (LTI first, then Keycloak) automatically added to requests
 api.interceptors.request.use(
   async (config) => {
-    const keycloak = useKeycloak()
-    const token = await keycloak.getAccessToken()
-    
+    const token = await getActiveAccessToken()
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -30,19 +30,31 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     // 401: Not authenticated -> Try to refresh, then redirect to login
     if (error.response?.status === 401) {
-      const keycloak = useKeycloak()
-      
-      // Try to ensure valid token (silent refresh)
-      const hasValidToken = await keycloak.ensureValidToken()
-      
-      if (!hasValidToken) {
-        // Clear any stored data
+      const ltiSession = useLtiSession()
+
+      if (ltiSession.isAuthenticated.value) {
+        // LTI sessions have no refresh path — a 401 means the token
+        // expired or was rejected, and the only way back in is a
+        // fresh launch from Moodle. Redirecting to Keycloak here
+        // would be wrong (this user has no Keycloak account
+        // expectation), so just drop the stale session.
+        ltiSession.logout()
         localStorage.removeItem('user')
-        
-        // Redirect to login if not already there
-        if (window.location.pathname !== '/login') {
-          const returnUrl = window.location.pathname
-          await keycloak.login(returnUrl)
+      } else {
+        const keycloak = useKeycloak()
+
+        // Try to ensure valid token (silent refresh)
+        const hasValidToken = await keycloak.ensureValidToken()
+
+        if (!hasValidToken) {
+          // Clear any stored data
+          localStorage.removeItem('user')
+
+          // Redirect to login if not already there
+          if (window.location.pathname !== '/login') {
+            const returnUrl = window.location.pathname
+            await keycloak.login(returnUrl)
+          }
         }
       }
     }

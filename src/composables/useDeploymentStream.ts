@@ -24,7 +24,7 @@
  */
 
 import { ref, type Ref } from 'vue'
-import { useKeycloak } from '@/composables/useKeycloak'
+import { getActiveAccessToken } from '@/composables/useLtiSession'
 import { env } from '@/env'
 
 export interface LogEntry {
@@ -205,8 +205,7 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
     abortController = new AbortController()
     connectionState.value = reconnectAttempt === 0 ? 'connecting' : 'reconnecting'
 
-    const keycloak = useKeycloak()
-    const token = await keycloak.getAccessToken()
+    const token = await getActiveAccessToken()
 
     let response: Response
     try {
