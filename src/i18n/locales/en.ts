@@ -299,6 +299,7 @@ export default {
     deploymentNoLogs: "No Logs available.",
     deploymentWaitingOnLogs: "Waiting for log stream...",
     deploymentLogsFailure: "Failure",
+    deploymentCreatedAt: "Created at",
     deploymentDescription: "Description",
     deploymentOwner: "Owner",
     deploymentUserName: "Username",

@@ -239,6 +239,7 @@ export default {
     title: "Deployments",
     subtitle: "Übersicht über Ihre Deployments",
     newDeployment: "Neues Deployment",
+    checkingStatus: "Status wird geprüft ...",
     deploymentName: "Name",
     deploymentApp: "App",
     deploymentAppVersion: "App-Version",
