@@ -345,20 +345,19 @@ Diese Stellen existieren, sind aber **kein** Muster für neuen Code:
 Wenn du eine dieser Dateien ohnehin anfasst: den betroffenen Abschnitt mit aufräumen.
 Kein eigener Refactor-PR, ohne dass das Team es will.
 
-> Die Zahlen oben sind der eingefrorene Stand in `scripts/conventions-baseline.json` —
-> dort liegt die Wahrheit, nicht hier. `npm run check` lässt sie nicht wachsen; nach dem
-> Aufräumen `npm run check -- --update` und die Baseline mitcommitten.
+> Die Zahlen sind ein Stand von September 2026 und werden von nichts automatisch geprüft.
+> Nimm sie als Größenordnung, nicht als Wahrheit — im Zweifel selbst nachzählen.
 
 ---
 
 ## 14. Fertig ist eine Änderung erst, wenn
 
-- [ ] `npm run verify` grün — Type-Check, Konventions-Gate und Tests in einem Lauf
+- [ ] `npm run verify` grün — Type-Check und Tests in einem Lauf
 - [ ] `npm run build` läuft durch
 - [ ] geänderte View hat ihre Spec aktualisiert
 - [ ] i18n-Key in `de.ts` **und** `en.ts` — `tests/unit/i18n-parity.spec.ts` prüft das
 - [ ] kein `any`, kein `#hex`, kein neuer `<style>`-Block, kein direkter `axios`/`fetch`-Aufruf
-      — `npm run check` setzt das durch (baseline-basiert: Altlasten ok, Neues nicht)
+      — **das prüft keine Automatik**, du bist selbst dafür verantwortlich
 - [ ] Loading-, Leer- und Fehlerzustand sind abgedeckt
 - [ ] Kommentar erklärt das *Warum*, wo die Lösung nicht offensichtlich ist
 

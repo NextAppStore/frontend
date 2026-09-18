@@ -192,10 +192,10 @@ Skill `frontend-docs` laden. Block-Kommentar in der geänderten Datei zuerst, da
 README-Abschnitte betroffen sind.
 
 ### 6 — Verifizieren
-Ein Befehl deckt Type-Check, Konventionen und Tests ab:
+Ein Befehl deckt Type-Check und Tests ab:
 
 ```bash
-npm run verify              # = type-check && check && test
+npm run verify              # = type-check && test
 npm run build               # zusätzlich, wenn du am Build-Pfad warst
 ```
 
@@ -203,23 +203,17 @@ Einzeln, wenn du eingrenzen willst:
 
 ```bash
 npm run type-check          # vue-tsc -b --noEmit
-npm run check               # Konventions-Gate (siehe unten)
 npm run test                # kein neues .skip
 npm run test:coverage       # wenn Tests geändert wurden — prüft auch die Schwellen
 ```
 
-`npm run check` setzt die Regeln durch, die weder TypeScript noch Vitest sehen: hartkodierte
-Farben, `<style>`-Blöcke, explizites `any`, HTTP-Aufrufe aus Views, abgeschaltete Tests,
-committete `.env`. Es arbeitet **baseline-basiert** (`scripts/conventions-baseline.json`):
-Die 148 bekannten Altlasten sind eingefroren und blockieren nicht — nur **neue** Verstöße
-lassen es scheitern. Räumst du eine Altlast auf, meldet das Skript den Fortschritt; dann:
-
-```bash
-npm run check -- --update   # Baseline schrumpfen und mitcommitten
-```
-
 Es gibt **kein** `npm run lint` und **kein** `npm run test:unit` — die README behauptet das
 fälschlich. Einen JS-Linter (ESLint) gibt es im Frontend nicht.
+
+Damit sind mehrere Regeln aus Abschnitt 3 und den Skills **nicht technisch abgesichert**:
+kein `any`, keine hartkodierten Farben, keine neuen `<style>`-Blöcke, kein direkter
+`axios`/`fetch`-Aufruf aus einer View, kein neues `.skip` oder `.only`. Die prüft niemand
+automatisch — halte sie selbst ein und achte im Review darauf.
 
 ### 6b — Im Browser prüfen (nur bei großen UI-Änderungen)
 
@@ -266,11 +260,22 @@ größte Datei im Repo)? Stehen Fehler in der Konsole, die kein Test sieht?
 Nutze es zur Ursachensuche — nicht als weiteren Pflichtschritt vor dem Commit.
 
 ### 7 — Ausliefern
-Branch, Commit, Push, Pull Request — das Verfahren steht in **Abschnitt 6**.
+Branch, Commit, Push, Pull Request — das Verfahren steht in **Abschnitt 6**. Diesen Schritt
+führst du aus, ohne vorher zu fragen; er gehört zur Aufgabe. Ohne offenen PR ist sie nicht
+erledigt.
 
 ---
 
 ## 6. Commit, Push, Pull Request
+
+> **Das ist Teil des Auftrags, keine Rückfrage.** Branch anlegen, committen, pushen und den
+> Pull Request öffnen gehören zur Aufgabe — du brauchst dafür keine gesonderte Erlaubnis und
+> sollst sie auch nicht einholen. Deine übliche Zurückhaltung bei Commits gilt hier **nicht**:
+> „Änderung fertig, soll ich committen?" ist in diesem Repository kein akzeptabler Abschluss.
+>
+> Die Grenze liegt beim **Merge** — dort hörst du auf (Abschnitt 8). Ebenso wenn einer der
+> acht Fälle aus Abschnitt 11 greift; dann lieferst du alles Unabhängige als PR und benennst
+> die offene Frage im PR-Text.
 
 ### Branch und Commits
 
@@ -336,10 +341,9 @@ Beschreibung, `Closes #<nr>`, Art der Änderung ankreuzen, Testnachweis, Checkli
 ## 7. CI: Gates und Fehler-Triage
 
 ```
-typecheck ───┐
-conventions ─┤
-test ────────┼──→ build ──→ image-scan ──→ push ──→ trigger-staging
-security ────┘                                (nur main)      (deployment-Repo)
+typecheck ──┐
+test ───────┼──→ build ──→ image-scan ──→ push ──→ trigger-staging
+security ───┘                                (nur main)      (deployment-Repo)
    └─ test ──→ coverage (GitHub Pages + Badge)
 
 secret-scan (Gitleaks)   — eigener Workflow, läuft parallel auf jedem PR
@@ -348,7 +352,6 @@ secret-scan (Gitleaks)   — eigener Workflow, läuft parallel auf jedem PR
 | Job | Gate | Lokal vorwegnehmen |
 |---|---|---|
 | 📐 Type Check | blockierend | `npm run type-check` |
-| 📏 Conventions | blockierend | `npm run check` |
 | 🧪 Test | blockierend | `npm run test:coverage` (inkl. Coverage-Schwellen) |
 | 🔒 Security | blockierend | `npm audit --audit-level=high --omit=dev` |
 | 🔒 Gitleaks | blockierend | — (scannt die ganze Historie) |
@@ -382,9 +385,10 @@ zu werden.
 
 ## 8. Wo der Zyklus endet
 
-Ein Agent bringt die Änderung bis zum **grünen, offenen PR**. Der Merge ist ein menschlicher
-Schritt — nicht aus technischer Not, sondern weil das Zwei-Augen-Prinzip Teil der
-dokumentierten QS-Maßnahmen und damit Prüfungsgegenstand ist.
+Ein Agent bringt die Änderung bis zum **grünen, offenen PR** — eigenständig, ohne vorher um
+Erlaubnis zum Committen zu bitten. Der Merge ist der menschliche Schritt: nicht aus
+technischer Not, sondern weil das Zwei-Augen-Prinzip Teil der dokumentierten QS-Maßnahmen und
+damit Prüfungsgegenstand ist.
 
 - ✅ Branch, Implementierung, Tests, Doku, Commit, Push, PR, eigene rote CI-Jobs reparieren
 - ❌ Nicht mergen, `main` nicht direkt beschreiben, kein Force-Push
@@ -451,11 +455,10 @@ ist korrekt, weil API-Module gemockt werden. Aussagekräftig ist **Functions**, 
 
 ## 10. Secrets
 
-Zwei Netze fangen hier: Gitleaks scannt bei jedem PR die **gesamte Historie**
-(`.github/workflows/secret-scan.yml`, blockierend), und `npm run check` schlägt Alarm, sobald
-eine `.env` verfolgt wird. Beide greifen aber erst, wenn der Fehler schon passiert ist — und
-ein Secret, das einmal in der Historie steht, muss rotiert werden, nicht nur gelöscht. Die
-eigentliche Kontrolle bist du.
+Ein Netz fängt hier: Gitleaks scannt bei jedem PR die **gesamte Historie**
+(`.github/workflows/secret-scan.yml`, blockierend). Es greift aber erst, wenn der Fehler schon
+passiert ist — und ein Secret, das einmal in der Historie steht, muss rotiert werden, nicht
+nur gelöscht. Die eigentliche Kontrolle bist du.
 
 - `.env` und `.env.*` sind gitignored. **Halte es so** — niemals entfernen, niemals eine
   `.env` committen.
@@ -610,7 +613,7 @@ zusammengefasst steht — **bei Widerspruch gewinnt der Skill.**
 
 ## 15. Definition of Done
 
-- [ ] `npm run verify` grün (Type-Check + Konventionen + Tests)
+- [ ] `npm run verify` grün (Type-Check + Tests)
 - [ ] `npm run build` läuft durch
 - [ ] bei großer UI-Änderung: im Browser durchgeklickt — oder im PR-Text vermerkt, warum nicht
 - [ ] kein neues `describe.skip` / `it.skip`
