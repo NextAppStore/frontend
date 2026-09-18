@@ -330,15 +330,15 @@ npm run test:coverage                                 # + coverage/index.html, p
 npm run test -- tests/unit/views/AppsView.spec.ts     # eine Datei
 npm run test -- -t "Empty-State"                      # nach it()-Name filtern
 npm run type-check                                    # vue-tsc -b --noEmit
-npm run check                                         # Konventions-Gate (u.a. neue .skip)
-npm run verify                                        # type-check && check && test
+npm run verify                                        # type-check && test
 ```
 
 Es gibt **kein** `npm run test:unit` und **kein** `npm run lint` — die README behauptet das
 fälschlich. Im Container: `make shell-frontend` aus `deployment/`.
 
-`npm run check` fängt ein neues `describe.skip`/`it.skip` ab (die vier bestehenden sind in
-der Baseline eingefroren) und lässt ein `.only` **nie** durch — dafür gibt es keine Baseline.
+**Ein neues `.skip` oder `.only` fängt keine Automatik ab.** Ein übersehenes `.only` schaltet
+still alle übrigen Tests der Datei aus und die Suite bleibt trotzdem grün — prüfe vor dem
+Commit selbst, dass keines übrig geblieben ist.
 
 ---
 
