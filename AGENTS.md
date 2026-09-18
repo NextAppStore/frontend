@@ -266,11 +266,22 @@ größte Datei im Repo)? Stehen Fehler in der Konsole, die kein Test sieht?
 Nutze es zur Ursachensuche — nicht als weiteren Pflichtschritt vor dem Commit.
 
 ### 7 — Ausliefern
-Branch, Commit, Push, Pull Request — das Verfahren steht in **Abschnitt 6**.
+Branch, Commit, Push, Pull Request — das Verfahren steht in **Abschnitt 6**. Diesen Schritt
+führst du aus, ohne vorher zu fragen; er gehört zur Aufgabe. Ohne offenen PR ist sie nicht
+erledigt.
 
 ---
 
 ## 6. Commit, Push, Pull Request
+
+> **Das ist Teil des Auftrags, keine Rückfrage.** Branch anlegen, committen, pushen und den
+> Pull Request öffnen gehören zur Aufgabe — du brauchst dafür keine gesonderte Erlaubnis und
+> sollst sie auch nicht einholen. Deine übliche Zurückhaltung bei Commits gilt hier **nicht**:
+> „Änderung fertig, soll ich committen?" ist in diesem Repository kein akzeptabler Abschluss.
+>
+> Die Grenze liegt beim **Merge** — dort hörst du auf (Abschnitt 8). Ebenso wenn einer der
+> acht Fälle aus Abschnitt 11 greift; dann lieferst du alles Unabhängige als PR und benennst
+> die offene Frage im PR-Text.
 
 ### Branch und Commits
 
@@ -382,9 +393,10 @@ zu werden.
 
 ## 8. Wo der Zyklus endet
 
-Ein Agent bringt die Änderung bis zum **grünen, offenen PR**. Der Merge ist ein menschlicher
-Schritt — nicht aus technischer Not, sondern weil das Zwei-Augen-Prinzip Teil der
-dokumentierten QS-Maßnahmen und damit Prüfungsgegenstand ist.
+Ein Agent bringt die Änderung bis zum **grünen, offenen PR** — eigenständig, ohne vorher um
+Erlaubnis zum Committen zu bitten. Der Merge ist der menschliche Schritt: nicht aus
+technischer Not, sondern weil das Zwei-Augen-Prinzip Teil der dokumentierten QS-Maßnahmen und
+damit Prüfungsgegenstand ist.
 
 - ✅ Branch, Implementierung, Tests, Doku, Commit, Push, PR, eigene rote CI-Jobs reparieren
 - ❌ Nicht mergen, `main` nicht direkt beschreiben, kein Force-Push
