@@ -160,6 +160,16 @@ describe('CoursesView.vue', () => {
 
 ---
 
+### Was diese Tests NICHT abdecken
+
+Beide Formen laufen gegen `happy-dom` mit gemockten Stores — kein echter Browser, kein echtes
+Backend. Sie können grün sein, während die App im Betrieb kaputt ist. Bei **großen**
+UI-Änderungen gehört deshalb eine Sichtprüfung mit Playwright dazu (AGENTS.md, Schritt 6b).
+
+Das ist eine Ergänzung, kein Ersatz: Eine bestandene Sichtprüfung erspart dir keinen einzigen
+`.spec.ts`. Umgekehrt findet sie Dinge, die kein Unit-Test sehen kann — fehlende Mounts,
+kaputte Routen, Konsolenfehler, einen Ablauf, der in Schritt drei hängen bleibt.
+
 ## 3. Selektoren — der wichtigste Abschnitt
 
 Hieran sind die drei abgeschalteten Suites gestorben. Halte dich streng an die Rangfolge:

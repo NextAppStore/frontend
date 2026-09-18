@@ -167,7 +167,8 @@ Ein PR braucht ein menschliches Review. Halte ihn reviewbar:
 
 ## 5. Der Zyklus
 
-Sieben Schritte, keiner optional — auch nicht bei Einzeilern.
+Sieben Schritte, keiner optional — auch nicht bei Einzeilern. Dazu zwei Zusätze: **6b** greift
+nur bei großen UI-Änderungen, **6c** ist ein Debugging-Werkzeug und nie verpflichtend.
 
 ### 1 — Verstehen
 Welche Schicht ist betroffen? Welche Views/Stores/Composables? Bei Unsicherheit über einen
@@ -219,6 +220,50 @@ npm run check -- --update   # Baseline schrumpfen und mitcommitten
 
 Es gibt **kein** `npm run lint` und **kein** `npm run test:unit` — die README behauptet das
 fälschlich. Einen JS-Linter (ESLint) gibt es im Frontend nicht.
+
+### 6b — Im Browser prüfen (nur bei großen UI-Änderungen)
+
+`npm run verify` sagt nichts darüber, ob die Oberfläche tatsächlich funktioniert: Alle Tests
+laufen gegen `happy-dom` mit gemockten Stores. Bei **großen** UI-Änderungen klickst du deshalb
+mit Playwright durch — bei allem anderen **nicht**.
+
+**Nur bei diesen Auslösern:**
+
+- eine neue View, oder eine bestehende in Layout/Struktur umgebaut
+- ein Schritt des Deployment-Wizards oder dessen Navigationsfluss
+- eine `ui/`-Komponente, die an mehreren Stellen eingebunden ist
+  (`BaseButton`, `Modal`, `EntityListState`, `PageHeader`, `Card`)
+- eine Route, ein Router-Guard oder ein Layout
+- etwas, das erst im Betrieb sichtbar wird: Live-Log-Stream, Datei-Upload, Rollen-Sichtbarkeit
+
+**Ausdrücklich nicht bei:** Store-, Composable- oder Util-Logik · reinem Text-/i18n-Tausch ·
+Tailwind-Feinheiten · Kommentaren und Doku · Tests · Typen. Dafür genügt `npm run verify`.
+Im Zweifel: nicht klicken.
+
+**Voraussetzung.** Playwright braucht die laufende App. Prüfe erst, ob `http://localhost:5173`
+antwortet. Tut es das nicht, **fahre den Stack nicht extra hoch** — überspringe den Schritt
+und schreib eine Zeile in den PR-Text: „visuell nicht geprüft, App lief nicht". Ehrlich
+übersprungen ist besser als fünfzehn Minuten Container-Start für eine Sichtprüfung.
+
+**Was du prüfst:** Rendert die Seite ohne Fehler? Funktioniert der geänderte Ablauf bis zum
+Ende? Erscheinen Lade-, Leer- und Fehlerzustand? Steht etwas in der Browser-Konsole?
+
+**Was es nicht ist:** Ein Ersatz für Tests. Die Sichtprüfung findet Dinge, die Unit-Tests nicht
+sehen können — sie ersetzt keinen einzigen davon. Ein neuer `.spec.ts` bleibt Pflicht.
+
+Sind die Playwright-Tools in deiner Session nicht verfügbar, überspringe den Schritt und
+vermerk das im PR-Text. Sie sind pro Arbeitsplatz eingerichtet, nicht im Repo hinterlegt.
+
+### 6c — Debuggen mit Chrome DevTools
+
+Optional und nie verpflichtend. Wenn etwas nicht erklärbar ist, geben die
+Chrome-DevTools-Tools Zugriff auf Konsole, Netzwerk-Requests, Performance-Traces und DOM.
+
+Typische Fälle hier: Welcher Request schlägt fehl und mit welchem Status? Kommen die
+SSE-Events im Deployment-Detail wirklich an? Warum ist `DeploymentDetailView` träge (128 KB,
+größte Datei im Repo)? Stehen Fehler in der Konsole, die kein Test sieht?
+
+Nutze es zur Ursachensuche — nicht als weiteren Pflichtschritt vor dem Commit.
 
 ### 7 — Ausliefern
 Branch, Commit, Push, Pull Request — das Verfahren steht in **Abschnitt 6**.
@@ -567,6 +612,7 @@ zusammengefasst steht — **bei Widerspruch gewinnt der Skill.**
 
 - [ ] `npm run verify` grün (Type-Check + Konventionen + Tests)
 - [ ] `npm run build` läuft durch
+- [ ] bei großer UI-Änderung: im Browser durchgeklickt — oder im PR-Text vermerkt, warum nicht
 - [ ] kein neues `describe.skip` / `it.skip`
 - [ ] i18n-Keys in `de.ts` **und** `en.ts` — der Paritätstest prüft das
 - [ ] kein `any`, kein `#hex`, kein neuer `<style>`-Block, kein direkter `axios`/`fetch`-Aufruf
