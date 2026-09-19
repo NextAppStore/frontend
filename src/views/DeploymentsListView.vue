@@ -17,8 +17,7 @@ import EntityListState from '@/components/ui/EntityListState.vue'
 import { useDeploymentStore } from '@/stores/deployment.store'
 import { useAppStore } from '@/stores/app.store'
 import { formatDateTime } from '@/utils/format'
-// TODO: replace local getStatusColor with this import once the function is moved
-// import { getStatusColor } from '@/composables/useDeploymentStatus'
+import { getStatusColor } from '@/composables/useDeploymentStatus'
 
 const deploymentStore = useDeploymentStore()
 const appStore = useAppStore()
@@ -58,25 +57,6 @@ const sortedDeployments = computed(() =>
   })
 )
 
-// Status pills. Color semantics: orange = destroy, amber = lifecycle-pending,
-// slate = paused.
-const getStatusColor = (status: string) => {
-  const colors = {
-    'success': 'bg-green-100 text-green-800 border-green-300',
-    'failed': 'bg-red-100 text-red-800 border-red-300',
-    'running': 'bg-blue-100 text-blue-800 border-blue-300',
-    'pending': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    'cancelled': 'bg-gray-100 text-gray-700 border-gray-300',
-    'destroyed': 'bg-orange-100 text-orange-800 border-orange-300',
-    'destroying': 'bg-orange-100 text-orange-700 border-orange-300',
-    'pausing': 'bg-amber-100 text-amber-800 border-amber-300',
-    'paused': 'bg-slate-100 text-slate-700 border-slate-300',
-    'resuming': 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    'pause_failed': 'bg-amber-100 text-amber-900 border-amber-300',
-    'resume_failed': 'bg-amber-100 text-amber-900 border-amber-300',
-  }
-  return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-300'
-}
 </script>
 
 

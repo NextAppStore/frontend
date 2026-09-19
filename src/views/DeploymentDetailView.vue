@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { CircleArrowLeft, Loader2, Users, Settings, Terminal, ChevronDown, Trash2, GitBranch, User, Calendar, Clock, Package, AlertCircle, CheckCircle, XCircle, StopCircle, Flame, Copy, Check, Send, PauseCircle, PlayCircle, RefreshCw, Server, Network, Shield } from 'lucide-vue-next'
+import { CircleArrowLeft, Loader2, Users, Settings, Terminal, ChevronDown, Trash2, GitBranch, User, Calendar, Package, AlertCircle, Copy, Check, Send, PauseCircle, PlayCircle, RefreshCw, Server, Network, Shield } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -13,9 +13,10 @@ import { taskApi } from '@/api/task.api'
 import { deploymentApi } from '@/api/deployment.api'
 import type { Task, DeploymentResource } from '@/types'
 import { useDeploymentStream } from '@/composables/useDeploymentStream'
-// TODO: activate once implementation is moved from this file
-// import { useDeploymentPhaseLabels } from '@/composables/useDeploymentPhaseLabels'
-// import { useDeploymentOutputs } from '@/composables/useDeploymentOutputs'
+import { getStatusStyles } from '@/composables/useDeploymentStatus'
+import { useDeploymentPhaseLabels, DEFAULT_PHASE_COUNT, phaseLabel } from '@/composables/useDeploymentPhaseLabels'
+import { useDeploymentOutputs } from '@/composables/useDeploymentOutputs'
+import type { UserAccount } from '@/composables/useDeploymentOutputs'
 import InfrastructureVmCard from '@/components/InfrastructureVmCard.vue'
 import InfrastructureVmDrawer from '@/components/InfrastructureVmDrawer.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -25,6 +26,8 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 // import DeploymentTeamsCard from '@/components/DeploymentTeamsCard.vue'
 import { formatDateTime } from '@/utils/format'
 import { extractErrorMessage } from '@/utils/http-error'
+import { prettyJson, highlightJson } from '@/utils/json'
+import { splitTaskLogs } from '@/utils/task-logs'
 
 import { Eye, EyeOff } from 'lucide-vue-next'
 
@@ -82,200 +85,14 @@ const loadingTaskDetail = ref(false)
 const deploymentId = route.params.id as string
 
 const deployment = computed(() => deploymentStore.currentDeployment)
-// Structure of a single account.
-interface UserAccount {
-    username: string
-    team: string
-    ip: string
-    port: number
-    auth: string
-    type?: 'password' | 'ssh_key' | 'oauth' | 'none' | string
-    authtype?: 'ssh' | 'url' | string
-    url?: string
-}
 
-const typedUserAccounts = computed<Record<string, UserAccount> | null>(() => {
-    const currentTarget = selectedTask.value || latestTaskOutputs.value
-    const rawOutputs = currentTarget?.outputs
-    // Member fallback: non-owners have no task outputs (the owner-only
-    // task endpoint 403s / is skipped), so use the per-user credentials
-    // fetched from ``/my-access``. Already in the ``user_accounts.value``
-    // shape, so it feeds the matching pipeline below directly.
-    if (!rawOutputs) return myAccounts.value
-
-    let outputsObj: any = rawOutputs
-
-    // Case 1: outputs arrive as a JSON string from the DB text column.
-    if (typeof rawOutputs === 'string') {
-        try {
-            const trimmed = rawOutputs.trim()
-            if (trimmed.startsWith('{')) {
-                outputsObj = JSON.parse(trimmed)
-            }
-        } catch (e) {
-            console.error('Failed to parse raw outputs data:', e)
-            return myAccounts.value
-        }
-    }
-
-    // Case 2: it is already an object (or was parsed successfully above).
-    if (outputsObj && typeof outputsObj === 'object' && 'user_accounts' in outputsObj) {
-        const userAccountsContainer = outputsObj.user_accounts
-
-        // Reach through to the Terraform ``.value`` object.
-        if (userAccountsContainer && userAccountsContainer.value) {
-            return userAccountsContainer.value as Record<string, UserAccount>
-        }
-    }
-
-    return myAccounts.value
+const { /* typedUserAccounts, */ enrichedTeams /* , extractTeamVms */ } = useDeploymentOutputs({
+    deployment,
+    selectedTask,
+    latestTaskOutputs,
+    myAccounts,
+    myTeamVms,
 })
-
-
-
-const enrichedTeams = computed(() => {
-    const currentDeployment = deployment && 'value' in deployment
-        ? deployment.value
-        : deployment;
-
-    if (!currentDeployment?.teams) return [];
-
-    const accounts = typedUserAccounts && 'value' in typedUserAccounts
-        ? typedUserAccounts.value
-        : typedUserAccounts;
-
-    // Team-level VM metadata from terraform's ``team_vms`` output. Apps
-    // that serve a Web-UI publish ``url`` here; SSH-only apps don't.
-    // We surface that as ``team.vm`` so the template can decide between
-    // a URL pill and an SSH-command pill per team.
-    const teamVms = extractTeamVms()
-
-    // Resolve member ↔ account.
-    //
-    // The canonical contract is the ``user_accounts`` MAP KEY, which every app
-    // template constructs the same way:
-    //
-    //     key = "<team>-" + email.split("@")[0].replace(".", "-")
-    //
-    // Since the member's email and team are known here, that key can be
-    // reproduced deterministically. The value's ``username`` field is not a
-    // reliable identifier (some templates write the email local-part, others a
-    // shared team-wide pseudo-email), so we index by key and look up the derived
-    // key per member. Three fallbacks cover templates not matched by the key.
-    const accountByEmail = new Map<string, { key: string; data: UserAccount }>()
-    const accountByUsername = new Map<string, { key: string; data: UserAccount }>()
-    const accountByKey = new Map<string, { key: string; data: UserAccount }>()
-    if (accounts) {
-        for (const [key, acc] of Object.entries(accounts)) {
-            const candidate = acc?.username?.trim().toLowerCase()
-            if (candidate && candidate.includes('@')) {
-                accountByEmail.set(candidate, { key, data: acc })
-            } else if (candidate) {
-                accountByUsername.set(candidate, { key, data: acc })
-            }
-            accountByKey.set(key.trim().toLowerCase(), { key, data: acc })
-        }
-    }
-
-    // Mirror the terraform key sanitisation: lowercase the local-part
-    // and replace dots with dashes. Only dots — terraform's
-    // ``replace(local_part, ".", "-")`` does not touch other characters.
-    const deriveExpectedKey = (teamName: string, email: string | undefined): string | null => {
-        if (!email) return null
-        const localPart = email.split('@')[0]
-        if (!localPart) return null
-        const sanitised = localPart.replace(/\./g, '-').toLowerCase()
-        return `${teamName.trim().toLowerCase()}-${sanitised}`
-    }
-
-    return currentDeployment.teams.map(team => {
-        const vm = teamVms?.[team.name] ?? null
-        const teamNameLower = team.name.trim().toLowerCase()
-        return {
-            ...team,
-            vm,
-            members: team.members.map(member => {
-                const memberEmail = member?.email?.trim().toLowerCase()
-                const memberName = member?.username?.trim().toLowerCase()
-
-                // Strategy 0 (canonical): derive the terraform key from
-                // member.email + team.name and look it up directly.
-                let hit: { key: string; data: UserAccount } | undefined
-                const expectedKey = deriveExpectedKey(team.name, memberEmail)
-                if (expectedKey) hit = accountByKey.get(expectedKey)
-
-                // Strategy 1: email-based (templates that write the
-                // member's full email into ``account.username``).
-                if (!hit && memberEmail) hit = accountByEmail.get(memberEmail)
-
-                // Strategy 2: username substring against account.username
-                if (!hit && memberName) {
-                    for (const [accUser, entry] of accountByUsername) {
-                        if (accUser.includes(memberName) || memberName.includes(accUser)) {
-                            hit = entry
-                            break
-                        }
-                    }
-                }
-
-                // Strategy 3: username substring against the account key
-                // (``Team #1-leon-priemer`` etc.). Last-resort fallback
-                // for templates where ``account.username`` is missing
-                // and the keycloak username happens to match the slug.
-                if (!hit && memberName) {
-                    for (const [accKey, entry] of accountByKey) {
-                        if (accKey.includes(memberName)) {
-                            hit = entry
-                            break
-                        }
-                    }
-                }
-
-                // Team scope guard so an account from team A can't be
-                // attached to a member of team B.
-                const accountTeam = hit?.data.team?.trim().toLowerCase()
-                const keyLower = hit?.key.trim().toLowerCase()
-                const teamMatches = hit && (
-                    accountTeam === teamNameLower ||
-                    (keyLower?.startsWith(`${teamNameLower}-`) ?? false) ||
-                    (keyLower?.includes(teamNameLower) ?? false)
-                )
-                return {
-                    ...member,
-                    account: teamMatches ? hit : null
-                };
-            })
-        };
-    });
-});
-
-/**
- * Pull the ``team_vms`` object out of the active task's outputs. Same
- * unwrap chain as ``typedUserAccounts`` — the outputs may arrive as a
- * raw JSON string from the DB or as an already-parsed object, and the
- * actual map sits under ``.value`` because Terraform stamps the output
- * shape on the wrapper. Returns ``null`` if anything along the way
- * isn't there.
- */
-function extractTeamVms(): Record<string, { url?: string; floating_ip?: string; fixed_ip?: string }> | null {
-    const currentTarget = selectedTask.value || latestTaskOutputs.value
-    const rawOutputs = currentTarget?.outputs
-    // Member fallback: use the team VM block from ``/my-access`` so a
-    // non-owner still gets the Web-URL pill (SSH/PW render even without it).
-    if (!rawOutputs) return myTeamVms.value
-
-    let outputsObj: any = rawOutputs
-    if (typeof rawOutputs === 'string') {
-        try {
-            const trimmed = rawOutputs.trim()
-            if (trimmed.startsWith('{')) outputsObj = JSON.parse(trimmed)
-        } catch {
-            return myTeamVms.value
-        }
-    }
-    const vms = outputsObj?.team_vms?.value
-    return vms && typeof vms === 'object' ? vms : myTeamVms.value
-}
 
 // Counts the resources in the state for the header sub-headline.
 const tfResourcesCount = computed(() => {
@@ -289,39 +106,6 @@ const tfResourcesCount = computed(() => {
         return 0
     }
 })
-
-// Lightweight, safe syntax highlighting for JSON.
-const highlightJson = (jsonString: string): string => {
-    if (!jsonString) return ''
-
-    let safeStr = jsonString
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-
-    return safeStr.replace(
-        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
-        (match) => {
-            let cls = 'text-amber-400'
-
-            if (/^"/.test(match)) {
-                if (/:$/.test(match)) {
-                    cls = 'text-blue-500 font-medium' // keys
-                } else {
-                    cls = 'text-emerald-500' // string values
-                }
-            } else if (/true|false/.test(match)) {
-                cls = 'text-purple-500 font-bold' // booleans
-            } else if (/null/.test(match)) {
-                cls = 'text-gray-500 italic' // null
-            } else {
-                cls = 'text-cyan-500' // numbers
-            }
-
-            return `<span class="${cls}">${match}</span>`
-        }
-    )
-}
 
 // Owner-view vs member-view — mirrors backend/app/utils/permissions.py
 // ``is_deployment_owner_view``. Drives every gated UI element on
@@ -656,170 +440,12 @@ const historyTasks = computed<Task[]>(() => {
     return list.filter((t) => t.taskId !== active.taskId)
 })
 
-// Phase stepper — N dots based on the live ``totalPhases`` reported by the
-// worker. Phase names live in the worker (different sets for deploy/destroy),
-// so the frontend stays task-type-agnostic for the dot count. Label tables for
-// the deploy/destroy presets render meaningful labels under each dot when the
-// totals match a known shape; an unknown count falls back to numbered labels.
-//
-// Default to a conservative 11-dot view before the first event arrives so the
-// layout doesn't jump when the worker reports its real phase count.
-const DEFAULT_PHASE_COUNT = 11
-
-const PHASE_LABELS_DEPLOY_FULL = [
-    'STARTING',
-    'OPENSTACK_SETUP',
-    'GIT_CLONE',
-    'CREDS_MATERIALISE',
-    'PACKER_INIT',
-    'PACKER_VALIDATE',
-    'PACKER_BUILD',
-    'TERRAFORM_INIT',
-    'TERRAFORM_PLAN',
-    'TERRAFORM_APPLY',
-    'OUTPUTS_AND_CLEANUP',
-] as const
-
-const PHASE_LABELS_DEPLOY_NO_PACKER = [
-    'STARTING',
-    'OPENSTACK_SETUP',
-    'GIT_CLONE',
-    'CREDS_MATERIALISE',
-    'TERRAFORM_INIT',
-    'TERRAFORM_PLAN',
-    'TERRAFORM_APPLY',
-    'OUTPUTS_AND_CLEANUP',
-] as const
-
-const PHASE_LABELS_DESTROY = [
-    'STARTING',
-    'OPENSTACK_SETUP',
-    'GIT_CLONE',
-    'CREDS_MATERIALISE',
-    'TERRAFORM_INIT',
-    'TERRAFORM_DESTROY',
-    'CLEANUP',
-] as const
-
-// Pause/Resume share the destroy preamble (clone + clouds + tf init to allow a
-// state-pull) but their hot phase is a CLI-driven server stop/start, not a
-// terraform destroy. Same length as ``PHASE_LABELS_DESTROY`` (7), so tables are
-// picked by task type first and only fall back to length-matching when the type
-// is unknown (e.g. live-stream attached before tasks were loaded).
-const PHASE_LABELS_PAUSE = [
-    'STARTING',
-    'OPENSTACK_SETUP',
-    'GIT_CLONE',
-    'CREDS_MATERIALISE',
-    'TERRAFORM_INIT',
-    'SERVER_STOP',
-    'CLEANUP',
-] as const
-
-const PHASE_LABELS_RESUME = [
-    'STARTING',
-    'OPENSTACK_SETUP',
-    'GIT_CLONE',
-    'CREDS_MATERIALISE',
-    'TERRAFORM_INIT',
-    'SERVER_START',
-    'CLEANUP',
-] as const
-
-// Per-VM redeploy reuses the destroy preamble (clone, clouds.yaml,
-// init) and then runs ``terraform apply -replace=… -target=…`` for
-// the single targeted resource. Phase shape mirrors
-// ``worker/app/tasks.py:_PHASES_REDEPLOY``.
-const PHASE_LABELS_REDEPLOY = [
-    'STARTING',
-    'OPENSTACK_SETUP',
-    'GIT_CLONE',
-    'CREDS_MATERIALISE',
-    'TERRAFORM_INIT',
-    'TERRAFORM_APPLY',
-    'CLEANUP',
-] as const
-
-// Stepper labels: the worker sends the full phase sequence as ``phase_names``
-// with every progress event — the authoritative source, since multi-image
-// deploys have a dynamic sequence whose template keys the frontend can't guess.
-// Before the first progress event, we fall back to the static tables below,
-// which cover the fixed shapes (single-image deploy / destroy / pause / resume
-// / redeploy); multi-image slots show generic numbers until ``phase_names`` lands.
-
-const phaseStepCount = computed<number>(() => {
-    return streamTotalPhases.value > 0 ? streamTotalPhases.value : DEFAULT_PHASE_COUNT
-})
-
-// Return the label for a given 0-based index. Order of precedence:
-//   1. ``streamPhaseNames`` — authoritative, ships from the worker on
-//      every progress event for every real task (deploy / destroy /
-//      pause / resume / redeploy). Contains the exact phase names
-//      including ``:<template_key>`` suffixes for multi-image builds.
-//   2. Static table picked by ``activeTask.type`` — used in the brief
-//      window between page-load and the first progress event, and
-//      always for legacy Single-Image-Deploy where the worker's
-//      sequence is byte-identical to ``PHASE_LABELS_DEPLOY_FULL``.
-//   3. Numeric slot index — empty-slot guard so the stepper height
-//      doesn't collapse during the loading flicker.
-const phaseStepLabel = (idx: number): string => {
-    // 1. Worker-authoritative list.
-    const fromStream = streamPhaseNames.value
-    if (Array.isArray(fromStream) && idx >= 0 && idx < fromStream.length) {
-        return phaseLabel(fromStream[idx])
-    }
-
-    // 2. Static fallback by active task type. Used until the first
-    //    progress event lands.
-    let table: readonly string[] | null = null
-    const activeType = activeTask.value?.type
-    if (activeType === 'pause') {
-        table = PHASE_LABELS_PAUSE
-    } else if (activeType === 'resume') {
-        table = PHASE_LABELS_RESUME
-    } else if (activeType === 'destroy') {
-        table = PHASE_LABELS_DESTROY
-    } else if (activeType === 'redeploy') {
-        table = PHASE_LABELS_REDEPLOY
-    } else if (activeType === 'deploy') {
-        // Without the worker's ``phase_names`` we can't tell legacy
-        // (11) apart from multi-image (14, 17, ...). The total is
-        // already known from the stream though, so pick the matching
-        // table when it fits exactly — otherwise leave ``table = null``
-        // and let the loop fall through to numeric slot indices.
-        // Once the first progress event arrives, ``phase_names`` takes
-        // over and the predicted slots are replaced with real labels.
-        if (streamTotalPhases.value === PHASE_LABELS_DEPLOY_NO_PACKER.length) {
-            table = PHASE_LABELS_DEPLOY_NO_PACKER
-        } else if (streamTotalPhases.value === PHASE_LABELS_DEPLOY_FULL.length) {
-            table = PHASE_LABELS_DEPLOY_FULL
-        }
-    }
-    // Length-based last resort (no active task type known yet).
-    if (!table) {
-        const total = streamTotalPhases.value
-        if (total === PHASE_LABELS_DEPLOY_FULL.length) table = PHASE_LABELS_DEPLOY_FULL
-        else if (total === PHASE_LABELS_DEPLOY_NO_PACKER.length) table = PHASE_LABELS_DEPLOY_NO_PACKER
-        else if (total === PHASE_LABELS_DESTROY.length) table = PHASE_LABELS_DESTROY
-    }
-    if (table && idx >= 0 && idx < table.length) {
-        return phaseLabel(table[idx])
-    }
-    // 3. Numeric placeholder so the slot has a non-empty label.
-    return String(idx + 1)
-}
-
-// 0-based index of the active dot. Prefer the worker's authoritative
-// ``phase_index`` (1-based) from the SSE payload — only fall back to
-// rounding ``progress_pct`` if no progress event has arrived yet.
-const currentPhaseIndex = computed<number>(() => {
-    if (streamCurrentPhaseIndex.value !== null && streamCurrentPhaseIndex.value > 0) {
-        return streamCurrentPhaseIndex.value - 1
-    }
-    if (streamProgress.value === null) return -1
-    const total = phaseStepCount.value
-    const pct = Math.max(0, Math.min(100, streamProgress.value))
-    return Math.max(0, Math.min(total - 1, Math.round((pct / 100) * total) - 1))
+const { phaseStepCount, phaseStepLabel, currentPhaseIndex } = useDeploymentPhaseLabels({
+    streamTotalPhases,
+    streamCurrentPhaseIndex,
+    streamProgress,
+    streamPhaseNames,
+    activeTaskType: computed(() => activeTask.value?.type),
 })
 
 // Initialise progress bar + stepper from whatever the DB has on the
@@ -962,55 +588,6 @@ onBeforeUnmount(() => {
     stopStream()
 })
 
-// Pretty phase label for the progress bar header. Keeps the enum
-// naming convention from the worker (UPPER_SNAKE_CASE) but renders
-// it human-friendly. Defensive: anything that isn't a non-empty
-// string falls back to an empty label so the template never sees a
-// non-string slip through (e.g. the brief moment an unwrapped ref
-// produced the original ``phase.split is not a function`` crash).
-// Pretty-print arbitrary JSON-ish values for the terraform state /
-// outputs / raw-logs blocks. The backend persists these as TEXT
-// columns, so they arrive as either:
-//
-//  * a JSON string (terraform state pulled from the pg backend, or the
-//    JSON-stringified outputs map),
-//  * a real object/array (when the API layer has already parsed it),
-//  * a plain non-JSON string (a stack trace, a single error line),
-//  * null / undefined when the worker had nothing to record.
-//
-// The helper unifies those into a 2-space-indented JSON dump when the
-// payload parses, and falls back to the raw text otherwise so we never
-// clobber a non-JSON string by trying to parse it.
-const prettyJson = (value: unknown): string => {
-    if (value === null || value === undefined) return ''
-    if (typeof value === 'object') {
-        try {
-            return JSON.stringify(value, null, 2)
-        } catch {
-            return String(value)
-        }
-    }
-    if (typeof value === 'string') {
-        const trimmed = value.trim()
-        // Cheap pre-check: only attempt JSON.parse on strings that look
-        // like JSON. Saves a try/catch round-trip for ordinary log
-        // text and avoids accidentally parsing a bare number or "null"
-        // string into something the consumer didn't expect.
-        if (
-            (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-            (trimmed.startsWith('[') && trimmed.endsWith(']'))
-        ) {
-            try {
-                return JSON.stringify(JSON.parse(trimmed), null, 2)
-            } catch {
-                return value
-            }
-        }
-        return value
-    }
-    return String(value)
-}
-
 // Copy-to-clipboard state. Each "card" (logs/state/outputs) tags its
 // copy button with a unique key; the key of whichever was last
 // successfully copied is stored here for ~1.5s so we can flip its
@@ -1047,22 +624,6 @@ const copyToClipboard = async (text: string, key: string) => {
     } catch (err) {
         console.error('Copy failed:', err)
     }
-}
-
-const phaseLabel = (phase: unknown): string => {
-    if (typeof phase !== 'string' || !phase) return ''
-    // Worker-emitted multi-image phases carry the template key as a ``:<key>``
-    // suffix (e.g. ``PACKER_BUILD:database``). Split the suffix off, title-case
-    // the base name, and append the sub-key as ``[<key>]`` so the stepper reads
-    // ``Packer Build [database]`` instead of ``Packer Build:database``.
-    const colonIdx = phase.indexOf(':')
-    const base = colonIdx === -1 ? phase : phase.slice(0, colonIdx)
-    const subKey = colonIdx === -1 ? '' : phase.slice(colonIdx + 1).trim()
-    const formattedBase = base
-        .split('_')
-        .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
-        .join(' ')
-    return subKey ? `${formattedBase} [${subKey}]` : formattedBase
 }
 
 // Count of log entries inside ``selectedTask.logs`` for the badge in
@@ -1110,122 +671,6 @@ const deploymentTimestamp = computed(() => {
     return deployment.value?.created_at ? formatDate(deployment.value.created_at) : '-'
 })
 
-const getStatusStyles = (status?: string) => {
-    switch (status) {
-        case 'success':
-            return {
-                label: 'DeploymentsView.deploymentSuccessful',
-                dotClass: 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-green-100 text-green-800 border-green-300',
-                icon: CheckCircle
-            }
-        case 'running':
-            return {
-                label: 'DeploymentsView.deploymentRunning',
-                dotClass: 'bg-blue-500 animate-pulse shadow-[0_0_12px_rgba(59,130,246,0.6)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-blue-100 text-blue-800 border-blue-300',
-                icon: Loader2
-            }
-        case 'pending':
-            return {
-                label: 'DeploymentsView.deploymentPending',
-                dotClass: 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.4)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-                icon: Clock
-            }
-        case 'failed':
-            return {
-                label: 'DeploymentsView.deploymentFailed',
-                dotClass: 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-red-100 text-red-800 border-red-300',
-                icon: XCircle
-            }
-        case 'destroying':
-            return {
-                label: 'DeploymentsView.deploymentDestroying',
-                dotClass: 'bg-orange-500 animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.6)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-orange-100 text-orange-700 border-orange-300',
-                icon: Loader2
-            }
-        case 'cancelled':
-            return {
-                label: 'DeploymentsView.deploymentCancelled',
-                dotClass: 'bg-gray-400',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-gray-100 text-gray-700 border-gray-300',
-                icon: StopCircle
-            }
-        case 'destroyed':
-            return {
-                label: 'DeploymentsView.deploymentDestroyed',
-                dotClass: 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.4)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-orange-100 text-orange-800 border-orange-300',
-                icon: Flame
-            }
-        case 'pausing':
-            return {
-                // ``pausing``/``resuming`` borrow the orange "in flight"
-                // palette from destroying — the user reads "something
-                // active is happening" at a glance, distinct from the
-                // calm green of success.
-                label: 'DeploymentsView.deploymentPausing',
-                dotClass: 'bg-amber-500 animate-pulse shadow-[0_0_12px_rgba(245,158,11,0.6)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
-                icon: Loader2
-            }
-        case 'paused':
-            return {
-                label: 'DeploymentsView.deploymentPaused',
-                dotClass: 'bg-slate-400 shadow-[0_0_10px_rgba(148,163,184,0.4)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
-                icon: PauseCircle
-            }
-        case 'resuming':
-            return {
-                label: 'DeploymentsView.deploymentResuming',
-                dotClass: 'bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.6)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-                icon: Loader2
-            }
-        case 'pause_failed':
-            // The deployment itself is unaffected — only the
-            // pause-pass tripped. Use the warning palette so the
-            // user reads "needs attention" rather than the harsher
-            // red of a deploy-failed.
-            return {
-                label: 'DeploymentsView.deploymentPauseFailed',
-                dotClass: 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
-                icon: AlertCircle
-            }
-        case 'resume_failed':
-            return {
-                label: 'DeploymentsView.deploymentResumeFailed',
-                dotClass: 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]',
-                textClass: 'text-gray-900',
-                badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
-                icon: AlertCircle
-            }
-        default:
-            return {
-                label: 'DeploymentsView.noStatus',
-                dotClass: 'bg-gray-300',
-                textClass: 'text-gray-400',
-                badgeClass: 'bg-gray-100 text-gray-800 border-gray-300',
-                icon: AlertCircle
-            }
-    }
-}
 
 const selectedGroup = ref<number | null>(null)
 
@@ -1282,50 +727,6 @@ const cleanVariableValue = (value?: string) => {
     let cleaned = str.split('#')[0]?.trim() ?? ''
     cleaned = cleaned.replace(/["']/g, '')
     return cleaned.trim() || '-'
-}
-
-/**
- * Split a task-logs string into a friendly headline + a collapsible
- * technical-details body. The backend's ``celery_event_listener.py``
- * emits Celery-infrastructure failures (``NotRegistered``,
- * ``WorkerLostError``, …) in a stable two-section format separated
- * by ``--- Technische Details ---``; we honour that boundary so the
- * raw stack trace stays available but isn't shoved into the user's
- * face by default.
- *
- * Returns ``{headline, details, isFailure}`` — ``isFailure`` lets
- * the template pick the destructive palette without re-doing the
- * regex on render.
- */
-const FAILURE_DETAIL_DIVIDER = '--- Technische Details ---'
-
-const splitTaskLogs = (raw: string | Record<string, unknown> | null | undefined) => {
-    if (!raw) return { headline: '', details: '', isFailure: false }
-    const text = String(raw)
-    // Backend "infra" failure with the explicit divider — we get a
-    // one-line headline and a raw block underneath.
-    const dividerIdx = text.indexOf(FAILURE_DETAIL_DIVIDER)
-    if (dividerIdx >= 0) {
-        return {
-            headline: text.slice(0, dividerIdx).trim(),
-            details: text.slice(dividerIdx + FAILURE_DETAIL_DIVIDER.length).trim(),
-            isFailure: true,
-        }
-    }
-    // Fallback: the legacy ``Task failed: ...\n<traceback>`` shape.
-    // Take the first line as headline if the body is multi-line.
-    if (text.startsWith('Task failed:')) {
-        const newlineIdx = text.indexOf('\n')
-        if (newlineIdx > 0) {
-            return {
-                headline: text.slice(0, newlineIdx).trim(),
-                details: text.slice(newlineIdx + 1).trim(),
-                isFailure: true,
-            }
-        }
-        return { headline: text.trim(), details: '', isFailure: true }
-    }
-    return { headline: '', details: '', isFailure: false }
 }
 
 // ``logs`` can be either a backend-formatted ``Task failed: ...`` string
