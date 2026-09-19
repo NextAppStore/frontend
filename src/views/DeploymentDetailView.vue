@@ -13,9 +13,16 @@ import { taskApi } from '@/api/task.api'
 import { deploymentApi } from '@/api/deployment.api'
 import type { Task, DeploymentResource } from '@/types'
 import { useDeploymentStream } from '@/composables/useDeploymentStream'
+// TODO: activate once implementation is moved from this file
+// import { useDeploymentPhaseLabels } from '@/composables/useDeploymentPhaseLabels'
+// import { useDeploymentOutputs } from '@/composables/useDeploymentOutputs'
 import InfrastructureVmCard from '@/components/InfrastructureVmCard.vue'
 import InfrastructureVmDrawer from '@/components/InfrastructureVmDrawer.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
+// TODO: activate once template blocks are moved from this file
+// import DeploymentActiveTaskCard from '@/components/DeploymentActiveTaskCard.vue'
+// import DeploymentTaskDetail from '@/components/DeploymentTaskDetail.vue'
+// import DeploymentTeamsCard from '@/components/DeploymentTeamsCard.vue'
 import { formatDateTime } from '@/utils/format'
 import { extractErrorMessage } from '@/utils/http-error'
 

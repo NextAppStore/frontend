@@ -17,6 +17,8 @@ import EntityListState from '@/components/ui/EntityListState.vue'
 import { useDeploymentStore } from '@/stores/deployment.store'
 import { useAppStore } from '@/stores/app.store'
 import { formatDateTime } from '@/utils/format'
+// TODO: replace local getStatusColor with this import once the function is moved
+// import { getStatusColor } from '@/composables/useDeploymentStatus'
 
 const deploymentStore = useDeploymentStore()
 const appStore = useAppStore()
