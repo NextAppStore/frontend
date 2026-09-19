@@ -23,7 +23,9 @@ const expiresAt = ref<number | null>(null)
 
 function decodeExpiry(jwt: string): number | null {
   try {
-    const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    const encodedPayload = jwt.split('.')[1]
+    if (!encodedPayload) return null
+    const payload = JSON.parse(atob(encodedPayload.replace(/-/g, '+').replace(/_/g, '/')))
     return typeof payload.exp === 'number' ? payload.exp * 1000 : null
   } catch {
     return null
