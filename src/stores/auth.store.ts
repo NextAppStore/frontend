@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { AuthService } from '@/services/auth.service'
 import { useKeycloak } from '@/composables/useKeycloak'
+import { useLtiSession } from '@/composables/useLtiSession'
 import { useOpenStackCredentialsStore } from '@/stores/openstack-credentials.store'
 import { invalidateAll as invalidateOpenStackCache } from '@/composables/useOpenStackResourceCache'
 import type { User, UserRole } from '@/types'
 
 const keycloak = useKeycloak()
+const ltiSession = useLtiSession()
 
 // In-flight promises to dedupe concurrent calls. The router guard,
 // App mount, and view mounts can all trigger initialize/fetchMe at the
@@ -22,7 +24,7 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: () => keycloak.isAuthenticated.value,
+    isAuthenticated: () => ltiSession.isAuthenticated.value || keycloak.isAuthenticated.value,
     
     userRole: (state): UserRole | null => state.user?.role || null,
     
@@ -42,9 +44,16 @@ export const useAuthStore = defineStore('auth', {
       initializePromise = (async () => {
         this.isLoading = true
         try {
-          await keycloak.initialize()
+          // An LTI session (restored from sessionStorage on module
+          // load, see useLtiSession.ts) never needs Keycloak's
+          // getUser()/signinSilent() flow — skip it entirely so a
+          // reload inside Moodle's iframe doesn't try to talk to
+          // Keycloak for a user who has no account there.
+          if (!ltiSession.isAuthenticated.value) {
+            await keycloak.initialize()
+          }
 
-          if (keycloak.isAuthenticated.value) {
+          if (ltiSession.isAuthenticated.value || keycloak.isAuthenticated.value) {
             const storedUser = AuthService.getStoredUser()
             if (storedUser) {
               this.user = storedUser
@@ -120,6 +129,14 @@ export const useAuthStore = defineStore('auth', {
       // Clear the OpenStack resource display cache — the next user has their own
       // credentials and a different project, so old resource lists must not persist.
       invalidateOpenStackCache()
+
+      // An LTI session has no Keycloak account to sign out of —
+      // redirecting to Keycloak's logout page would be wrong. Just
+      // drop the local token; the router guard sends them to /login.
+      if (ltiSession.isAuthenticated.value) {
+        ltiSession.logout()
+        return
+      }
 
       try {
         await keycloak.logout()
