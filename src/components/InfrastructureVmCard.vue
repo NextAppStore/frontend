@@ -195,6 +195,7 @@ const cardBorderClass = computed(() => {
         >
           <span class="text-gray-500">{{ addr.network }}:</span>
           <span v-if="addr.fixed_ip" class="font-mono">{{ addr.fixed_ip }}</span>
+          <span v-if="addr.fixed_ip_v6" class="font-mono text-xs text-gray-500">{{ addr.fixed_ip_v6 }}</span>
           <span v-if="addr.floating_ip" class="font-mono text-emerald-700">
             → {{ addr.floating_ip }}
           </span>

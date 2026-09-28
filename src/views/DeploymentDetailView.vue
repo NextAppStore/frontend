@@ -49,6 +49,21 @@ const userUrlFor = (data: { ip?: string; port?: number }, teamVmUrl?: string): s
     return `http://${data.ip}:${data.port}${path}`
 }
 
+// Build a copy-paste RDP command from an account. Skips the port suffix
+// for the default 3389 so the line stays short, mirroring sshCommandFor's
+// port-22 omission.
+const rdpCommandFor = (data: { ip?: string; port?: number }): string => {
+    if (!data.ip) return ''
+    const target = data.port && data.port !== 3389 ? `${data.ip}:${data.port}` : data.ip
+    return `mstsc /v:${target}`
+}
+
+// Same as rdpCommandFor, but for the team VM's IPv6 address (team_vms
+// ``fixed_ip_v6`` — user_accounts only ever carries one ``ip``, so the
+// IPv6 target comes from the team-level block, not the member's account).
+// IPv6 literals need brackets in an mstsc target.
+const rdpCommandForV6 = (ipv6: string): string => `mstsc /v:[${ipv6}]`
+
 
 const route = useRoute()
 const router = useRouter()
@@ -67,7 +82,7 @@ const latestTaskOutputs = ref<Task | null>(null)
 // ``user_accounts.value`` shape so ``typedUserAccounts`` can fall back
 // to it and the existing account-matching pipeline works unchanged.
 const myAccounts = ref<Record<string, UserAccount> | null>(null)
-const myTeamVms = ref<Record<string, { url?: string; floating_ip?: string; fixed_ip?: string }> | null>(null)
+const myTeamVms = ref<Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }> | null>(null)
 // Always returns the currently active data task for the UI blocks.
 const activeDataTask = computed(() => selectedTask.value || latestTaskOutputs.value)
 const loadingTaskDetail = ref(false)
@@ -83,7 +98,7 @@ interface UserAccount {
     port: number
     auth: string
     type?: 'password' | 'ssh_key' | 'oauth' | 'none' | string
-    authtype?: 'ssh' | 'url' | string
+    authtype?: 'ssh' | 'rdp' | 'url' | string
     url?: string
 }
 
@@ -250,7 +265,7 @@ const enrichedTeams = computed(() => {
  * shape on the wrapper. Returns ``null`` if anything along the way
  * isn't there.
  */
-function extractTeamVms(): Record<string, { url?: string; floating_ip?: string; fixed_ip?: string }> | null {
+function extractTeamVms(): Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }> | null {
     const currentTarget = selectedTask.value || latestTaskOutputs.value
     const rawOutputs = currentTarget?.outputs
     // Member fallback: use the team VM block from ``/my-access`` so a
@@ -1954,8 +1969,10 @@ const deselectTask = () => {
 
                                 <!-- Web-app URL from ``team_vms.<team>.url``,
                                      shared by every team member. When set, the
-                                     SSH pill is dropped and the username shows next to it. -->
-                                <div v-if="team.vm?.url"
+                                     SSH pill is dropped and the username shows next to it.
+                                     Also shown for RDP accounts — mstsc doesn't embed the
+                                     username the way the SSH command line does. -->
+                                <div v-if="team.vm?.url || member.account.data.authtype === 'rdp'"
                                     class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100">
                                     <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider flex-shrink-0">User:</span>
                                     <span>{{ member.account.data.username }}</span>
@@ -1967,7 +1984,7 @@ const deselectTask = () => {
                                     </button>
                                 </div>
 
-                                <div v-if="member.account.data.ip && member.account.data.port && member.account.data.type !== 'ssh_key' && member.account.data.authtype !== 'ssh' && member.account.data.port !== 22"
+                                <div v-if="member.account.data.ip && member.account.data.port && member.account.data.type !== 'ssh_key' && member.account.data.authtype !== 'ssh' && member.account.data.authtype !== 'rdp' && member.account.data.port !== 22 && member.account.data.port !== 3389"
                                     class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100 max-w-[280px]">
                                     <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider flex-shrink-0">URL:</span>
                                     <a :href="userUrlFor(member.account.data, team.vm?.url) ?? ''" target="_blank" rel="noopener noreferrer"
@@ -2003,6 +2020,36 @@ const deselectTask = () => {
                                         class="text-gray-400 hover:text-amber-600 p-0.5 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
                                         :title="copiedKey === 'ssh-' + member.account.key ? 'Kopiert!' : 'SSH-Befehl kopieren'">
                                         <component :is="copiedKey === 'ssh-' + member.account.key ? Check : Copy" :size="12" />
+                                    </button>
+                                </div>
+
+                                <!-- Ready-to-use RDP command line (mstsc), for Windows-style
+                                     apps that set authtype: "rdp" on their user_accounts. -->
+                                <div v-if="member.account.data.authtype === 'rdp'"
+                                    class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100 max-w-full">
+                                    <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider flex-shrink-0">RDP:</span>
+                                    <span class="truncate">{{ rdpCommandFor(member.account.data) }}</span>
+                                    <button
+                                        @click="copyToClipboard(rdpCommandFor(member.account.data), 'rdp-' + member.account.key)"
+                                        class="text-gray-400 hover:text-amber-600 p-0.5 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+                                        :title="copiedKey === 'rdp-' + member.account.key ? 'Kopiert!' : 'RDP-Befehl kopieren'">
+                                        <component :is="copiedKey === 'rdp-' + member.account.key ? Check : Copy" :size="12" />
+                                    </button>
+                                </div>
+
+                                <!-- IPv6 RDP target from ``team_vms.<team>.fixed_ip_v6``.
+                                     Additive, next to the IPv4 RDP pill above — apps like
+                                     Windows-App document IPv6 as the primary route (works
+                                     without VPN), IPv4 as the fallback. -->
+                                <div v-if="member.account.data.authtype === 'rdp' && team.vm?.fixed_ip_v6"
+                                    class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100 max-w-full">
+                                    <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider flex-shrink-0">RDP (IPv6):</span>
+                                    <span class="truncate">{{ rdpCommandForV6(team.vm.fixed_ip_v6) }}</span>
+                                    <button
+                                        @click="copyToClipboard(rdpCommandForV6(team.vm.fixed_ip_v6 ?? ''), 'rdp6-' + member.account.key)"
+                                        class="text-gray-400 hover:text-amber-600 p-0.5 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+                                        :title="copiedKey === 'rdp6-' + member.account.key ? 'Kopiert!' : 'RDP-Befehl (IPv6) kopieren'">
+                                        <component :is="copiedKey === 'rdp6-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
                                 </div>
 

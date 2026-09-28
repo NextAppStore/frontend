@@ -929,6 +929,7 @@ export default {
       },
       network: {
         fixedIp: 'Fixed IP',
+        fixedIpV6: 'Fixed IP (v6)',
         floatingIp: 'Floating IP',
         mac: 'MAC',
         noPorts: 'No ports available.',

@@ -329,6 +329,10 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
                   <span class="text-gray-500">{{ t('vm.drawer.network.fixedIp') }}</span>
                   <code class="ml-1 font-mono">{{ addr.fixed_ip || '—' }}</code>
                 </div>
+                <div v-if="addr.fixed_ip_v6">
+                  <span class="text-gray-500">{{ t('vm.drawer.network.fixedIpV6') }}</span>
+                  <code class="ml-1 font-mono">{{ addr.fixed_ip_v6 }}</code>
+                </div>
                 <div v-if="addr.floating_ip">
                   <span class="text-gray-500">{{ t('vm.drawer.network.floatingIp') }}</span>
                   <code class="ml-1 font-mono text-emerald-700">{{ addr.floating_ip }}</code>
@@ -392,6 +396,10 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
                 <div>
                   <span class="text-gray-500">IP</span>
                   <code class="ml-1 font-mono">{{ port.fixed_ip || '—' }}</code>
+                </div>
+                <div v-if="port.fixed_ip_v6">
+                  <span class="text-gray-500">{{ t('vm.drawer.network.fixedIpV6') }}</span>
+                  <code class="ml-1 font-mono">{{ port.fixed_ip_v6 }}</code>
                 </div>
                 <div>
                   <span class="text-gray-500">{{ t('vm.drawer.network.mac') }}</span>

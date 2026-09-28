@@ -419,6 +419,38 @@ describe('DeploymentDetailView.vue — member self-access', () => {
     expect(wrapper.text()).toContain('member1')
   })
 
+  it('rendert RDP- und IPv6-Pill statt eines kaputten http-Links fuer authtype: rdp', async () => {
+    // Windows-App-shaped account: authtype "rdp", port 3389, plus a
+    // team-level fixed_ip_v6 — regression test for the URL-pill fallback
+    // that used to render authtype: 'rdp' as a broken http://<ip>:3389 link.
+    mocks.mockGetMyAccess.mockResolvedValue({
+      data: {
+        user_accounts: {
+          'Team Alpha-member1': {
+            username: 'member1',
+            team: 'Team Alpha',
+            ip: '10.200.1.42',
+            port: 3389,
+            auth: 'super-secret-pw',
+            type: 'password',
+            authtype: 'rdp',
+          },
+        },
+        team_vms: {
+          'Team Alpha': { fixed_ip_v6: '2001:7c0:1b20:c913:1::2e3' },
+        },
+      },
+    })
+
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const text = wrapper.text()
+    expect(text).toContain('mstsc /v:10.200.1.42')
+    expect(text).toContain('mstsc /v:[2001:7c0:1b20:c913:1::2e3]')
+    expect(text).not.toContain('http://10.200.1.42:3389')
+  })
+
   it('ruft /my-access NICHT auf, wenn der Nutzer Owner-View hat', async () => {
     // Staff → owner view → task-based outputs path, no my-access call.
     mockIsTeacherOrAdmin.value = true
