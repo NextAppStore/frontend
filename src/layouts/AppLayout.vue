@@ -20,7 +20,9 @@ import { useRole } from '@/composables/useRole'
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 
-import logo from '@/assets/Six7-white-withoutBackground.png'
+import logo from '@/assets/ScholarStackLogo.png'
+// Freigestelltes Markenzeichen ohne Schriftzug — für die eingeklappte Sidebar.
+import logoMark from '@/assets/ScholarStackLogo(S).png'
 
 const { locale, t } = useI18n()
 const authStore = useAuthStore()
@@ -81,15 +83,32 @@ const navItems = computed(() => [
       :class="sidebarCollapsed ? 'w-16' : 'w-60'"
     >
 
-      <!-- Logo area -->
-      <div class="h-16 flex items-center border-b border-white/10 px-3" style="overflow: visible;">
-        <RouterLink to="/" class="block" style="height: 48px; width: 100%; overflow: visible;">
-          <img :src="logo" alt="SIX7 Click'n Deploy" style="position: relative; z-index: 30; height: 96px; margin-top: -24px; margin-left: -8px; max-width: none;" />
+      <!-- Logo area. Eingeklappt ist die Sidebar 64px breit — das Logo mit
+           Schriftzug passt dort nicht hinein und lief vorher seitlich heraus.
+           Deshalb wird dann auf die freigestellte "S"-Variante umgeschaltet,
+           nicht nur verkleinert: Der Schriftzug wäre bei 40px ohnehin nicht
+           mehr lesbar. -->
+      <div class="flex items-center px-3" :class="sidebarCollapsed ? 'h-16' : 'h-24'" style="overflow: visible;">
+        <RouterLink
+          to="/"
+          class="flex items-center justify-center"
+          :style="{ height: sidebarCollapsed ? '40px' : '84px', width: '100%', overflow: 'visible' }"
+        >
+          <img
+            :src="sidebarCollapsed ? logoMark : logo"
+            alt="ScholarStack Click'n Deploy"
+            :style="{
+              position: 'relative',
+              zIndex: 30,
+              height: sidebarCollapsed ? '40px' : '84px',
+              maxWidth: 'none',
+            }"
+          />
         </RouterLink>
       </div>
 
       <!-- Sidebar toggle inside navigation zone (shown only when collapsed) -->
-      <div v-if="sidebarCollapsed" class="px-2 py-2 border-b border-white/5">
+      <div v-if="sidebarCollapsed" class="px-2 py-2 border-b border-black/5">
         <button
           @click="sidebarCollapsed = false"
           class="sidebar-toggle-btn"
@@ -126,14 +145,14 @@ const navItems = computed(() => [
     <div class="flex-1 flex flex-col h-full min-w-0">
 
       <!-- Header -->
-      <header class="h-16 header-bg flex items-center justify-between px-6 flex-shrink-0 border-b border-white/10 relative">
+      <header class="h-16 header-bg flex items-center justify-between px-6 flex-shrink-0 relative">
 
         <!-- Left: toggle (title centered separately) -->
         <div class="flex items-center gap-3">
           <button
             v-if="!sidebarCollapsed"
             @click="sidebarCollapsed = true"
-            class="text-white/60 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10"
+            class="text-gray-400 hover:text-gray-800 transition-colors p-1 rounded-md hover:bg-gray-100"
             aria-label="Close sidebar"
           >
             <PanelLeftClose :size="20" />
@@ -142,23 +161,23 @@ const navItems = computed(() => [
 
         <!-- Centered title (always horizontally centered in viewport) -->
         <div class="header-title">
-          <span class="text-white/90 text-sm font-medium tracking-wide">{{ pageTitle }}</span>
+          <span class="text-gray-700 text-sm font-semibold tracking-wide">{{ pageTitle }}</span>
         </div>
 
         <!-- Right controls -->
         <div class="flex items-center gap-2">
 
           <!-- Language toggle -->
-          <div class="flex rounded-md overflow-hidden border border-white/20 text-xs">
+          <div class="flex rounded-md overflow-hidden border border-gray-200 text-xs">
             <button
               @click="changeLocale('de')"
-              :class="locale === 'de' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white/80'"
+              :class="locale === 'de' ? 'bg-brandRed text-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
               class="px-2.5 py-1 transition-colors"
             >DE</button>
             <button
               @click="changeLocale('en')"
-              :class="locale === 'en' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white/80'"
-              class="px-2.5 py-1 transition-colors border-l border-white/20"
+              :class="locale === 'en' ? 'bg-brandRed text-white' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'"
+              class="px-2.5 py-1 transition-colors border-l border-gray-200"
             >EN</button>
           </div>
 
@@ -166,15 +185,15 @@ const navItems = computed(() => [
           <div class="relative user-menu-root">
             <button
               @click="userMenuOpen = !userMenuOpen"
-              class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors text-white"
+              class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-gray-100 transition-colors text-gray-700"
             >
-              <div class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-semibold">
+              <div class="w-7 h-7 rounded-full bg-brandRed text-white flex items-center justify-center text-xs font-semibold">
                 {{ userInitial }}
               </div>
-              <span class="text-sm text-white/90 max-w-24 truncate">{{ userName }}</span>
+              <span class="text-sm text-gray-700 max-w-24 truncate">{{ userName }}</span>
               <ChevronDown
                 :size="14"
-                class="text-white/50 transition-transform duration-150"
+                class="text-gray-400 transition-transform duration-150"
                 :class="userMenuOpen ? 'rotate-180' : ''"
               />
             </button>
@@ -221,12 +240,33 @@ const navItems = computed(() => [
 </template>
 
 <style scoped>
+/* Helle Sidebar: Das ScholarStack-Logo ist rot auf dunkel gezeichnet — auf
+   rotem Grund verschwinden Symbol und roter Teil des Schriftzugs. Oben bleibt
+   deshalb reines Weiß, wo das Logo sitzt; nach unten läuft die Fläche in einen
+   Rotschleier, damit die Sidebar nicht als leeres Blatt wirkt. */
 .sidebar-bg {
-  background: linear-gradient(180deg, #317153 0%, #1e4a32 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fdf5f5 45%, #f9e7e8 100%);
+  border-right: 1px solid #f2dcdd;
 }
 
+/* Die Chrome (Sidebar + Header) bleibt hell und ruhig. Rot ist dadurch ein
+   Akzent mit Bedeutung — aktiver Menüpunkt, Hero, Aktionen — statt Tapete.
+   Zwei großflächige Rottöne übereinander (Header + Hero) haben vorher um
+   Aufmerksamkeit konkurriert und das Logo optisch abgeschnitten. */
 .header-bg {
-  background: #317153;
+  background: linear-gradient(90deg, #ffffff 0%, #fffafa 50%, #fdeff0 100%);
+}
+
+/* Statt einer grauen Trennlinie eine rote Akzentkante, die nach rechts
+   ausläuft — gibt der Kopfzeile eine Richtung und bindet sie an die Marke. */
+.header-bg::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, #E10210 0%, rgba(225, 2, 16, 0.35) 38%, rgba(225, 2, 16, 0) 78%);
 }
 
 /* Nav link base */
@@ -239,19 +279,22 @@ const navItems = computed(() => [
   border-radius: 10px;
   font-size: 1rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(38, 30, 30, 0.7);
   transition: background-color 150ms, color 150ms;
   text-decoration: none;
 }
 
 .nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(90deg, rgba(225, 2, 16, 0.08) 0%, rgba(225, 2, 16, 0.02) 100%);
+  color: rgba(38, 30, 30, 0.95);
 }
 
+/* Der aktive Eintrag verläuft nach rechts ins Nichts, statt als harter Block
+   zu stehen — zusammen mit dem Balken links entsteht eine Leserichtung. */
 .nav-link-active {
-  background-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: linear-gradient(90deg, rgba(225, 2, 16, 0.16) 0%, rgba(225, 2, 16, 0.03) 100%);
+  color: #B00410;
+  font-weight: 600;
 }
 
 /* Collapsed: center icons */
@@ -266,10 +309,10 @@ const navItems = computed(() => [
   left: 0;
   top: 50%;
   transform: translateY(-50%) scaleY(0);
-  width: 3px;
-  height: 60%;
-  background: #E48C2A;
-  border-radius: 0 2px 2px 0;
+  width: 4px;
+  height: 62%;
+  background: linear-gradient(180deg, #F01122 0%, #8A0109 100%);
+  border-radius: 0 3px 3px 0;
   transition: transform 150ms ease;
 }
 
@@ -283,7 +326,7 @@ const navItems = computed(() => [
   left: calc(100% + 10px);
   top: 50%;
   transform: translateY(-50%);
-  background: #1e2d26;
+  background: #2b2222;
   color: #fff;
   font-size: 0.75rem;
   font-weight: 500;
@@ -302,12 +345,12 @@ const navItems = computed(() => [
 
 /* Mesh background */
 .mesh-gradient-bg {
-  background-color: #f8faf9;
+  background-color: #fdf9f9;
   background-image:
-    radial-gradient(at top left, rgba(49, 113, 83, 0.18) 0px, transparent 50%),
-    radial-gradient(at bottom right, rgba(49, 113, 83, 0.22) 0px, transparent 55%),
-    radial-gradient(at top right, rgba(255, 255, 255, 0.6) 0px, transparent 45%),
-    radial-gradient(at bottom left, rgba(16, 185, 129, 0.10) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(225, 2, 16, 0.10) 0px, transparent 45%),
+    radial-gradient(at 100% 0%, rgba(228, 140, 42, 0.08) 0px, transparent 42%),
+    radial-gradient(at 100% 100%, rgba(225, 2, 16, 0.13) 0px, transparent 52%),
+    radial-gradient(at 18% 92%, rgba(107, 1, 6, 0.07) 0px, transparent 48%);
 }
 
 /* Logo text fade */
@@ -326,7 +369,8 @@ const navItems = computed(() => [
   max-width: none;
 }
 
-/* Sidebar toggle appearance */
+/* Sidebar toggle appearance. Sitzt nur in der eingeklappten Sidebar — die
+   Schaltfläche im Header bringt ihre eigenen Klassen mit. */
 .sidebar-toggle-btn {
   width: 36px;
   height: 36px;
@@ -336,11 +380,11 @@ const navItems = computed(() => [
   justify-content: center;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(38, 30, 30, 0.65);
   transition: background-color 150ms;
 }
 .sidebar-toggle-btn:hover {
-  background: rgba(255,255,255,0.04);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* Header title centered in viewport */

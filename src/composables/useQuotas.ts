@@ -48,11 +48,17 @@ export const useQuotas = () => {
     return Math.round((used / limit) * 100)
   }
 
+  // Der Normalfall ist bewusst neutral (Anthrazit) statt grün: eine Quota bei
+  // 20% ist keine Erfolgsmeldung, sondern eine Information. Farbe bleibt damit
+  // den Schwellen vorbehalten und sticht dort tatsächlich heraus — im roten
+  // Markenumfeld wirkte ein grüner Balken zudem wie ein Fremdkörper.
+  // Die Warnstufen bleiben in der Standardpalette, nicht im Markenrot: Rot
+  // heißt hier "Quota fast voll", nicht "ScholarStack".
   const getColorClass = (percentage: number): string => {
-    if (percentage >= 90) return 'bg-red-500'
-    if (percentage >= 75) return 'bg-orange-500'
-    if (percentage >= 50) return 'bg-yellow-500'
-    return 'bg-green-500'
+    if (percentage >= 90) return 'bg-gradient-to-r from-red-500 to-red-700'
+    if (percentage >= 75) return 'bg-gradient-to-r from-orange-400 to-orange-600'
+    if (percentage >= 50) return 'bg-gradient-to-r from-amber-400 to-amber-600'
+    return 'bg-gradient-to-r from-stone-500 to-stone-800'
   }
 
   const formattedQuotas = computed(() => {

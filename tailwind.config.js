@@ -20,6 +20,12 @@ export default {
         accentRed: "#e73501",      // Rot aus Logo
         lightRed: "#f8d6ccff",
 
+        // ScholarStack-Rot, aus der Logo-PNG gemessen. Bewusst NEUE Tokens,
+        // statt primary umzudefinieren: solange das Farbkonzept nicht
+        // entschieden ist, bleibt der Rest der App unverändert grün.
+        brandRed: "#E10210",
+        brandRedDark: "#A30109",
+
         bgSoft: "#F4F7F5",
       },
     },
