@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { Cpu, HardDrive, Network } from 'lucide-vue-next'
 import { quotasApi } from '@/api/quotas.api'
@@ -43,6 +44,8 @@ const needsCredentials = ref(false)
 // USE QUOTAS COMPOSABLE
 // ----------------------------------------------------------------
 export const useQuotas = () => {
+  const { t } = useI18n()
+
   const getPercentage = (used: number, limit: number): number => {
     if (limit === 0) return 0
     return Math.round((used / limit) * 100)
@@ -130,7 +133,7 @@ export const useQuotas = () => {
         quotas.value = null
         writeCachedQuotas(null)
       } else {
-        error.value = 'Failed to fetch quotas'
+        error.value = t('errors.fetchQuotas')
         console.error('Quota fetch error:', err)
         // Keep the existing cached numbers visible — a transient error
         // shouldn't blank out the tile.

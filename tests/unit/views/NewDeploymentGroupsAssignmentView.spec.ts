@@ -17,7 +17,11 @@ vi.mock('vue-router', () => ({
   }))
 }))
 
-vi.mock('vue-i18n', () => ({
+// Partieller Mock: Nur ``useI18n`` wird gestubbt, ``createI18n`` bleibt echt.
+// Sonst bricht jeder Import, der transitiv die i18n-Instanz zieht — etwa
+// Stores, die Fallback-Fehlertexte über ``i18n.global.t`` übersetzen.
+vi.mock('vue-i18n', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({
     t: (key: string, params?: any) => {
       if (params?.index !== undefined) return `Team ${params.index}`

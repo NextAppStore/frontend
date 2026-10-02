@@ -1,4 +1,8 @@
 import { defineStore } from 'pinia'
+// Fallback-Fehlertexte werden hier über die globale i18n-Instanz
+// übersetzt: Ein Store ist kein Setup-Kontext, ``useI18n()`` steht also
+// nicht zur Verfügung. Dasselbe Muster nutzt ``router/index.ts``.
+import i18n from '@/i18n'
 import { AuthService } from '@/services/auth.service'
 import { useKeycloak } from '@/composables/useKeycloak'
 import { useLtiSession } from '@/composables/useLtiSession'
@@ -75,7 +79,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         await keycloak.login(returnUrl)
       } catch (err: any) {
-        this.error = err.message || 'Login failed'
+        this.error = err.message || i18n.global.t('errors.loginFailed')
         throw err
       }
     },
@@ -95,7 +99,7 @@ export const useAuthStore = defineStore('auth', {
         
         return returnUrl
       } catch (err: any) {
-        this.error = err.message || 'Callback handling failed'
+        this.error = err.message || i18n.global.t('errors.callbackFailed')
         throw err
       } finally {
         this.isLoading = false

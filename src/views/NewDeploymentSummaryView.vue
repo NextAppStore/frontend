@@ -734,7 +734,7 @@ const handleBack = () => {
                   </span>
                 </div>
                 <div v-if="entry.chips.length === 0" class="text-xs text-content-disabled italic">
-                  Keine Datei hochgeladen
+                  {{ $t('deployment.summary.noFileUploaded') }}
                 </div>
                 <div v-else class="flex flex-wrap gap-1.5">
                   <span

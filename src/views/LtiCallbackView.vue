@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth.store'
 import { useLtiSession } from '@/composables/useLtiSession'
 import { Loader2 } from 'lucide-vue-next'
 
 const router = useRouter()
+const { t } = useI18n()
 const authStore = useAuthStore()
 const ltiSession = useLtiSession()
 const error = ref<string | null>(null)
@@ -14,14 +16,14 @@ onMounted(async () => {
   try {
     const gotToken = ltiSession.consumeTokenFromUrlFragment()
     if (!gotToken) {
-      throw new Error('No LTI session token found in the launch redirect')
+      throw new Error(t('errors.ltiTokenMissing'))
     }
 
     await authStore.fetchMe()
     router.push('/dashboard')
   } catch (err: any) {
     console.error('LTI callback error:', err)
-    error.value = err.message || 'Authentication failed'
+    error.value = err.message || t('errors.authenticationFailed')
 
     setTimeout(() => {
       router.push('/login')

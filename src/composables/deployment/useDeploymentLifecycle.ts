@@ -38,7 +38,9 @@ export function useDeploymentLifecycle(
 
   const deleteDisabledReason = computed(() => {
     if (canDelete.value) return ''
-    return `Delete available when status is ${DELETE_STATUSES.join(', ')}`
+    return t('DeploymentDetailView.deleteDisabledReason', {
+      statuses: DELETE_STATUSES.join(', '),
+    })
   })
 
   const canPause = computed(() => {
