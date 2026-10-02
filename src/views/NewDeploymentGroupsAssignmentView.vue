@@ -358,15 +358,15 @@ const handleBack = () => router.push({ name: 'deployment.config' })
 <template>
   <div class="max-w-[1800px] mx-auto w-full px-4">
     
-    <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-200 shadow-xl min-h-[700px] flex flex-col overflow-hidden">
+    <div class="bg-surface-card rounded-2xl border-2 border-card-border shadow-xl min-h-[700px] flex flex-col overflow-hidden">
       
       <!-- Header -->
-      <div class="p-8 pb-6 bg-white border-b-2 border-gray-200">
+      <div class="p-8 pb-6 bg-surface-card border-b-2 border-card-border">
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-            <Users :size="28" class="text-white" />
+          <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+            <Users :size="28" class="text-content-inverse" />
           </div>
-          <h1 class="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+          <h1 class="text-3xl font-bold text-content-primary">
             {{ t('deployment.title') }}
           </h1>
         </div>
@@ -374,7 +374,7 @@ const handleBack = () => router.push({ name: 'deployment.config' })
       </div>
 
       <!-- Controls Section -->
-      <div class="p-6 bg-white border-b-2 border-gray-200">
+      <div class="p-6 bg-surface-card border-b-2 border-card-border">
         <div class="flex flex-wrap items-center justify-between gap-4">
           
           <!-- Mode Selection -->
@@ -382,39 +382,39 @@ const handleBack = () => router.push({ name: 'deployment.config' })
             <button @click="setOneGroup" 
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
               :class="mode === 'one' 
-                ? 'bg-emerald-600 text-white border-emerald-700 shadow-lg shadow-emerald-600/30' 
-                : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'">
+                ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+              : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.one') }}
             </button>
-            <button @click="setEachUser" 
+            <button @click="setEachUser"
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
-              :class="mode === 'eachUser' 
-                ? 'bg-emerald-600 text-white border-emerald-700 shadow-lg shadow-emerald-600/30' 
-                : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'">
+              :class="mode === 'eachUser'
+              ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+              : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.eachUser') }}
             </button>
-            <button @click="setCustom" 
+            <button @click="setCustom"
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
-              :class="mode === 'custom' 
-                ? 'bg-emerald-600 text-white border-emerald-700 shadow-lg shadow-emerald-600/30' 
-                : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'">
+              :class="mode === 'custom'
+              ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+              : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.custom') }}
             </button>
           </div>
 
           <!-- Team Counter -->
-          <div v-if="showControls" class="flex items-center gap-3 bg-gray-100 px-4 py-2 rounded-xl border-2 border-gray-200">
-            <button @click="decrement" 
-              class="w-9 h-9 rounded-lg bg-white border border-gray-300 hover:border-red-400 hover:bg-red-50 flex items-center justify-center transition-all text-red-600 disabled:opacity-40 disabled:cursor-not-allowed" 
+          <div v-if="showControls" class="flex items-center gap-3 bg-surface-input px-4 py-2 rounded-xl border-2 border-card-border">
+            <button @click="decrement"
+              class="w-9 h-9 rounded-lg bg-surface-card border border-border hover:border-status-error/50 hover:bg-status-errorLight flex items-center justify-center transition-all text-status-error disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="groupCount <= 1">
               <Minus :size="18" />
             </button>
             <div class="flex items-center gap-2">
-              <span class="text-3xl font-bold text-gray-900 w-12 text-center tabular-nums">{{ groupCount }}</span>
-              <span class="text-sm font-semibold text-gray-600">{{ t('deployment.assignment.teamsLabel') }}</span>
+              <span class="text-3xl font-bold text-content-primary w-12 text-center tabular-nums">{{ groupCount }}</span>
+              <span class="text-sm font-semibold text-content-secondary">{{ t('deployment.assignment.teamsLabel') }}</span>
             </div>
-            <button @click="increment" 
-              class="w-9 h-9 rounded-lg bg-white border border-gray-300 hover:border-emerald-400 hover:bg-emerald-50 flex items-center justify-center transition-all text-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed" 
+            <button @click="increment"
+              class="w-9 h-9 rounded-lg bg-surface-card border border-border hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center transition-all text-primary disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="groupCount >= totalStudents">
               <Plus :size="18" />
             </button>
@@ -423,13 +423,13 @@ const handleBack = () => router.push({ name: 'deployment.config' })
           <!-- Action Buttons -->
           <div class="flex gap-2">
             <button @click="shuffleStudents" 
-              class="px-4 py-2.5 rounded-xl bg-purple-100 text-purple-700 font-semibold hover:bg-purple-200 transition-all flex items-center gap-2 border-2 border-purple-200"
+              class="px-4 py-2.5 rounded-xl bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-all flex items-center gap-2 border-2 border-tag-accentBorder"
               :title="t('deployment.assignment.shuffleTooltip')">
               <Shuffle :size="18" />
               {{ t('deployment.assignment.shuffle') }}
             </button>
             <button @click="clearAllAssignments" 
-              class="px-4 py-2.5 rounded-xl bg-red-100 text-red-700 font-semibold hover:bg-red-200 transition-all flex items-center gap-2 border-2 border-red-200"
+              class="px-4 py-2.5 rounded-xl bg-status-errorLight text-status-error font-semibold hover:bg-status-error/20 transition-all flex items-center gap-2 border-2 border-status-error/30"
               :title="t('deployment.assignment.resetTooltip')">
               <Trash2 :size="18" />
               {{ t('deployment.assignment.reset') }}
@@ -438,13 +438,13 @@ const handleBack = () => router.push({ name: 'deployment.config' })
         </div>
 
         <!-- Info Banner -->
-        <div class="mt-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4 flex items-start gap-3">
-          <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <GripVertical :size="16" class="text-white" />
+        <div class="mt-4 bg-tag-infoLight border-2 border-tag-infoBorder rounded-xl p-4 flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-tag-info flex items-center justify-center flex-shrink-0 mt-0.5">
+            <GripVertical :size="16" class="text-content-inverse" />
           </div>
           <div>
-            <p class="font-semibold text-blue-900 mb-1">{{ t('deployment.assignment.dragDropTitle') }}</p>
-            <p class="text-sm text-blue-700">{{ t('deployment.assignment.dragDropText') }}</p>
+            <p class="font-semibold text-content-primary mb-1">{{ t('deployment.assignment.dragDropTitle') }}</p>
+            <p class="text-sm text-tag-info">{{ t('deployment.assignment.dragDropText') }}</p>
           </div>
         </div>
       </div>
@@ -455,27 +455,27 @@ const handleBack = () => router.push({ name: 'deployment.config' })
           
           <!-- Unassigned Students Pool -->
           <div class="lg:col-span-1">
-            <div class="h-full flex flex-col bg-white rounded-xl border-2 border-gray-300 overflow-hidden shadow-lg">
-              <div class="bg-white px-4 py-3 border-b-2 border-gray-200 flex items-center justify-between">
+            <div class="h-full flex flex-col bg-surface-card rounded-xl border-2 border-card-border overflow-hidden shadow-lg">
+              <div class="bg-surface-card px-4 py-3 border-b-2 border-card-border flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <UserPlus :size="20" class="text-gray-700" />
-                  <h3 class="font-bold text-gray-900">{{ t('deployment.assignment.unassigned') }}</h3>
+                  <UserPlus :size="20" class="text-content-secondary" />
+                  <h3 class="font-bold text-content-primary">{{ t('deployment.assignment.unassigned') }}</h3>
                 </div>
-                <span class="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-700 border-2 border-gray-200">
+                <span class="px-2.5 py-1 bg-surface-input rounded-full text-xs font-bold text-content-secondary border-2 border-card-border">
                   {{ unassignedStudents.length }}
                 </span>
               </div>
-              
-              <div 
-                class="flex-grow p-3 overflow-y-auto bg-gray-50"
-                :class="dragOverUnassigned ? 'bg-gray-200 ring-4 ring-gray-400' : ''"
+
+              <div
+                class="flex-grow p-3 overflow-y-auto bg-surface-input"
+                :class="dragOverUnassigned ? 'bg-surface-hover ring-4 ring-border' : ''"
                 @dragover="handleDragOver"
                 @dragenter="handleDragEnterUnassigned"
                 @dragleave="handleDragLeaveUnassigned"
                 @drop="handleDropOnUnassigned">
                 
                 <div v-if="unassignedStudents.length === 0" 
-                  class="h-full flex items-center justify-center text-gray-400 text-sm italic text-center px-4 border-2 border-dashed border-gray-300 rounded-lg bg-white">
+                  class="h-full flex items-center justify-center text-content-disabled text-sm italic text-center px-4 border-2 border-dashed border-border rounded-lg bg-surface-card">
                   {{ t('deployment.assignment.allAssigned') }}
                 </div>
                 
@@ -485,9 +485,9 @@ const handleBack = () => router.push({ name: 'deployment.config' })
                     draggable="true"
                     @dragstart="(e) => handleDragStart(studentId, e)"
                     @dragend="handleDragEnd"
-                    class="group bg-white rounded-lg px-4 py-3 border-2 border-gray-200 cursor-move hover:border-gray-400 hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-3">
-                    <GripVertical :size="18" class="text-gray-400 group-hover:text-gray-600 transition-colors" />
-                    <span class="font-semibold text-gray-700 group-hover:text-gray-900 flex-1 transition-colors">
+                    class="group bg-surface-card rounded-lg px-4 py-3 border-2 border-card-border cursor-move hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-3">
+                    <GripVertical :size="18" class="text-content-disabled group-hover:text-content-secondary transition-colors" />
+                    <span class="font-semibold text-content-secondary group-hover:text-content-primary flex-1 transition-colors">
                       {{
                         (() => {
                           const s = studentCache[studentId]
@@ -510,22 +510,22 @@ const handleBack = () => router.push({ name: 'deployment.config' })
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 h-full overflow-y-auto pr-2">
               <div v-for="(assignments, index) in (store.draft.assignments as string[][]).slice(0, groupCount)" 
                 :key="index"
-                class="flex flex-col bg-white rounded-xl border-2 shadow-lg overflow-hidden transition-all"
-                :class="dragOverGroup === index 
-                  ? 'border-emerald-500 ring-4 ring-emerald-200 shadow-2xl scale-[1.02]' 
-                  : 'border-gray-200 hover:border-emerald-300 hover:shadow-xl'">
+                class="flex flex-col bg-surface-card rounded-xl border-2 shadow-lg overflow-hidden transition-all"
+                :class="dragOverGroup === index
+                  ? 'border-primary ring-4 ring-primary/20 shadow-2xl scale-[1.02]'
+                  : 'border-card-border hover:border-primary/30 hover:shadow-xl'">
                 
                 <!-- Team Header -->
-                <div class="bg-white px-4 py-3 border-b-2 border-gray-200">
-                  <input 
+                <div class="bg-surface-card px-4 py-3 border-b-2 border-card-border">
+                  <input
                     type="text"
                     v-model="groupNames[index]"
                     :placeholder="t('deployment.assignment.vmDefaultName', { index: index + 1 })"
-                    class="w-full bg-gray-50 text-gray-900 placeholder-gray-400 px-3 py-2 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 focus:outline-none font-bold text-center transition-all"
+                    class="w-full bg-surface-input text-content-primary placeholder:text-content-disabled px-3 py-2 rounded-lg border-2 border-card-border focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none font-bold text-center transition-all"
                   />
-                  <div class="mt-2 flex items-center justify-center gap-2 bg-emerald-50 rounded-lg px-3 py-1.5">
-                    <Users :size="16" class="text-emerald-600" />
-                    <span class="text-sm font-semibold text-emerald-700">
+                  <div class="mt-2 flex items-center justify-center gap-2 bg-primary/5 rounded-lg px-3 py-1.5">
+                    <Users :size="16" class="text-primary" />
+                    <span class="text-sm font-semibold text-primary">
                       {{ t('DeploymentDetailView.deploymentStudentCount', assignments?.length || 0) }}
                     </span>
                   </div>
@@ -534,14 +534,14 @@ const handleBack = () => router.push({ name: 'deployment.config' })
                 <!-- Drop Zone -->
                 <div 
                   class="flex-grow p-3 min-h-[200px] overflow-y-auto"
-                  :class="dragOverGroup === index ? 'bg-emerald-50' : 'bg-gray-50'"
+                  :class="dragOverGroup === index ? 'bg-primary/5' : 'bg-surface-input'"
                   @dragover="handleDragOver"
                   @dragenter="() => handleDragEnterGroup(index)"
                   @dragleave="handleDragLeaveGroup"
                   @drop="(e) => handleDropOnGroup(index, e)">
                   
                   <div v-if="!assignments || assignments.length === 0" 
-                    class="h-full flex flex-col items-center justify-center text-gray-400 text-sm italic border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
+                    class="h-full flex flex-col items-center justify-center text-content-disabled text-sm italic border-2 border-dashed border-border rounded-lg p-4 bg-surface-card">
                     <UserPlus :size="32" class="mb-2 opacity-50" />
                     <p>{{ t('deployment.assignment.dropZone') }}</p>
                   </div>
@@ -552,9 +552,9 @@ const handleBack = () => router.push({ name: 'deployment.config' })
                       draggable="true"
                       @dragstart="(e) => handleDragStart(studentId, e)"
                       @dragend="handleDragEnd"
-                      class="group bg-white rounded-lg px-3 py-2.5 border-2 border-gray-200 cursor-move hover:border-emerald-400 hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2">
-                      <GripVertical :size="16" class="text-gray-400 group-hover:text-emerald-600 transition-colors flex-shrink-0" />
-                      <span class="font-semibold text-gray-700 group-hover:text-gray-900 flex-1 text-sm transition-colors">
+                      class="group bg-surface-card rounded-lg px-3 py-2.5 border-2 border-card-border cursor-move hover:border-primary/40 hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2">
+                      <GripVertical :size="16" class="text-content-disabled group-hover:text-primary transition-colors flex-shrink-0" />
+                      <span class="font-semibold text-content-secondary group-hover:text-content-primary flex-1 text-sm transition-colors">
                         {{
                           (() => {
                             const s = studentCache[studentId]
@@ -566,11 +566,11 @@ const handleBack = () => router.push({ name: 'deployment.config' })
                           })()
                         }}
                       </span>
-                      <button 
+                      <button
                         @click="removeFromGroup(studentId, index)"
-                        class="opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-red-100 rounded-lg"
+                        class="opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-status-errorLight rounded-lg"
                         :title="t('CourseDetailView.removeModal.remove')">
-                        <X :size="14" class="text-red-600" />
+                        <X :size="14" class="text-status-error" />
                       </button>
                     </div>
                   </div>
@@ -583,25 +583,27 @@ const handleBack = () => router.push({ name: 'deployment.config' })
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-between items-center p-6 pt-4 bg-white border-t-2 border-gray-200">
-        <button 
+      <div class="flex justify-between items-center p-6 pt-4 bg-surface-card border-t-2 border-card-border">
+        <button
           @click="handleBack"
-          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-all shadow-md">
+          data-testid="back-btn"
+          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-surface-input text-content-secondary font-bold hover:bg-surface-hover transition-all shadow-md">
           <ArrowLeft :size="20" />
           {{ t('deployment.actions.back') }}
         </button>
         
         <div class="text-center">
-          <p class="text-sm text-gray-500 mb-1">{{ t('deployment.assignment.progress') }}</p>
-          <p class="text-lg font-bold text-emerald-600">
+          <p class="text-sm text-content-secondary mb-1">{{ t('deployment.assignment.progress') }}</p>
+          <p class="text-lg font-bold text-primary">
             {{ t('deployment.assignment.assignedCount', { assigned: totalStudents - unassignedStudents.length, total: totalStudents }) }}
           </p>
         </div>
         
-        <button 
+        <button
           @click="handleNext"
+          data-testid="next-btn"
           :disabled="unassignedStudents.length > 0 || (store.draft.assignments as string[][]).slice(0, groupCount).some((g: string[]) => !g || g.length === 0) || groupNames.slice(0, groupCount).some((name: string) => !name || name.trim() === '')"
-          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
+          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
           {{ t('deployment.actions.next') }}
           <ArrowRight :size="20" />
         </button>

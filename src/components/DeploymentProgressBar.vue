@@ -39,10 +39,10 @@ const getTextAlignmentClass = (step: number, total: number) => {
 <template>
   <div class="w-full mb-8 px-2"> 
     <div class="relative">
-      <div class="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2 rounded-full"></div>
+      <div class="absolute top-1/2 left-0 w-full h-1 bg-surface-input -translate-y-1/2 rounded-full"></div>
 
-      <div 
-        class="absolute top-1/2 left-0 h-1 bg-emerald-500 -translate-y-1/2 rounded-full transition-all duration-500 ease-out"
+      <div
+        class="absolute top-1/2 left-0 h-1 bg-status-success -translate-y-1/2 rounded-full transition-all duration-500 ease-out"
         :style="{ width: progressWidth }"
       ></div>
 
@@ -54,15 +54,13 @@ const getTextAlignmentClass = (step: number, total: number) => {
           class="flex flex-col items-center group relative" 
         >
           <div
-            class="flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-bold z-10 transition-all duration-300 bg-white"
+            class="flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-bold z-10 transition-all duration-300 bg-surface-card"
             :class="[
               currentStep >= item.step
-                ? 'border-emerald-600 text-emerald-600 shadow-[0_0_10px_rgba(16,185,129,0.4)]'
-                : 'border-gray-300 text-gray-400',
-              // Fill the circle green once the step is done.
-              currentStep > item.step ? '!bg-emerald-600 !text-white' : '',
-              // Current step: pulse subtly so the user always sees where they are.
-              currentStep === item.step ? 'text-emerald-600 animate-step-pulse' : ''
+                ? 'border-status-success text-status-success shadow-[0_0_10px_rgba(16,185,129,0.4)]'
+                : 'border-border text-content-disabled',
+              currentStep > item.step ? '!bg-status-success !text-content-inverse' : '',
+              currentStep === item.step ? 'text-status-success animate-step-pulse' : ''
             ]"
           >
             <Check v-if="currentStep > item.step" :size="16" />
@@ -72,7 +70,7 @@ const getTextAlignmentClass = (step: number, total: number) => {
           <span 
             class="absolute top-10 text-xs font-bold uppercase tracking-wider transition-colors duration-300 whitespace-nowrap"
             :class="[
-              currentStep >= item.step ? 'text-emerald-700' : 'text-gray-400',
+              currentStep >= item.step ? 'text-status-success' : 'text-content-disabled',
               getTextAlignmentClass(item.step, steps.length)
             ]"
           >

@@ -10,18 +10,18 @@ const { t } = useI18n()
 const config = computed(() => {
   switch (props.status) {
     case 'new':
-      return { icon: MinusCircle, label: t('AppVersionStatusBadge.new'), classes: 'bg-gray-100 text-gray-600 border-gray-200' }
+      return { icon: MinusCircle, label: t('AppVersionStatusBadge.new'), classes: 'bg-surface-input text-content-secondary border-border' }
     case 'pending':
-      return { icon: Clock, label: t('AppVersionStatusBadge.pending'), classes: 'bg-orange-50 text-orange-600 border-orange-200' }
+      return { icon: Clock, label: t('AppVersionStatusBadge.pending'), classes: 'bg-status-warningLight text-status-warning border-status-warning/30' }
     case 'approved':
     case 'published':
-      return { icon: Globe, label: t('AppVersionStatusBadge.published'), classes: 'bg-green-50 text-green-700 border-green-200' }
+      return { icon: Globe, label: t('AppVersionStatusBadge.published'), classes: 'bg-status-successLight text-status-success border-status-success/30' }
     case 'rejected':
-      return { icon: XCircle, label: t('AppVersionStatusBadge.rejected'), classes: 'bg-red-50 text-red-600 border-red-200' }
+      return { icon: XCircle, label: t('AppVersionStatusBadge.rejected'), classes: 'bg-status-errorLight text-status-error border-status-error/30' }
     case 'private':
-      return { icon: Lock, label: t('AppVersionStatusBadge.private'), classes: 'bg-purple-50 text-purple-600 border-purple-200' }
+      return { icon: Lock, label: t('AppVersionStatusBadge.private'), classes: 'bg-tag-accentLight text-tag-accent border-tag-accentBorder' }
     default:
-      return { icon: MinusCircle, label: '-', classes: 'bg-gray-100 text-gray-500 border-gray-200' }
+      return { icon: MinusCircle, label: '-', classes: 'bg-surface-input text-content-disabled border-border' }
   }
 })
 </script>

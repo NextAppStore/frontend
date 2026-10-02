@@ -6,6 +6,9 @@ import AuthLayout from '@/layouts/AuthLayout.vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import UserLayout from '@/layouts/UserLayout.vue'
 import Toast from '@/components/ui/Toast.vue'
+import { useColorScheme } from '@/composables/useColorScheme'
+
+useColorScheme()
 
 const route = useRoute()
 

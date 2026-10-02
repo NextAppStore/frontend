@@ -11,12 +11,12 @@ defineEmits(['close'])
     @click.self="$emit('close')"
   >
     <div
-      class="bg-white rounded-2xl shadow-2xl w-full max-w-[520px] animate-fade-in flex flex-col max-h-[90vh]"
+      class="bg-surface-overlay rounded-2xl shadow-2xl w-full max-w-[520px] animate-fade-in flex flex-col max-h-[90vh]"
       @click.stop
     >
       <!-- Header -->
-      <div class="flex justify-between items-center px-6 py-5 border-b border-gray-100">
-        <div class="text-xl font-semibold text-gray-900 leading-tight pr-4">
+      <div class="flex justify-between items-center px-6 py-5 border-b border-card-border">
+        <div class="text-xl font-semibold text-content-primary leading-tight pr-4">
           <!--
             Two slot names accepted:
               * ``#header`` — used by CoursesView, CourseDetailView.
@@ -29,7 +29,7 @@ defineEmits(['close'])
         </div>
         <button
           @click="$emit('close')"
-          class="p-2 -mr-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          class="p-2 -mr-1 text-content-disabled hover:text-content-secondary hover:bg-surface-input rounded-lg transition-colors flex-shrink-0"
           aria-label="Close"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@ defineEmits(['close'])
       <!-- Footer -->
       <div
         v-if="$slots.footer"
-        class="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl"
+        class="px-6 py-4 border-t border-card-border bg-surface-input rounded-b-2xl"
       >
         <slot name="footer"></slot>
       </div>

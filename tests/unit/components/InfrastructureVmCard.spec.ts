@@ -67,13 +67,13 @@ describe('InfrastructureVmCard — IPv4/IPv6 address display', () => {
     const v4Line = () => wrapper.findAll('p').find((p) => p.text().includes('10.200.3.147'))
     const v6Line = () => wrapper.findAll('p').find((p) => p.text().includes('2001:7c0:1b20:c913:1::134'))
 
-    expect(v4Line()?.classes()).toContain('text-gray-900')
-    expect(v6Line()?.classes()).toContain('text-gray-500')
+    expect(v4Line()?.classes()).toContain('text-content-primary')
+    expect(v6Line()?.classes()).toContain('text-content-disabled')
 
     useIpVersionPreference().setIpVersion('v6')
     await wrapper.vm.$nextTick()
 
-    expect(v4Line()?.classes()).toContain('text-gray-500')
-    expect(v6Line()?.classes()).toContain('text-gray-900')
+    expect(v4Line()?.classes()).toContain('text-content-disabled')
+    expect(v6Line()?.classes()).toContain('text-content-primary')
   })
 })

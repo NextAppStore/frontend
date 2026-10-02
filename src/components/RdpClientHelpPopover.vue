@@ -38,7 +38,7 @@ const linuxCommand = () => {
   <button
     type="button"
     @click="isOpen = true"
-    class="text-gray-400 hover:text-amber-600 p-0.5 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+    class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
     :title="t('DeploymentDetailView.rdpHelp.triggerLabel')"
     :aria-label="t('DeploymentDetailView.rdpHelp.triggerLabel')"
   >
@@ -48,19 +48,19 @@ const linuxCommand = () => {
   <Modal :show="isOpen" @close="isOpen = false">
     <template #title>{{ t('DeploymentDetailView.rdpHelp.title') }}</template>
     <template #body>
-      <div class="space-y-4 text-sm text-gray-700">
+      <div class="space-y-4 text-sm text-content-secondary">
         <div>
-          <h5 class="font-semibold text-gray-900 mb-1">{{ t('DeploymentDetailView.rdpHelp.windows.heading') }}</h5>
+          <h5 class="font-semibold text-content-primary mb-1">{{ t('DeploymentDetailView.rdpHelp.windows.heading') }}</h5>
           <p>{{ t('DeploymentDetailView.rdpHelp.windows.body') }}</p>
         </div>
         <div>
-          <h5 class="font-semibold text-gray-900 mb-1">{{ t('DeploymentDetailView.rdpHelp.macos.heading') }}</h5>
+          <h5 class="font-semibold text-content-primary mb-1">{{ t('DeploymentDetailView.rdpHelp.macos.heading') }}</h5>
           <p>{{ t('DeploymentDetailView.rdpHelp.macos.body', { ip: props.ip }) }}</p>
         </div>
         <div>
-          <h5 class="font-semibold text-gray-900 mb-1">{{ t('DeploymentDetailView.rdpHelp.linux.heading') }}</h5>
+          <h5 class="font-semibold text-content-primary mb-1">{{ t('DeploymentDetailView.rdpHelp.linux.heading') }}</h5>
           <p>{{ t('DeploymentDetailView.rdpHelp.linux.body') }}</p>
-          <code class="mt-1 block bg-gray-50 border border-gray-100 rounded px-2 py-1 font-mono text-xs text-gray-800 break-all">
+          <code class="mt-1 block bg-surface-input border border-card-border rounded px-2 py-1 font-mono text-xs text-content-primary break-all">
             {{ linuxCommand() }}
           </code>
         </div>

@@ -31,13 +31,13 @@ withDefaults(defineProps<{
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:!bg-current',
       // ``primary`` and ``yellow`` share the same style; ``yellow`` is kept as an alias.
       (variant === 'primary' || variant === 'yellow')
-        ? 'bg-lightYellow text-accentYellow hover:bg-accentYellow hover:text-white focus:ring-accentYellow/60'
+        ? 'bg-btn-primary text-btn-primary-text hover:bg-btn-primaryHover focus:ring-primary/60'
         : variant === 'green'
-        ? 'bg-lightGreen text-gray-800 hover:bg-primary hover:text-white focus:ring-primary/60'
+        ? 'bg-btn-secondary text-btn-secondary-text dark:text-white hover:bg-btn-secondaryHover focus:ring-primary/60 border border-border-strong'
         : variant === 'red'
-        ? 'bg-lightRed text-accentRed hover:bg-accentRed hover:text-white focus:ring-accentRed/60'
+        ? 'bg-status-errorLight text-status-error hover:bg-status-error hover:text-content-inverse focus:ring-status-error/60'
         : variant === 'ghost'
-        ? 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 focus:ring-gray-300 shadow-none'
+        ? 'bg-btn-ghost text-btn-ghost-text hover:bg-btn-ghostHover border border-border focus:ring-primary/60 shadow-none'
         : ''
     ]"
   >

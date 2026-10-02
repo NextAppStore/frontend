@@ -226,9 +226,9 @@ const roleLabel = (role: string | undefined) => {
 
 const roleClass = (role: string | undefined) => {
   switch (role) {
-    case 'admin': return 'bg-red-50 text-red-700'
-    case 'teacher': return 'bg-purple-50 text-purple-700'
-    default: return 'bg-blue-50 text-blue-700'
+    case 'admin': return 'bg-status-errorLight text-status-error'
+    case 'teacher': return 'bg-tag-accentLight text-tag-accent'
+    default: return 'bg-tag-infoLight text-tag-info'
   }
 }
 </script>
@@ -237,28 +237,28 @@ const roleClass = (role: string | undefined) => {
   <div class="p-6 max-w-5xl mx-auto">
     <button
         @click="router.push('/courses')"
-        class="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-4 text-sm"
+        class="flex items-center gap-2 text-content-secondary hover:text-content-primary mb-4 text-sm"
     >
       <ArrowLeft :size="16" />
       {{ $t('CourseDetailView.back') }}
     </button>
 
-    <div v-if="courseStore.isLoading && !courseStore.currentCourse" class="text-center py-16 text-gray-400">
+    <div v-if="courseStore.isLoading && !courseStore.currentCourse" class="text-center py-16 text-content-disabled">
       {{ $t('CourseDetailView.loading') }}
     </div>
 
     <div v-else-if="courseStore.currentCourse" class="space-y-6">
-      <div class="flex items-start gap-5 border-b border-gray-100 pb-6">
-        <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-          <GraduationCap :size="28" class="text-blue-600" />
+      <div class="flex items-start gap-5 border-b border-card-border pb-6">
+        <div class="w-14 h-14 bg-tag-infoLight rounded-xl flex items-center justify-center flex-shrink-0">
+          <GraduationCap :size="28" class="text-tag-info" />
         </div>
         <div class="flex-grow">
           <div v-if="!isEditingName" class="flex items-center gap-3">
-            <h1 class="text-3xl font-bold text-gray-900">{{ courseStore.currentCourse.name }}</h1>
+            <h1 class="text-3xl font-bold text-content-primary">{{ courseStore.currentCourse.name }}</h1>
             <button
                 v-if="isStaff"
                 @click="startEditName"
-                class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-blue-600 transition"
+                class="p-1 hover:bg-surface-hover rounded text-content-disabled hover:text-tag-info transition"
                 :title="$t('CourseDetailView.editNameTitle')"
             >
               <Edit2 :size="20" />
@@ -275,7 +275,7 @@ const roleClass = (role: string | undefined) => {
             </BaseButton>
           </div>
 
-          <p class="text-gray-500 text-sm mt-1">
+          <p class="text-content-secondary text-sm mt-1">
             {{ memberCount === 1 ? $t('CourseDetailView.memberSingular', { count: memberCount }) : $t('CourseDetailView.memberPlural', { count: memberCount }) }}
           </p>
         </div>
@@ -283,7 +283,7 @@ const roleClass = (role: string | undefined) => {
 
       <Card>
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">{{ $t('CourseDetailView.membersTitle') }}</h2>
+          <h2 class="text-lg font-semibold text-content-primary">{{ $t('CourseDetailView.membersTitle') }}</h2>
           <BaseButton
               v-if="isStaff"
               @click="openAddModal"
@@ -296,24 +296,24 @@ const roleClass = (role: string | undefined) => {
 
         <div
             v-if="courseStore.currentMembers.length === 0"
-            class="py-10 text-center text-gray-400 text-sm"
+            class="py-10 text-center text-content-disabled text-sm"
         >
           {{ $t('CourseDetailView.noMembers') }}
         </div>
 
-        <ul v-else class="divide-y divide-gray-100">
+        <ul v-else class="divide-y divide-card-border">
           <li
               v-for="user in courseStore.currentMembers"
               :key="user.userId"
               class="flex items-center justify-between py-3"
           >
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-sm font-semibold">
+              <div class="w-9 h-9 rounded-full bg-surface-input flex items-center justify-center text-content-secondary text-sm font-semibold">
                 {{ (user.username || '?').charAt(0).toUpperCase() }}
               </div>
               <div>
-                <div class="font-medium text-gray-900">{{ user.username }}</div>
-                <div class="text-xs text-gray-500">{{ user.email }}</div>
+                <div class="font-medium text-content-primary">{{ user.username }}</div>
+                <div class="text-xs text-content-secondary">{{ user.email }}</div>
               </div>
             </div>
             <div class="flex items-center gap-3">
@@ -327,11 +327,10 @@ const roleClass = (role: string | undefined) => {
                   v-if="isStaff"
                   @click="requestRemoveMember(user)"
                   :disabled="removingId === user.userId"
-                  class="p-2 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
                   :title="$t('CourseDetailView.removeMemberTitle')"
-              >
-                <Loader2 v-if="removingId === user.userId" :size="16" class="animate-spin text-red-500" />
-                <UserMinus v-else :size="16" class="text-red-600" />
+                  class="p-2 hover:bg-status-errorLight rounded-lg transition disabled:opacity-50">
+                <Loader2 v-if="removingId === user.userId" :size="16" class="animate-spin text-status-error" />
+                <UserMinus v-else :size="16" class="text-status-error" />
               </button>
             </div>
           </li>
@@ -347,18 +346,18 @@ const roleClass = (role: string | undefined) => {
       <template #body>
         <div class="space-y-5">
 
-          <div class="bg-blue-50 text-blue-800 p-3.5 rounded-lg text-sm flex gap-3 items-start border border-blue-100">
-            <Info :size="18" class="mt-0.5 flex-shrink-0 text-blue-600" />
+          <div class="bg-tag-infoLight text-content-primary p-3.5 rounded-lg text-sm flex gap-3 items-start border border-tag-infoBorder">
+            <Info :size="18" class="mt-0.5 flex-shrink-0 text-tag-info" />
             <p v-html="$t('CourseDetailView.addModal.info')"></p>
           </div>
 
           <div class="relative">
-            <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-content-disabled" />
             <input
                 v-model="searchQuery"
                 type="text"
                 :placeholder="$t('CourseDetailView.addModal.searchPlaceholder')"
-                class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                class="w-full pl-9 pr-3 py-2 border border-border rounded-lg bg-surface-card text-content-primary focus:ring-2 focus:ring-primary outline-none"
             />
           </div>
 
@@ -366,50 +365,50 @@ const roleClass = (role: string | undefined) => {
             <span
                 v-for="user in Array.from(selectedToAdd.values())"
                 :key="user.userId"
-                class="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-sm px-2 py-1 rounded"
+                class="flex items-center gap-1 bg-status-successLight text-status-success text-sm px-2 py-1 rounded"
             >
               {{ user.username }}
-              <button @click="removeSelection(user.userId)" class="hover:text-emerald-900">
+              <button @click="removeSelection(user.userId)" class="hover:text-status-success/70">
                 <X :size="14" />
               </button>
             </span>
           </div>
 
-          <div class="max-h-64 overflow-y-auto border border-gray-200 rounded-lg overscroll-contain">
-            <div v-if="isSearching" class="p-4 text-center text-gray-400 text-sm">
+          <div class="max-h-64 overflow-y-auto border border-card-border rounded-lg overscroll-contain">
+            <div v-if="isSearching" class="p-4 text-center text-content-disabled text-sm">
               {{ $t('CourseDetailView.addModal.loadingUsers') }}
             </div>
             <div
                 v-else-if="searchResults.length === 0"
-                class="p-4 text-center text-gray-400 text-sm"
+                class="p-4 text-center text-content-disabled text-sm"
             >
               {{ $t('CourseDetailView.addModal.noUsersFound') }}
             </div>
-            <ul v-else class="divide-y divide-gray-100">
+            <ul v-else class="divide-y divide-card-border">
               <label
                   v-for="user in searchResults"
                   :key="user.userId"
-                  class="flex items-center justify-between p-3 hover:bg-gray-50 transition select-none"
+                  class="flex items-center justify-between p-3 hover:bg-surface-hover transition select-none"
                   :class="isAlreadyMember(user.userId) ? 'opacity-75' : 'cursor-pointer'"
               >
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-xs font-semibold">
+                  <div class="w-8 h-8 rounded-full bg-surface-input flex items-center justify-center text-content-secondary text-xs font-semibold">
                     {{ (user.username || '?').charAt(0).toUpperCase() }}
                   </div>
                   <div>
-                    <div class="font-medium text-gray-900 text-sm">{{ user.username }}</div>
-                    <div class="text-xs text-gray-500">{{ user.email }}</div>
+                    <div class="font-medium text-content-primary text-sm">{{ user.username }}</div>
+                    <div class="text-xs text-content-secondary">{{ user.email }}</div>
                   </div>
                 </div>
 
                 <div class="flex items-center gap-3">
-                  <span v-if="isAlreadyMember(user.userId)" class="text-xs text-gray-400">
+                  <span v-if="isAlreadyMember(user.userId)" class="text-xs text-content-disabled">
                     {{ $t('CourseDetailView.addModal.alreadyMember') }}
                   </span>
                   <template v-else>
                     <span
                         v-if="getOtherCourseName(user.courseId)"
-                        class="text-xs font-medium text-orange-700 bg-orange-100 px-2 py-1 rounded"
+                        class="text-xs font-medium text-tag-destroy bg-tag-destroyLight px-2 py-1 rounded"
                     >
                       {{ $t('CourseDetailView.addModal.inOtherCourse', { courseName: getOtherCourseName(user.courseId) }) }}
                     </span>
@@ -417,7 +416,7 @@ const roleClass = (role: string | undefined) => {
                         type="checkbox"
                         :checked="selectedToAdd.has(user.userId)"
                         @change="toggleSelection(user)"
-                        class="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                        class="w-4 h-4 text-primary rounded border-border focus:ring-primary cursor-pointer"
                     />
                   </template>
                 </div>
@@ -444,13 +443,13 @@ const roleClass = (role: string | undefined) => {
 
     <Modal :show="showRemoveModal" @close="closeRemoveModal">
       <template #header>
-        <h2 class="text-xl font-semibold text-red-700">{{ $t('CourseDetailView.removeModal.title') }}</h2>
+        <h2 class="text-xl font-semibold text-status-error">{{ $t('CourseDetailView.removeModal.title') }}</h2>
       </template>
 
       <template #body>
         <div class="space-y-3">
-          <p class="text-gray-700" v-html="$t('CourseDetailView.removeModal.confirmPrompt', { username: memberToRemove?.username })"></p>
-          <p class="text-sm text-gray-500">
+          <p class="text-content-primary" v-html="$t('CourseDetailView.removeModal.confirmPrompt', { username: memberToRemove?.username })"></p>
+          <p class="text-sm text-content-secondary">
             {{ $t('CourseDetailView.removeModal.warning') }}
           </p>
         </div>

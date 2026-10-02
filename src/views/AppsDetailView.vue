@@ -402,13 +402,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl p-10 border min-h-[600px]">
+  <div class="bg-surface-card rounded-2xl p-10 border border-card-border min-h-[600px]">
 
     <!-- Back -->
     <div class="mb-6">
       <button
         @click="router.back()"
-        class="flex items-center text-gray-500 hover:text-gray-900 transition-colors"
+        class="flex items-center text-content-secondary hover:text-content-primary transition-colors"
       >
         <ArrowLeft :size="20" class="mr-2" /> {{ $t('AppsDetailView.backToOverview') }}
       </button>
@@ -418,27 +418,27 @@ onMounted(async () => {
     <div v-if="isLoading" class="flex justify-center py-20">
       <div class="flex flex-col items-center gap-3">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <div class="text-gray-400">{{ $t('AppsDetailView.loading') }}</div>
+        <div class="text-content-disabled">{{ $t('AppsDetailView.loading') }}</div>
       </div>
     </div>
 
     <div v-else-if="app" class="max-w-4xl mx-auto">
 
       <!-- App header -->
-      <div class="flex items-start gap-6 mb-6 border-b border-gray-100 pb-6">
-        <div class="bg-[#EFF5F2] p-4 rounded-xl shadow-sm text-primary flex items-center justify-center w-[88px] h-[88px] flex-shrink-0">
+      <div class="flex items-start gap-6 mb-6 border-b border-card-border pb-6">
+        <div class="bg-card-tinted p-4 rounded-xl shadow-sm text-primary flex items-center justify-center w-[88px] h-[88px] flex-shrink-0">
           <img v-if="app.image" :src="app.image" :alt="app.name" class="w-full h-full object-contain" />
           <component v-else :is="getIconForApp(app.name)" :size="48" />
         </div>
         <div class="flex-grow">
           <div class="flex justify-between items-start">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ app.name }}</h1>
-              <div class="flex items-center gap-3 text-sm text-gray-500">
-                <span class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+              <h1 class="text-3xl font-bold text-content-primary mb-2">{{ app.name }}</h1>
+              <div class="flex items-center gap-3 text-sm text-content-secondary">
+                <span class="flex items-center gap-1 bg-surface-input px-2 py-1 rounded">
                   <GitBranch :size="14" /> {{ app.versions?.length || 0 }} {{ $t('AppsDetailView.versionsAvailable') }}
                 </span>
-                <a v-if="app.git_link" :href="app.git_link" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline cursor-pointer truncate max-w-xs block">
+                <a v-if="app.git_link" :href="app.git_link" target="_blank" rel="noopener noreferrer" class="text-tag-info hover:underline cursor-pointer truncate max-w-xs block">
                   {{ app.git_link }}
                 </a>
               </div>
@@ -458,13 +458,13 @@ onMounted(async () => {
       </div>
 
       <!-- Tab bar -->
-      <div class="flex gap-1 mb-8 border-b border-gray-200">
+      <div class="flex gap-1 mb-8 border-b border-card-border">
         <button
           @click="activeTab = 'overview'"
           class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
           :class="activeTab === 'overview'
             ? 'border-primary text-primary'
-            : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'"
+            : 'border-transparent text-content-secondary hover:text-content-primary hover:border-border-strong'"
         >
           <Layers :size="16" />
           {{ $t('AppsDetailView.tabOverview') }}
@@ -475,14 +475,14 @@ onMounted(async () => {
           class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
           :class="activeTab === 'store'
             ? 'border-primary text-primary'
-            : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'"
+            : 'border-transparent text-content-secondary hover:text-content-primary hover:border-border-strong'"
         >
           <ShoppingBag :size="16" />
           {{ $t('AppsDetailView.tabStore') }}
           <!-- dot if action needed -->
           <span
             v-if="appBannerStatus === 'no_submission' || appBannerStatus === 'pending'"
-            class="w-2 h-2 rounded-full bg-orange-400"
+            class="w-2 h-2 rounded-full bg-tag-destroy"
           />
         </button>
       </div>
@@ -495,7 +495,7 @@ onMounted(async () => {
         <div class="lg:col-span-2 space-y-6">
 
           <div>
-            <h2 class="text-xl font-semibold text-gray-900 mb-3">{{ $t('AppsDetailView.descriptionTitle') }}</h2>
+            <h2 class="text-xl font-semibold text-content-primary mb-3">{{ $t('AppsDetailView.descriptionTitle') }}</h2>
             <MarkdownRenderer
               v-if="app.description && app.description.trim()"
               :source="app.description"
@@ -504,15 +504,15 @@ onMounted(async () => {
             <p
                 v-else
                 :lang="locale"
-                class="text-gray-500 italic"
+                class="text-content-secondary italic"
             >
               {{ $t('AppsDetailView.noDescription') }}
             </p>
           </div>
 
-          <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ $t('AppsDetailView.appInfoTitle') }}</h3>
-            <ul class="space-y-2 text-sm text-gray-600">
+          <div class="bg-surface-input rounded-lg p-4 border border-card-border">
+            <h3 class="text-sm font-semibold text-content-primary uppercase tracking-wide mb-2">{{ $t('AppsDetailView.appInfoTitle') }}</h3>
+            <ul class="space-y-2 text-sm text-content-secondary">
               <li class="flex justify-between">
                 <span>{{ $t('AppsDetailView.createdAt') }}</span>
                 <span class="font-medium">{{ app.created_at ? formatDate(app.created_at) : '-' }}</span>
@@ -524,60 +524,60 @@ onMounted(async () => {
             </ul>
           </div>
 
-          <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ $t('AppsDetailView.versionDetailsTitle') }}</h3>
+          <div class="bg-surface-input rounded-lg p-4 border border-card-border">
+            <h3 class="text-sm font-semibold text-content-primary uppercase tracking-wide mb-2">{{ $t('AppsDetailView.versionDetailsTitle') }}</h3>
             <div v-if="hasVersionInfo && versionInfo" class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-gray-600">{{ $t('AppsDetailView.versionName') }}</span>
+                <span class="text-content-secondary">{{ $t('AppsDetailView.versionName') }}</span>
                 <span class="font-medium text-right">{{ versionInfo.name || '-' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600">{{ $t('AppsDetailView.versionType') }}</span>
+                <span class="text-content-secondary">{{ $t('AppsDetailView.versionType') }}</span>
                 <span class="font-medium text-right">{{ versionInfo.type || '-' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600">{{ $t('AppsDetailView.versionCommit') }}</span>
+                <span class="text-content-secondary">{{ $t('AppsDetailView.versionCommit') }}</span>
                 <span class="font-medium text-right">{{ versionInfo.commit || '-' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600">{{ $t('AppsDetailView.versionAuthor') }}</span>
+                <span class="text-content-secondary">{{ $t('AppsDetailView.versionAuthor') }}</span>
                 <span class="font-medium text-right">{{ versionInfo.author || '-' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600">{{ $t('AppsDetailView.versionPublishedAt') }}</span>
+                <span class="text-content-secondary">{{ $t('AppsDetailView.versionPublishedAt') }}</span>
                 <span class="font-medium text-right">{{ versionInfo.published_at ? formatDate(versionInfo.published_at) : '-' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600">{{ $t('AppsDetailView.versionPreRelease') }}</span>
+                <span class="text-content-secondary">{{ $t('AppsDetailView.versionPreRelease') }}</span>
                 <span class="font-medium text-right">
                   {{ String(versionInfo.prerelease ?? '').toLowerCase() === 'true' ? $t('AppsDetailView.yes') : (versionInfo.prerelease === '' ? '-' : $t('AppsDetailView.no')) }}
                 </span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-gray-600">{{ $t('AppsDetailView.versionLink') }}</span>
-                <a v-if="versionInfo.html_url" :href="versionInfo.html_url" target="_blank" rel="noopener" class="font-medium text-blue-600 hover:underline break-all">{{ versionInfo.html_url }}</a>
+                <span class="text-content-secondary">{{ $t('AppsDetailView.versionLink') }}</span>
+                <a v-if="versionInfo.html_url" :href="versionInfo.html_url" target="_blank" rel="noopener" class="font-medium text-tag-info hover:underline break-all">{{ versionInfo.html_url }}</a>
                 <span v-else class="font-medium text-right">-</span>
               </div>
             </div>
-            <p v-else class="text-xs text-gray-400">{{ $t('AppsDetailView.noVersionInfo') }}</p>
+            <p v-else class="text-xs text-content-disabled">{{ $t('AppsDetailView.noVersionInfo') }}</p>
           </div>
 
-          <div v-if="versionInfo && versionInfo.description" class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">{{ $t('AppsDetailView.versionDescTitle') }}</h3>
+          <div v-if="versionInfo && versionInfo.description" class="bg-surface-input rounded-lg p-4 border border-card-border">
+            <h3 class="text-sm font-semibold text-content-primary uppercase tracking-wide mb-2">{{ $t('AppsDetailView.versionDescTitle') }}</h3>
             <MarkdownRenderer :source="versionInfo.description" variant="full" />
           </div>
 
         </div>
 
         <!-- Deploy sidebar -->
-        <div class="bg-[#FAFAFA] border border-gray-200 rounded-xl p-6 h-fit sticky top-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-6">{{ $t('AppsDetailView.startDeploymentTitle') }}</h2>
+        <div class="bg-surface-card border border-card-border rounded-xl p-6 h-fit sticky top-6">
+          <h2 class="text-lg font-semibold text-content-primary mb-6">{{ $t('AppsDetailView.startDeploymentTitle') }}</h2>
 
           <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ $t('AppsDetailView.selectVersionLabel') }}</label>
+            <label class="block text-sm font-medium text-content-primary mb-2">{{ $t('AppsDetailView.selectVersionLabel') }}</label>
             <select
               v-model="selectedVersion"
-              class="w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 focus:ring-2 focus:ring-primary focus:border-primary shadow-sm cursor-pointer transition-all hover:border-gray-400"
+              class="w-full rounded-lg border border-border bg-surface-card py-2 px-3 text-sm text-content-primary focus:ring-2 focus:ring-primary focus:border-primary shadow-sm cursor-pointer transition-all hover:border-border-strong"
               :disabled="versionOptions.length === 0"
             >
               <option v-for="ver in versionOptions" :key="ver" :value="ver">{{ ver }}</option>
@@ -588,12 +588,12 @@ onMounted(async () => {
             @click="handleDeploy"
             :disabled="!selectedVersion || (credStore.isResolved && !credStore.hasCredential)"
             :title="credStore.isResolved && !credStore.hasCredential ? $t('AppsDetailView.missingCredsTitle') : ''"
-            class="w-full bg-gradient-to-r from-[#2E5C46] to-[#234a36] text-white px-4 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+            class="w-full bg-gradient-to-r from-primary to-primary-dark text-content-inverse px-4 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
           >
             <Layers :size="18" />
             {{ $t('AppsDetailView.deployButton') }}
           </button>
-          <p v-if="credStore.isResolved && !credStore.hasCredential" class="mt-2 text-sm text-amber-700">
+          <p v-if="credStore.isResolved && !credStore.hasCredential" class="mt-2 text-sm text-status-warning">
             <router-link to="/user/openstack" class="underline font-medium">{{ $t('AppsDetailView.missingCredsLink') }}</router-link>
             {{ $t('AppsDetailView.missingCredsText') }}
           </p>
@@ -607,29 +607,29 @@ onMounted(async () => {
       <div v-else-if="activeTab === 'store'" class="space-y-6">
 
         <!-- Status banners -->
-        <div v-if="appBannerStatus === 'no_submission'" class="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800">
+        <div v-if="appBannerStatus === 'no_submission'" class="flex items-start gap-3 bg-tag-warningLight border border-tag-warningBorder rounded-xl p-4 text-tag-warning">
           <AlertCircle :size="20" class="flex-shrink-0 mt-0.5" />
           <p class="text-sm">{{ $t('AppsDetailView.bannerNoSubmission') }}</p>
         </div>
-        <div v-else-if="appBannerStatus === 'pending'" class="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4 text-orange-800">
+        <div v-else-if="appBannerStatus === 'pending'" class="flex items-start gap-3 bg-tag-destroyLight border border-tag-destroyBorder rounded-xl p-4 text-tag-destroy">
           <Clock :size="20" class="flex-shrink-0 mt-0.5" />
           <p class="text-sm">{{ $t('AppsDetailView.bannerPending') }}</p>
         </div>
 
         <!-- Visibility toggle card -->
-        <div class="bg-gray-50 rounded-xl border border-gray-200 p-5">
-          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">{{ $t('AppsDetailView.storeVisibilityTitle') }}</h3>
+        <div class="bg-surface-input rounded-xl border border-card-border p-5">
+          <h3 class="text-sm font-semibold text-content-primary uppercase tracking-wide mb-4">{{ $t('AppsDetailView.storeVisibilityTitle') }}</h3>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="p-2 rounded-lg" :class="app.is_private ? 'bg-purple-100 text-purple-600' : 'bg-green-100 text-green-700'">
+              <div class="p-2 rounded-lg" :class="app.is_private ? 'bg-tag-accentLight text-tag-accent' : 'bg-status-successLight text-status-success'">
                 <Lock v-if="app.is_private" :size="20" />
                 <Globe v-else :size="20" />
               </div>
               <div>
-                <p class="font-medium text-gray-900">
+                <p class="font-medium text-content-primary">
                   {{ app.is_private ? $t('AppsDetailView.visibilityPrivate') : $t('AppsDetailView.visibilityPublic') }}
                 </p>
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-content-secondary">
                   {{ app.is_private ? $t('AppsDetailView.visibilityPrivateDesc') : $t('AppsDetailView.visibilityPublicDesc') }}
                 </p>
               </div>
@@ -638,10 +638,10 @@ onMounted(async () => {
               @click="togglePrivacy"
               :disabled="isTogglingPrivacy"
               class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50"
-              :class="app.is_private ? 'bg-purple-500' : 'bg-green-500'"
+              :class="app.is_private ? 'bg-tag-accent' : 'bg-status-success'"
             >
               <span
-                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200"
+                class="inline-block h-5 w-5 transform rounded-full bg-surface-card shadow transition duration-200"
                 :class="app.is_private ? 'translate-x-0' : 'translate-x-5'"
               />
             </button>
@@ -649,43 +649,43 @@ onMounted(async () => {
         </div>
 
         <!-- Version approval table (only for public apps) -->
-        <div v-if="!app.is_private" class="bg-gray-50 rounded-xl border border-gray-200 p-5">
-          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">{{ $t('AppsDetailView.versionTableTitle') }}</h3>
+        <div v-if="!app.is_private" class="bg-surface-input rounded-xl border border-card-border p-5">
+          <h3 class="text-sm font-semibold text-content-primary uppercase tracking-wide mb-4">{{ $t('AppsDetailView.versionTableTitle') }}</h3>
 
-          <div v-if="versionOptions.length === 0" class="text-sm text-gray-400 italic">
+          <div v-if="versionOptions.length === 0" class="text-sm text-content-disabled italic">
             {{ $t('AppsDetailView.noVersionsYet') }}
           </div>
 
           <div v-else class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wide">
+                <tr class="border-b border-card-border text-left text-xs text-content-secondary uppercase tracking-wide">
                   <th class="pb-2 pr-4">{{ $t('AppsDetailView.versionTableVersion') }}</th>
                   <th class="pb-2 pr-4">{{ $t('AppsDetailView.versionTableStatus') }}</th>
                   <th class="pb-2 pr-4">{{ $t('AppsDetailView.versionTableDate') }}</th>
                   <th class="pb-2">{{ $t('AppsDetailView.versionTableAction') }}</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr v-for="ver in versionOptions" :key="ver" class="hover:bg-gray-100 transition-colors">
-                  <td class="py-2.5 pr-4 font-mono text-gray-800">{{ ver }}</td>
+              <tbody class="divide-y divide-card-border">
+                <tr v-for="ver in versionOptions" :key="ver" class="hover:bg-surface-hover transition-colors">
+                  <td class="py-2.5 pr-4 font-mono text-content-primary">{{ ver }}</td>
                   <td class="py-2.5 pr-4">
                     <AppVersionStatusBadge v-if="approvalByVersion[ver]" :status="approvalByVersion[ver].status" />
-                    <span v-else class="text-gray-400 text-xs">–</span>
+                    <span v-else class="text-content-disabled text-xs">–</span>
                   </td>
-                  <td class="py-2.5 pr-4 text-gray-500 text-xs">
+                  <td class="py-2.5 pr-4 text-content-secondary text-xs">
                     {{ approvalByVersion[ver] ? formatDate(approvalByVersion[ver].created_at) : '–' }}
                   </td>
                   <td class="py-2.5">
                     <div v-if="approvalByVersion[ver]?.status === 'rejected'" class="space-y-1">
-                      <p class="text-xs text-red-600 italic">
+                      <p class="text-xs text-status-error italic">
                         {{ $t('AppsDetailView.rejectionReasonLabel') }} {{ approvalByVersion[ver].rejection_reason || '–' }}
                       </p>
                       <button
                         v-if="isOwner"
                         @click="openSubmitModal(ver)"
                         :disabled="submittingVersion === ver"
-                        class="text-xs text-blue-600 hover:underline flex items-center gap-1 disabled:opacity-50"
+                        class="text-xs text-tag-info hover:underline flex items-center gap-1 disabled:opacity-50"
                       >
                         <Send :size="12" />
                         {{ submittingVersion === ver ? $t('AppsDetailView.submittingButton') : $t('AppsDetailView.resubmitButton') }}
@@ -696,7 +696,7 @@ onMounted(async () => {
                       <button
                         @click="withdrawVersion(ver)"
                         :disabled="withdrawingVersion === ver"
-                        class="text-xs text-gray-500 hover:text-red-600 hover:underline flex items-center gap-1 disabled:opacity-50"
+                        class="text-xs text-content-secondary hover:text-status-error hover:underline flex items-center gap-1 disabled:opacity-50"
                       >
                         <Undo2 :size="12" />
                         {{ withdrawingVersion === ver ? '...' : $t('AppsDetailView.withdrawButton') }}
@@ -706,7 +706,7 @@ onMounted(async () => {
                       v-else-if="!approvalByVersion[ver] && isOwner"
                       @click="openSubmitModal(ver)"
                       :disabled="submittingVersion === ver"
-                      class="text-xs text-green-700 hover:underline flex items-center gap-1 disabled:opacity-50"
+                      class="text-xs text-status-success hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
                       <Send :size="12" />
                       {{ submittingVersion === ver ? $t('AppsDetailView.submittingButton') : $t('AppsDetailView.submitButton') }}
@@ -719,7 +719,7 @@ onMounted(async () => {
         </div>
 
         <!-- Private app hint -->
-        <div v-else class="bg-purple-50 border border-purple-200 rounded-xl p-5 text-sm text-purple-700">
+        <div v-else class="bg-tag-accentLight border border-tag-accentBorder rounded-xl p-5 text-sm text-tag-accent">
           {{ $t('AppsDetailView.privateAppStoreHint') }}
         </div>
 
@@ -732,8 +732,7 @@ onMounted(async () => {
       <template #title>{{ $t('AppsDetailView.confirmDeleteTitle') }}</template>
       <template #body>
         <div class="space-y-3">
-          <p class="text-gray-700" v-html="$t('AppsDetailView.confirmDeleteMessage', { name: app.name })"></p>
-        </div>
+          <p class="text-content-primary" v-html="$t('AppsDetailView.confirmDeleteMessage', { name: app.name })"></p>        </div>
       </template>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -754,23 +753,23 @@ onMounted(async () => {
       <template #title>{{ $t('AppsDetailView.editModal.title') }}</template>
       <template #body>
         <div class="space-y-4">
-          <p class="text-sm text-gray-600">{{ $t('AppsDetailView.editModal.description') }}</p>
+          <p class="text-sm text-content-secondary">{{ $t('AppsDetailView.editModal.description') }}</p>
 
           <!-- Name -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
               {{ $t('AppsDetailView.editModal.nameLabel') }}
             </label>
             <input
               v-model="editForm.name"
               type="text"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              class="w-full rounded-lg border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-surface-card text-content-primary"
             />
           </div>
 
           <!-- Description -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
               {{ $t('AppsDetailView.editModal.descLabel') }}
             </label>
             <MarkdownEditor
@@ -779,17 +778,17 @@ onMounted(async () => {
               :min-height-px="120"
               :max-height-px="320"
             />
-            <p class="mt-1 text-xs text-gray-500">{{ $t('AppsCreateView.form.descMarkdownHint') }}</p>
+            <p class="mt-1 text-xs text-content-disabled">{{ $t('AppsCreateView.form.descMarkdownHint') }}</p>
           </div>
 
           <!-- Image -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
               {{ $t('AppsDetailView.editModal.imageLabel') }}
             </label>
             <div
-              class="bg-white rounded-lg py-2 px-3 text-gray-700 shadow-sm border-2 transition-all cursor-pointer flex items-center min-h-[60px]"
-              :class="isEditDragging ? 'border-green-500 bg-green-50 border-dashed' : 'border-gray-200 hover:border-gray-300 border-dashed'"
+              class="bg-surface-card rounded-lg py-2 px-3 text-content-primary shadow-sm border-2 transition-all cursor-pointer flex items-center min-h-[60px]"
+              :class="isEditDragging ? 'border-primary bg-primary/5 border-dashed' : 'border-card-border hover:border-border border-dashed'"
               @dragover.prevent="isEditDragging = true"
               @dragleave.prevent="isEditDragging = false"
               @drop.prevent="handleEditDrop"
@@ -804,20 +803,20 @@ onMounted(async () => {
               />
               <div v-if="editImagePreview" class="flex justify-between items-center w-full">
                 <div class="flex items-center gap-3">
-                  <img :src="editImagePreview" :alt="editForm.name" class="w-10 h-10 object-contain rounded bg-gray-50" />
-                  <span class="text-sm text-gray-700">
+                  <img :src="editImagePreview" :alt="editForm.name" class="w-10 h-10 object-contain rounded bg-surface-input" />
+                  <span class="text-sm text-content-primary">
                     {{ editImageFile ? editImageFile.name : $t('AppsDetailView.editModal.currentImage') }}
                   </span>
                 </div>
                 <button
                   type="button"
-                  class="text-xs text-gray-400 hover:text-red-500"
+                  class="text-xs text-content-disabled hover:text-status-error"
                   @click.stop="removeEditImage"
                 >
                   {{ $t('AppsDetailView.editModal.imageRemove') }}
                 </button>
               </div>
-              <div v-else class="flex items-center gap-2 text-sm text-gray-400">
+              <div v-else class="flex items-center gap-2 text-sm text-content-disabled">
                 <ImageIcon :size="18" />
                 <span>{{ $t('AppsDetailView.editModal.imageHint') }}</span>
               </div>
@@ -842,31 +841,31 @@ onMounted(async () => {
       <template #title>{{ $t('AppsDetailView.submitModal.title') }}</template>
       <template #body>
         <div class="space-y-4">
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-content-secondary">
             {{ $t('AppsDetailView.submitModal.description') }}
-            <span class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs ml-1">{{ submitTargetVersion }}</span>
+            <span class="font-mono bg-surface-input px-1.5 py-0.5 rounded text-xs ml-1">{{ submitTargetVersion }}</span>
           </p>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
               {{ $t('AppsDetailView.submitModal.notesLabel') }}
             </label>
             <textarea
               v-model="submitNotes"
               :placeholder="$t('AppsDetailView.submitModal.notesPlaceholder')"
               rows="3"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"
+              class="w-full rounded-lg border border-border bg-surface-card text-content-primary px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none"
             />
           </div>
 
           <!-- Marker-Fehler -->
-          <div v-if="submitMarkerErrors.length" class="rounded-lg border border-red-200 bg-red-50 p-3">
-            <p class="text-xs font-semibold text-red-700 mb-2">{{ $t('AppsDetailView.submitModal.markerErrorTitle') }}</p>
+          <div v-if="submitMarkerErrors.length" class="rounded-lg border border-status-error/30 bg-status-errorLight p-3">
+            <p class="text-xs font-semibold text-status-error mb-2">{{ $t('AppsDetailView.submitModal.markerErrorTitle') }}</p>
             <ul class="space-y-1.5">
-              <li v-for="e in submitMarkerErrors" :key="e.variable + e.code" class="text-xs text-red-600">
+              <li v-for="e in submitMarkerErrors" :key="e.variable + e.code" class="text-xs text-status-error">
                 <span class="font-mono font-medium">{{ e.variable }}</span>
-                <span class="text-red-400 mx-1">·</span>
+                <span class="text-status-error/50 mx-1">·</span>
                 <span>{{ e.message }}</span>
-                <span v-if="e.location" class="text-red-400 ml-1 text-[10px]">({{ e.location }})</span>
+                <span v-if="e.location" class="text-status-error/50 ml-1 text-[10px]">({{ e.location }})</span>
               </li>
             </ul>
           </div>

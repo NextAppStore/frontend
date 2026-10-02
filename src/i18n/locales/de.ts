@@ -705,7 +705,11 @@ export default {
       noTeamsConfigured: 'Noch keine Teams konfiguriert — bitte den vorigen Schritt zuerst durchlaufen.',
       noMembers: 'Keine Mitglieder',
       missingRequiredTitle: 'Es fehlen noch Pflichteingaben:',
-      teamRenameToast: 'Team-/User-Änderung erkannt — {count} verwaiste Eingabe(n) entfernt:\n{lines}'
+      teamRenameToast: 'Team-/User-Änderung erkannt — {count} verwaiste Eingabe(n) entfernt:\n{lines}',
+      advancedSettings: 'Erweiterte Einstellungen',
+      allPreconfigured: 'Alles vorkonfiguriert, hier ist keine Eingabe nötig. Für Anpassungen die erweiterten Einstellungen öffnen.',
+      recommended: 'Empfohlen',
+      recommendedHint: 'Vom App-Entwickler empfohlener Wert. Kann angepasst werden.'
     },
     summary: {
       title: 'Empfohlene Konfiguration',
@@ -809,6 +813,16 @@ export default {
       title: 'Einstellungen',
       openstackTitle: 'OpenStack-Credentials',
       openstackHint: 'Eigene Zugangsdaten für Deployments hinterlegen',
+    },
+    appearance: {
+      title: 'Erscheinungsbild',
+      hint: 'Legt fest, ob die App hell, dunkel oder automatisch entsprechend den Systemeinstellungen dargestellt wird.',
+      auto: 'Automatisch',
+      autoHint: 'Folgt den Systemeinstellungen',
+      light: 'Hell',
+      lightHint: 'Immer helles Design',
+      dark: 'Dunkel',
+      darkHint: 'Immer dunkles Design',
     },
   },
 
@@ -985,6 +999,7 @@ export default {
       externalGateway: 'External Gateway',
     },
     unnamed: '(unbenannt)',
+    recommended: 'Empfohlen',
     toasts: {
       removed: '{label} wurde entfernt',
       listRefreshed: 'Liste aktualisiert.',

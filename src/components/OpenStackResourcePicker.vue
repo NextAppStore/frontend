@@ -76,6 +76,10 @@ const props = defineProps<{
   azService?: 'compute' | 'network' | 'volume'
   placeholder?: string
   allowFreeText?: boolean
+  /** The app author's HCL default for this variable. Used only to mark the
+   *  matching entry in the option list as "recommended" — it never
+   *  pre-selects anything, that is the caller's job via ``modelValue``. */
+  recommendedValue?: string | number | boolean | unknown[] | null
 }>()
 
 const emit = defineEmits<{
@@ -231,18 +235,19 @@ function adapt(raw: any): ResourceItem {
 // ----------------------------------------------------------------
 // Selection logic
 // ----------------------------------------------------------------
-const selectedKeys = computed<Set<string>>(() => {
-  const v = props.modelValue
-  // String-coerce: HCL defaults can arrive as number/boolean (``default = 2``),
-  // which would be invisible without coercion. ``null``/``undefined`` and the
-  // literal strings ``"null"``/``"undefined"`` are treated as empty.
-  const toKey = (x: unknown): string => {
-    if (x === null || x === undefined) return ''
-    const s = String(x)
-    if (s === 'null' || s === 'undefined') return ''
-    return s
-  }
-  if (props.multi) {
+// String-coerce: HCL defaults can arrive as number/boolean (``default = 2``),
+// which would be invisible without coercion. ``null``/``undefined`` and the
+// literal strings ``"null"``/``"undefined"`` are treated as empty.
+const toKey = (x: unknown): string => {
+  if (x === null || x === undefined) return ''
+  const s = String(x)
+  if (s === 'null' || s === 'undefined') return ''
+  return s
+}
+
+/** Normalises a scalar, list or comma-string value into a set of item keys. */
+const toKeySet = (v: unknown, multi: boolean): Set<string> => {
+  if (multi) {
     if (Array.isArray(v)) return new Set(v.map(toKey).filter(Boolean))
     if (typeof v === 'string' && v.trim()) {
       return new Set(v.split(',').map((s) => s.trim()).filter(Boolean))
@@ -251,13 +256,30 @@ const selectedKeys = computed<Set<string>>(() => {
   }
   const key = toKey(v)
   return new Set(key ? [key] : [])
-})
+}
+
+const selectedKeys = computed<Set<string>>(() =>
+  toKeySet(props.modelValue, Boolean(props.multi)),
+)
+
+/**
+ * The author's default as a key set. Marking it in the option list is what
+ * keeps the recommendation findable AFTER the user picked something else —
+ * at that moment the "recommended" badge on the variable card disappears,
+ * and without this the original suggestion would be lost in the list.
+ */
+const recommendedKeys = computed<Set<string>>(() =>
+  toKeySet(props.recommendedValue, Boolean(props.multi)),
+)
 
 const valueOf = (item: ResourceItem): string =>
   props.osMode === 'id' ? item.id : item.name
 
 const isSelected = (item: ResourceItem): boolean =>
   selectedKeys.value.has(valueOf(item))
+
+const isRecommended = (item: ResourceItem): boolean =>
+  recommendedKeys.value.has(valueOf(item))
 
 /**
  * Display list of the current selection. Two sources: this picker's ``items``
@@ -296,11 +318,16 @@ const filteredItems = computed<ResourceItem[]>(() => {
       )
     : items.value
   // Pull selected entries to the top so a set default is immediately visible in
-  // a long list. Relative order of selected items is preserved (stable sort).
+  // a long list, then the recommended one — otherwise it would be buried once
+  // the user has selected something else, which is exactly when it is needed.
+  // Relative order inside a group is preserved (stable sort).
   return [...base].sort((a, b) => {
     const sa = isSelected(a) ? 0 : 1
     const sb = isSelected(b) ? 0 : 1
-    return sa - sb
+    if (sa !== sb) return sa - sb
+    const ra = isRecommended(a) ? 0 : 1
+    const rb = isRecommended(b) ? 0 : 1
+    return ra - rb
   })
 })
 
@@ -602,14 +629,14 @@ onBeforeUnmount(() => {
     <!-- ============================================================ -->
     <div v-if="isFreeTextMode" class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 flex items-center gap-1">
+        <span class="text-xs text-content-disabled flex items-center gap-1">
           <Pencil :size="12" />
           {{ t('openstackPicker.manualLabel', { mode: osMode === 'id' ? t('openstackPicker.modeUuid') : t('openstackPicker.modeName') }) }}
         </span>
         <button
           @click="disableFreeText"
           type="button"
-          class="text-xs text-emerald-700 hover:text-emerald-900 underline"
+          class="text-xs text-primary hover:text-primary/70 underline"
         >
           {{ t('openstackPicker.showList') }}
         </button>
@@ -619,7 +646,7 @@ onBeforeUnmount(() => {
         @input="onFreeTextInput(($event.target as HTMLInputElement).value)"
         type="text"
         :placeholder="multi ? t('openstackPicker.multiPlaceholder') : t('openstackPicker.enterValue', { type: osTypeLabel(), mode: osMode === 'id' ? t('openstackPicker.modeUuid') : t('openstackPicker.modeName') })"
-        class="w-full px-3 py-2 rounded-lg border-2 border-gray-200 focus:border-emerald-500 outline-none font-mono text-sm"
+        class="w-full px-3 py-2 rounded-lg border-2 border-border bg-surface-card text-content-primary focus:border-primary outline-none font-mono text-sm"
       />
     </div>
 
@@ -629,7 +656,7 @@ onBeforeUnmount(() => {
     <!-- ============================================================ -->
     <div v-else-if="errorReason === 'credentials_missing'">
       <div
-        class="flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-amber-200 bg-amber-50 text-amber-800 text-sm"
+        class="flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-status-warning/40 bg-status-warningLight text-status-warning text-sm"
       >
         <AlertTriangle :size="14" class="flex-shrink-0" />
         <span>{{ t('openstackPicker.credentialsRequired') }}</span>
@@ -638,7 +665,7 @@ onBeforeUnmount(() => {
         v-if="allowFreeText"
         @click="enableFreeText"
         type="button"
-        class="mt-2 text-xs text-emerald-700 hover:text-emerald-900 underline"
+        class="mt-2 text-xs text-primary hover:text-primary/70 underline"
       >
         {{ t('openstackPicker.enterManuallyInstead', { mode: osMode === 'id' ? t('openstackPicker.modeUuid') : t('openstackPicker.modeName') }) }}
       </button>
@@ -654,22 +681,22 @@ onBeforeUnmount(() => {
             ref="triggerEl"
             @click="toggleDropdown"
             type="button"
-            class="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border-2 border-gray-200 bg-white hover:border-emerald-300 transition focus:border-emerald-500 outline-none text-left"
+            class="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border-2 border-border bg-surface-card hover:border-primary/50 transition focus:border-primary outline-none text-left"
           >
             <div class="flex flex-wrap items-center gap-1.5 flex-grow min-w-0">
               <!-- Single -->
               <template v-if="!multi">
                 <template v-if="selectedDisplay.length === 0">
-                  <span class="text-gray-400 text-sm">{{ placeholderText }}</span>
+                  <span class="text-content-disabled text-sm">{{ placeholderText }}</span>
                 </template>
                 <template v-else>
                   <!-- Selection pill: same accent as the highlight row in the
                        dropdown, so it reads clearly as a selected value. -->
                   <span
-                    class="inline-flex items-center gap-1.5 max-w-full px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    class="inline-flex items-center gap-1.5 max-w-full px-2 py-0.5 rounded bg-status-successLight text-status-success border border-status-success/30"
                     :title="selectedDisplay[0]?.value"
                   >
-                    <Check :size="12" class="text-emerald-600 flex-shrink-0" />
+                    <Check :size="12" class="text-status-success flex-shrink-0" />
                     <span class="font-medium text-sm truncate">
                       {{ selectedDisplay[0]?.displayName }}
                     </span>
@@ -679,7 +706,7 @@ onBeforeUnmount(() => {
                        -loaded items). Shown as a grey, tooltip-capable pill. -->
                   <span
                     v-if="!selectedDisplay[0]?.known"
-                    class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200"
+                    class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-input text-content-disabled border border-card-border"
                     :title="t('openstackPicker.notInList')"
                   >
                     {{ t('openstackPicker.externalBadge') }}
@@ -690,13 +717,13 @@ onBeforeUnmount(() => {
               <!-- Multi: Chips -->
               <template v-else>
                 <template v-if="selectedDisplay.length === 0">
-                  <span class="text-gray-400 text-sm">{{ placeholderText }}</span>
+                  <span class="text-content-disabled text-sm">{{ placeholderText }}</span>
                 </template>
                 <span
                   v-for="(entry, i) in selectedDisplay"
                   :key="i"
-                  class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-medium border border-emerald-200"
-                  :class="entry.known ? '' : 'border-amber-200 bg-amber-50 text-amber-700'"
+                  class="inline-flex items-center gap-1 bg-status-successLight text-status-success px-2 py-0.5 rounded text-xs font-medium border border-status-success/30"
+                  :class="entry.known ? '' : 'border-status-warning/40 bg-status-warningLight text-status-warning'"
                   :title="entry.value"
                   @click.stop
                 >
@@ -704,14 +731,14 @@ onBeforeUnmount(() => {
                   <button
                     @click.stop="removeChip(entry.value)"
                     type="button"
-                    class="hover:text-emerald-900"
+                    class="hover:opacity-70"
                   >
                     <X :size="12" />
                   </button>
                 </span>
               </template>
             </div>
-            <component :is="isOpen ? ChevronUp : ChevronDown" :size="16" class="text-gray-400 flex-shrink-0" />
+            <component :is="isOpen ? ChevronUp : ChevronDown" :size="16" class="text-content-disabled flex-shrink-0" />
           </button>
         </div>
 
@@ -719,7 +746,7 @@ onBeforeUnmount(() => {
           @click="handleRefresh"
           type="button"
           :disabled="isLoading"
-          class="flex-shrink-0 p-2 text-gray-500 hover:text-emerald-700 disabled:opacity-50 transition"
+          class="flex-shrink-0 p-2 text-content-secondary hover:text-primary disabled:opacity-50 transition"
           :title="t('openstackPicker.refreshList')"
         >
           <RefreshCw :size="16" :class="isLoading ? 'animate-spin' : ''" />
@@ -733,41 +760,41 @@ onBeforeUnmount(() => {
         v-if="isOpen && !isFreeTextMode && errorReason !== 'credentials_missing'"
         ref="dropdownEl"
         :style="popupStyle"
-        class="border-2 border-gray-200 rounded-lg bg-white shadow-2xl overflow-hidden flex flex-col"
+        class="border-2 border-border rounded-lg bg-surface-card shadow-2xl overflow-hidden flex flex-col"
         @mousedown.stop
       >
         <!-- Search -->
-        <div class="relative border-b border-gray-100 p-2 flex-shrink-0">
-          <Search :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div class="relative border-b border-card-border p-2 flex-shrink-0">
+          <Search :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-content-disabled" />
           <input
             ref="searchInputEl"
             v-model="searchQuery"
             type="text"
             :placeholder="t('openstackPicker.searchPlaceholder', { type: osTypeLabel() })"
-            class="w-full pl-7 pr-2 py-1.5 rounded text-sm outline-none border border-transparent focus:border-emerald-300"
+            class="w-full pl-7 pr-2 py-1.5 rounded text-sm bg-surface-card text-content-primary outline-none border border-transparent focus:border-primary"
           />
         </div>
 
         <!-- Loading -->
-        <div v-if="isLoading" class="p-6 text-center text-gray-400 text-sm">
-          <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600 mb-2"></div>
+        <div v-if="isLoading" class="p-6 text-center text-content-disabled text-sm">
+          <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-primary mb-2"></div>
           <p>{{ t('openstackPicker.loading', { type: osTypeLabel() }) }}</p>
         </div>
 
         <!-- Error: OpenStack down -->
         <div v-else-if="errorReason === 'unavailable'" class="p-4">
-          <div class="flex items-start gap-2 text-amber-700 mb-2">
+          <div class="flex items-start gap-2 text-status-warning mb-2">
             <AlertTriangle :size="16" class="flex-shrink-0 mt-0.5" />
             <div class="text-sm">
               <p class="font-medium">{{ t('openstackPicker.unreachable') }}</p>
-              <p class="text-xs text-amber-600 mt-1">{{ errorMessage }}</p>
+              <p class="text-xs text-status-warning/80 mt-1">{{ errorMessage }}</p>
             </div>
           </div>
           <div class="flex gap-2 mt-2">
             <button
               @click="handleRefresh"
               type="button"
-              class="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+              class="text-xs px-2 py-1 rounded bg-status-successLight text-status-success hover:bg-status-successLight/70"
             >
               {{ t('openstackPicker.retry') }}
             </button>
@@ -775,7 +802,7 @@ onBeforeUnmount(() => {
               v-if="allowFreeText"
               @click="enableFreeText"
               type="button"
-              class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+              class="text-xs px-2 py-1 rounded bg-surface-input text-content-secondary hover:bg-surface-hover"
             >
               {{ t('openstackPicker.enterManually') }}
             </button>
@@ -783,7 +810,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Empty -->
-        <div v-else-if="filteredItems.length === 0" class="p-6 text-center text-gray-500 text-sm">
+        <div v-else-if="filteredItems.length === 0" class="p-6 text-center text-content-secondary text-sm">
           <p v-if="searchQuery">{{ t('openstackPicker.noHits', { query: searchQuery }) }}</p>
           <template v-else>
             <p class="mb-2">{{ t('openstackPicker.emptyProject', { type: osTypeLabel() }) }}</p>
@@ -791,7 +818,7 @@ onBeforeUnmount(() => {
               v-if="allowFreeText"
               @click="enableFreeText"
               type="button"
-              class="text-xs text-emerald-700 hover:text-emerald-900 underline inline-flex items-center gap-1"
+              class="text-xs text-primary hover:text-primary/70 underline inline-flex items-center gap-1"
             >
               <Pencil :size="12" /> {{ t('openstackPicker.enterManually') }}
             </button>
@@ -800,41 +827,50 @@ onBeforeUnmount(() => {
 
         <!-- Items — flex-grow + overflow-auto so max-height from popupStyle
              bounds the scrolling region -->
-        <ul v-else class="flex-grow overflow-y-auto divide-y divide-gray-100">
+        <ul v-else class="flex-grow overflow-y-auto divide-y divide-card-border">
           <li
             v-for="item in filteredItems"
             :key="item.id || item.name"
             @click="toggle(item)"
-            class="flex items-center gap-3 px-3 py-2 hover:bg-emerald-50 cursor-pointer transition"
-            :class="isSelected(item) ? 'bg-emerald-50' : ''"
+            class="flex items-center gap-3 px-3 py-2 hover:bg-surface-hover cursor-pointer transition"
+            :class="isSelected(item) ? 'bg-surface-input' : ''"
           >
             <div
               class="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border"
               :class="
                 isSelected(item)
-                  ? 'bg-emerald-500 border-emerald-500'
-                  : 'bg-white border-gray-300'
+                  ? 'bg-status-success border-status-success'
+                  : 'bg-surface-card border-border'
               "
             >
-              <Check v-if="isSelected(item)" :size="12" class="text-white" />
+              <Check v-if="isSelected(item)" :size="12" class="text-content-inverse" />
             </div>
 
             <div class="flex-grow min-w-0">
               <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900 text-sm truncate">{{ item.name || t('openstackPicker.unnamed') }}</span>
+                <span class="font-medium text-content-primary text-sm truncate">{{ item.name || t('openstackPicker.unnamed') }}</span>
                 <span
                   v-if="item.tertiary"
-                  class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium flex-shrink-0"
+                  class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-input text-content-secondary font-medium flex-shrink-0"
                 >
                   {{ item.tertiary }}
                 </span>
+                <!-- The app author's default. Stays marked even after the user
+                     picked something else, so the suggestion is findable. -->
+                <span
+                  v-if="isRecommended(item)"
+                  data-testid="picker-recommended"
+                  class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-status-successLight text-status-success border border-status-success/30 font-bold flex-shrink-0"
+                >
+                  {{ t('openstackPicker.recommended') }}
+                </span>
               </div>
-              <div v-if="item.secondary" class="text-xs text-gray-500 truncate">
+              <div v-if="item.secondary" class="text-xs text-content-secondary truncate">
                 {{ item.secondary }}
               </div>
               <!-- Show the ID in id-mode as a secondary disambiguation hint;
                    the ``name`` remains the main label. -->
-              <div v-if="osMode === 'id' && item.id" class="text-[10px] text-gray-400 font-mono truncate">
+              <div v-if="osMode === 'id' && item.id" class="text-[10px] text-content-disabled font-mono truncate">
                 {{ item.id }}
               </div>
             </div>
@@ -842,7 +878,7 @@ onBeforeUnmount(() => {
         </ul>
 
         <!-- Footer with mode hint -->
-        <div class="border-t border-gray-100 px-3 py-1.5 bg-gray-50 flex items-center justify-between text-[11px] text-gray-500 flex-shrink-0">
+        <div class="border-t border-card-border px-3 py-1.5 bg-surface-input flex items-center justify-between text-[11px] text-content-disabled flex-shrink-0">
           <span>
             <template v-if="osMode === 'id'">{{ t('openstackPicker.hints.storesUuid') }}</template>
             <template v-else>{{ t('openstackPicker.hints.storesName') }}</template>
@@ -852,7 +888,7 @@ onBeforeUnmount(() => {
             v-if="allowFreeText"
             @click="enableFreeText"
             type="button"
-            class="text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1"
+            class="text-primary hover:text-primary/70 inline-flex items-center gap-1"
           >
             <Pencil :size="10" /> {{ t('openstackPicker.enterManuallyShort') }}
           </button>

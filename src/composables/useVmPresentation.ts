@@ -44,12 +44,12 @@ export function formatUptime(launchedAt?: string | null): string | null {
 export function pillToneClass(tone: PillTone): string {
   switch (tone) {
     case 'green':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+      return 'bg-status-successLight text-status-success border-status-success/30'
     case 'red':
-      return 'bg-red-100 text-red-700 border-red-200'
+      return 'bg-status-errorLight text-status-error border-status-error/30'
     case 'amber':
-      return 'bg-amber-100 text-amber-800 border-amber-200'
+      return 'bg-status-warningLight text-status-warning border-status-warning/40'
     default:
-      return 'bg-gray-100 text-gray-700 border-gray-200'
+      return 'bg-surface-input text-content-secondary border-border'
   }
 }

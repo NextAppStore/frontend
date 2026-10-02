@@ -9,16 +9,16 @@ defineProps<{
     :class="[
       'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
       variant === 'green'
-        ? 'bg-green-100 text-green-700'
+        ? 'bg-status-successLight text-status-success'
         : variant === 'red'
-        ? 'bg-red-100 text-red-700'
+        ? 'bg-status-errorLight text-status-error'
         : variant === 'blue'
-        ? 'bg-blue-100 text-blue-700'
+        ? 'bg-tag-infoLight text-tag-info'
         : variant === 'purple'
-        ? 'bg-purple-100 text-purple-700'
+        ? 'bg-tag-accentLight text-tag-accent'
         : variant === 'yellow'
-        ? 'bg-yellow-100 text-yellow-700'
-        : 'bg-gray-100 text-gray-700'
+        ? 'bg-tag-warningLight text-tag-warning'
+        : 'bg-surface-input text-content-secondary'
     ]"
   >
     <slot />

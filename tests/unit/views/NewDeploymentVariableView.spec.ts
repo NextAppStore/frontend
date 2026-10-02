@@ -103,10 +103,20 @@ describe('NewDeploymentVariableView.vue', () => {
           Info: true,
           AlertTriangle: true,
           ArrowRight: true,
-          ArrowLeft: true
+          ArrowLeft: true,
+          ChevronDown: true,
+          Sparkles: true
         }
       }
     })
+  }
+
+  /** Opens both "Advanced settings" disclosures so every variable is rendered. */
+  async function expandAdvanced(wrapper: any) {
+    for (const id of ['packer-advanced-toggle', 'terraform-advanced-toggle']) {
+      const toggle = wrapper.find(`[data-testid="${id}"]`)
+      if (toggle.exists()) await toggle.trigger('click')
+    }
   }
 
   it('redirects to /apps if no appId is present in draft', async () => {
@@ -128,7 +138,10 @@ describe('NewDeploymentVariableView.vue', () => {
     const appStore = useAppStore()
     expect(appStore.fetchAppVariables).toHaveBeenCalledWith('app-1', '1.0.0')
 
-    // Beiden Sektionen sollten gerendert werden (Namen der Variablen sind sichtbar)
+    // Beide Variablen haben einen Default und liegen daher hinter "Erweiterte
+    // Einstellungen". Aufklappen, dann müssen beide Sektionen ihre Variable zeigen.
+    await expandAdvanced(wrapper)
+
     expect(wrapper.text()).toContain('packer_var')
     expect(wrapper.text()).toContain('tf_var')
   })
@@ -215,5 +228,161 @@ describe('NewDeploymentVariableView.vue', () => {
     await flushPromises()
     
     expect(toastErrorMock).toHaveBeenCalledWith('deployment.summary.fetchVarsError')
+  })
+
+  // ----------------------------------------------------------------
+  // STANDARD / ADVANCED SPLIT
+  // ----------------------------------------------------------------
+  // The wizard hides variables the app author already answered (i.e. those
+  // carrying an HCL default) behind an "Advanced settings" disclosure, so the
+  // standard view only asks for what genuinely has to be filled in.
+  describe('Standard/Advanced split', () => {
+    it('keeps required variables visible and hides defaulted ones', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true },
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('db_password')
+      expect(wrapper.text()).not.toContain('vm_flavor')
+    })
+
+    it('counts the hidden variables on the disclosure toggle', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true },
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' },
+        { name: 'vm_image', source: 'terraform', type: 'string', required: false, default: 'ubuntu' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      const toggle = wrapper.find('[data-testid="terraform-advanced-toggle"]')
+      expect(toggle.exists()).toBe(true)
+      expect(toggle.text()).toContain('deployment.variables.advancedSettings')
+      expect(toggle.text()).toContain('2')
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+    })
+
+    it('reveals the hidden variables when the disclosure is expanded', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true },
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      const toggle = wrapper.find('[data-testid="terraform-advanced-toggle"]')
+      await toggle.trigger('click')
+
+      expect(wrapper.text()).toContain('vm_flavor')
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+    })
+
+    it('renders no toggle when every variable is required', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="terraform-advanced-toggle"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="terraform-all-preconfigured"]').exists()).toBe(false)
+    })
+
+    it('shows the "all preconfigured" hint when nothing is left to fill in', async () => {
+      const mockVars = [
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="terraform-all-preconfigured"]').exists()).toBe(true)
+      expect(wrapper.text()).toContain('deployment.variables.allPreconfigured')
+    })
+
+    it('keeps the "all preconfigured" hint visible while the disclosure is open', async () => {
+      const mockVars = [
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+      await wrapper.find('[data-testid="terraform-advanced-toggle"]').trigger('click')
+
+      expect(wrapper.find('[data-testid="terraform-all-preconfigured"]').exists()).toBe(true)
+      expect(wrapper.text()).toContain('vm_flavor')
+    })
+
+    it('keeps a variable visible whose value was overridden in an earlier visit', async () => {
+      // Coming back via "Back": the draft already holds a value that differs
+      // from the author's default, so the variable must NOT be hidden away.
+      const definitions = [
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({
+        variableDefinitions: definitions,
+        variables: { vm_flavor: 'm1.large' }
+      })
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('vm_flavor')
+      expect(wrapper.find('[data-testid="terraform-advanced-toggle"]').exists()).toBe(false)
+    })
+  })
+
+  // ----------------------------------------------------------------
+  // RECOMMENDED BADGE
+  // ----------------------------------------------------------------
+  describe('Recommended badge', () => {
+    it('marks a prefilled default as recommended', async () => {
+      const mockVars = [
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+      await expandAdvanced(wrapper)
+
+      const badges = wrapper.findAll('[data-testid="recommended-badge"]')
+      expect(badges).toHaveLength(1)
+      expect(badges[0]?.text()).toContain('deployment.variables.recommended')
+    })
+
+    it('does not mark a required field without a default', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.findAll('[data-testid="recommended-badge"]')).toHaveLength(0)
+    })
+
+    it('drops the badge once the value is changed away from the default', async () => {
+      const mockVars = [
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+      await expandAdvanced(wrapper)
+
+      expect(wrapper.findAll('[data-testid="recommended-badge"]')).toHaveLength(1)
+
+      const varInput = wrapper.findComponent(VariableInput)
+      await varInput.vm.$emit('update:modelValue', 'm1.large')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.findAll('[data-testid="recommended-badge"]')).toHaveLength(0)
+    })
   })
 })

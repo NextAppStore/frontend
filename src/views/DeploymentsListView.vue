@@ -60,20 +60,20 @@ const sortedDeployments = computed(() =>
 // slate = paused.
 const getStatusColor = (status: string) => {
   const colors = {
-    'success': 'bg-green-100 text-green-800 border-green-300',
-    'failed': 'bg-red-100 text-red-800 border-red-300',
-    'running': 'bg-blue-100 text-blue-800 border-blue-300',
-    'pending': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    'cancelled': 'bg-gray-100 text-gray-700 border-gray-300',
-    'destroyed': 'bg-orange-100 text-orange-800 border-orange-300',
-    'destroying': 'bg-orange-100 text-orange-700 border-orange-300',
-    'pausing': 'bg-amber-100 text-amber-800 border-amber-300',
-    'paused': 'bg-slate-100 text-slate-700 border-slate-300',
-    'resuming': 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    'pause_failed': 'bg-amber-100 text-amber-900 border-amber-300',
-    'resume_failed': 'bg-amber-100 text-amber-900 border-amber-300',
+    'success': 'bg-status-successLight text-status-success border-status-success/30',
+    'failed': 'bg-status-errorLight text-status-error border-status-error/30',
+    'running': 'bg-tag-infoLight text-tag-info border-tag-infoBorder',
+    'pending': 'bg-tag-warningLight text-tag-warning border-tag-warningBorder',
+    'cancelled': 'bg-surface-input text-content-secondary border-border',
+    'destroyed': 'bg-tag-destroyLight text-tag-destroy border-tag-destroyBorder',
+    'destroying': 'bg-tag-destroyLight text-tag-destroy border-tag-destroyBorder',
+    'pausing': 'bg-tag-warningLight text-tag-warning border-tag-warningBorder',
+    'paused': 'bg-surface-input text-content-secondary border-border',
+    'resuming': 'bg-status-successLight text-status-success border-status-success/30',
+    'pause_failed': 'bg-tag-warningLight text-tag-warning border-tag-warningBorder',
+    'resume_failed': 'bg-tag-warningLight text-tag-warning border-tag-warningBorder',
   }
-  return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-300'
+  return colors[status as keyof typeof colors] || 'bg-surface-input text-content-secondary border-border'
 }
 </script>
 
@@ -115,17 +115,17 @@ const getStatusColor = (status: string) => {
           :to="{ name: 'deployments.detail', params: { id: deployment.deploymentId } }"
           class="block"
         >
-          <Card class="flex flex-col h-full cursor-pointer hover:border-emerald-200 transition">
+          <Card class="flex flex-col h-full cursor-pointer hover:border-primary/30 transition">
             <div class="flex items-start justify-between gap-3 mb-3">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <BarChart3 :size="20" class="text-primary" />
                 </div>
                 <div class="min-w-0">
-                  <h3 class="font-semibold text-gray-900 truncate" :title="deployment.name">
+                  <h3 class="font-semibold text-content-primary truncate" :title="deployment.name">
                     {{ deployment.name }}
                   </h3>
-                  <p class="text-xs text-gray-500 truncate mt-0.5">
+                  <p class="text-xs text-content-disabled truncate mt-0.5">
                     <Box :size="11" class="inline-block mr-1 align-text-bottom" />
                     {{ getAppName(deployment.appId) }}
                   </p>
@@ -139,8 +139,8 @@ const getStatusColor = (status: string) => {
               </span>
             </div>
 
-            <div class="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
+            <div class="mt-auto pt-3 border-t border-card-border flex items-center justify-between text-xs text-content-disabled">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-tag-neutralLight text-tag-neutral border border-tag-neutralBorder font-mono">
                 <GitBranch :size="11" />
                 {{ deployment.releaseTag }}
               </span>

@@ -142,7 +142,7 @@ const clearFile = () => {
       v-if="!hasValue"
       class="border-2 border-dashed rounded-md px-4 py-3 cursor-pointer transition-colors flex items-center gap-3"
       :class="[
-        isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-gray-400',
+        isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-border-strong',
         disabled ? 'opacity-50 cursor-not-allowed' : '',
       ]"
       @dragover.prevent="!disabled && (isDragging = true)"
@@ -150,13 +150,13 @@ const clearFile = () => {
       @drop.prevent="onDrop"
       @click="triggerInput"
     >
-      <Upload :size="20" class="text-gray-500 shrink-0" />
+      <Upload :size="20" class="text-content-secondary shrink-0" />
       <div class="flex-1 min-w-0">
-        <div class="text-sm text-gray-700 truncate">
+        <div class="text-sm text-content-primary truncate">
           <span v-if="label" class="font-medium">{{ label }}: </span>
-          <span class="text-gray-500">{{ t('fileDropZone.pick') }}</span>
+          <span class="text-content-secondary">{{ t('fileDropZone.pick') }}</span>
         </div>
-        <div class="text-xs text-gray-400 mt-0.5">
+        <div class="text-xs text-content-disabled mt-0.5">
           max. {{ Math.round(maxBytes / 1024 / 1024) }} MB
         </div>
       </div>
@@ -173,20 +173,20 @@ const clearFile = () => {
     <!-- Filled state: show name + size + remove button. -->
     <div
       v-else
-      class="border rounded-md px-4 py-3 bg-gray-50 flex items-center gap-3"
+      class="border rounded-md px-4 py-3 bg-surface-input flex items-center gap-3"
     >
-      <FileText :size="20" class="text-gray-600 shrink-0" />
+      <FileText :size="20" class="text-content-secondary shrink-0" />
       <div class="flex-1 min-w-0">
-        <div v-if="label" class="text-xs text-gray-500 mb-0.5">{{ label }}</div>
-        <div class="text-sm font-medium text-gray-900 truncate">{{ modelValue!.name }}</div>
-        <div class="text-xs text-gray-500">
+        <div v-if="label" class="text-xs text-content-disabled mb-0.5">{{ label }}</div>
+        <div class="text-sm font-medium text-content-primary truncate">{{ modelValue!.name }}</div>
+        <div class="text-xs text-content-secondary">
           {{ formatBytes(modelValue!.size) }}
         </div>
       </div>
       <button
         v-if="!disabled"
         type="button"
-        class="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-red-600"
+        class="p-1 rounded hover:bg-surface-hover text-content-secondary hover:text-status-error"
         :title="t('fileDropZone.remove')"
         @click.stop="clearFile"
       >
@@ -195,6 +195,6 @@ const clearFile = () => {
     </div>
 
     <!-- Inline error if validation rejected the pick. -->
-    <div v-if="localError" class="text-xs text-red-600">{{ localError }}</div>
+    <div v-if="localError" class="text-xs text-status-error">{{ localError }}</div>
   </div>
 </template>

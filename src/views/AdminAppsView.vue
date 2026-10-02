@@ -232,18 +232,18 @@ onMounted(loadAll)
         <!-- Filter toggle as the page action (page-specific, so it's a slot
              rather than hard-wired). -->
         <div class="flex items-center gap-2 text-sm">
-          <span class="text-gray-500">{{ $t('AdminAppsView.filterLabel') }}</span>
+          <span class="text-content-secondary">{{ $t('AdminAppsView.filterLabel') }}</span>
           <button
             @click="onlyWithSubmissions = !onlyWithSubmissions"
             class="relative inline-flex h-5 w-10 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
-            :class="onlyWithSubmissions ? 'bg-green-600' : 'bg-gray-300'"
+            :class="onlyWithSubmissions ? 'bg-status-success' : 'bg-surface-input'"
           >
             <span
-              class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200"
+              class="inline-block h-4 w-4 transform rounded-full bg-surface-card shadow transition duration-200"
               :class="onlyWithSubmissions ? 'translate-x-5' : 'translate-x-0'"
             />
           </button>
-          <span class="text-gray-700 font-medium">{{ $t('AdminAppsView.filterOnlySubmissions') }}</span>
+          <span class="text-content-primary font-medium">{{ $t('AdminAppsView.filterOnlySubmissions') }}</span>
         </div>
       </template>
     </PageHeader>
@@ -262,20 +262,20 @@ onMounted(loadAll)
            (apps.length > 0 but sortedApps.length === 0). -->
       <div
         v-if="sortedApps.length === 0"
-        class="flex flex-col items-center justify-center py-16 px-6 text-center bg-gray-50 border border-dashed border-gray-200 rounded-xl"
+        class="flex flex-col items-center justify-center py-16 px-6 text-center bg-surface-input border border-dashed border-border rounded-xl"
       >
-        <div class="w-14 h-14 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-4">
-          <Inbox :size="28" class="text-gray-400" />
+        <div class="w-14 h-14 rounded-full bg-surface-card border border-card-border flex items-center justify-center mb-4">
+          <Inbox :size="28" class="text-content-disabled" />
         </div>
-        <h3 class="text-base font-semibold text-gray-800 mb-1">
+        <h3 class="text-base font-semibold text-content-primary mb-1">
           {{ $t('AdminAppsView.emptyNoSubmissionsTitle') }}
         </h3>
-        <p class="text-sm text-gray-500 max-w-sm">
+        <p class="text-sm text-content-secondary max-w-sm">
           {{ $t('AdminAppsView.emptyNoSubmissionsDesc') }}
         </p>
         <button
           @click="onlyWithSubmissions = false"
-          class="mt-5 text-sm font-medium text-primary hover:text-primaryDark underline-offset-2 hover:underline"
+          class="mt-5 text-sm font-medium text-primary hover:text-primary-dark underline-offset-2 hover:underline"
         >
           {{ $t('AdminAppsView.emptyShowAll') }}
         </button>
@@ -285,26 +285,26 @@ onMounted(loadAll)
       <div
         v-for="app in sortedApps"
         :key="app.appId"
-        class="border border-gray-200 rounded-xl overflow-hidden"
+        class="border border-card-border rounded-xl overflow-hidden"
       >
         <!-- App row (header) -->
         <button
-          class="w-full flex items-center gap-4 px-5 py-4 bg-white hover:bg-gray-50 transition-colors text-left"
+          class="w-full flex items-center gap-4 px-5 py-4 bg-surface-card hover:bg-surface-hover transition-colors text-left"
           @click="toggleApp(app.appId)"
         >
           <component
             :is="expandedAppId === app.appId ? ChevronDown : ChevronRight"
             :size="18"
-            class="text-gray-400 flex-shrink-0"
+            class="text-content-disabled flex-shrink-0"
           />
 
           <!-- App name -->
-          <span class="font-semibold text-gray-900 flex-grow">{{ app.name }}</span>
+          <span class="font-semibold text-content-primary flex-grow">{{ app.name }}</span>
 
           <!-- Link to app detail -->
           <RouterLink
             :to="{ name: 'apps.detail', params: { id: app.appId } }"
-            class="text-gray-400 hover:text-primary transition-colors p-1 rounded"
+            class="text-content-disabled hover:text-primary transition-colors p-1 rounded"
             :title="$t('AdminAppsView.goToApp')"
             @click.stop
           >
@@ -314,31 +314,31 @@ onMounted(loadAll)
           <!-- Pending badge -->
           <span
             v-if="pendingCountMap[app.appId] && !app.is_private"
-            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700"
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-tag-destroyLight text-tag-destroy"
           >
             {{ pendingCountMap[app.appId] }} {{ $t('AdminAppsView.pendingLabel') }}
           </span>
           <span
             v-else-if="app.is_private"
-            class="text-xs text-purple-400"
+            class="text-xs text-tag-accent"
           >
             {{ $t('AdminAppsView.privateLabel') }}
           </span>
           <span
             v-else
-            class="text-xs text-gray-400"
+            class="text-xs text-content-disabled"
           >
             {{ $t('AdminAppsView.noPendingLabel') }}
           </span>
         </button>
 
         <!-- Expanded: versions -->
-        <div v-if="expandedAppId === app.appId" class="border-t border-gray-100 bg-gray-50">
+        <div v-if="expandedAppId === app.appId" class="border-t border-card-border bg-surface-input">
 
           <!-- Private app: no pending submissions shown -->
           <div
             v-if="app.is_private"
-            class="px-6 py-4 text-sm text-gray-400 italic"
+            class="px-6 py-4 text-sm text-content-disabled italic"
           >
             {{ $t('AdminAppsView.privateAppNote') }}
           </div>
@@ -351,7 +351,7 @@ onMounted(loadAll)
           <!-- No entries -->
           <div
             v-else-if="!(approvalsMap[app.appId] ?? []).length"
-            class="px-6 py-4 text-sm text-gray-400 italic"
+            class="px-6 py-4 text-sm text-content-disabled italic"
           >
             {{ $t('AdminAppsView.noVersionsSubmitted') }}
           </div>
@@ -359,22 +359,22 @@ onMounted(loadAll)
           <!-- Version table -->
           <div v-else class="px-4 pb-3">
           <table class="w-full text-sm">
-            <thead class="border-b border-gray-200">
+            <thead class="border-b border-card-border">
               <tr>
-                <th class="text-left py-2 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ $t('AdminAppsView.colVersion') }}</th>
-                <th class="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ $t('AdminAppsView.colStatus') }}</th>
-                <th class="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ $t('AdminAppsView.colDate') }}</th>
-                <th class="text-right py-2 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ $t('AdminAppsView.colActions') }}</th>
+                <th class="text-left py-2 px-2 text-xs font-semibold text-content-secondary uppercase tracking-wide">{{ $t('AdminAppsView.colVersion') }}</th>
+                <th class="text-left py-2 px-4 text-xs font-semibold text-content-secondary uppercase tracking-wide">{{ $t('AdminAppsView.colStatus') }}</th>
+                <th class="text-left py-2 px-4 text-xs font-semibold text-content-secondary uppercase tracking-wide">{{ $t('AdminAppsView.colDate') }}</th>
+                <th class="text-right py-2 px-2 text-xs font-semibold text-content-secondary uppercase tracking-wide">{{ $t('AdminAppsView.colActions') }}</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-card-border">
               <tr
                 v-for="approval in (approvalsMap[app.appId] ?? [])"
                 :key="approval.approvalId"
-                class="bg-white hover:bg-gray-50 transition-colors"
+                class="bg-surface-card hover:bg-surface-hover transition-colors"
               >
                 <td class="py-3 px-2">
-                  <span class="font-mono text-gray-800 bg-gray-100 px-2 py-0.5 rounded text-xs">
+                  <span class="font-mono text-content-primary bg-surface-input px-2 py-0.5 rounded text-xs">
                     {{ approval.version_tag }}
                   </span>
                 </td>
@@ -382,16 +382,16 @@ onMounted(loadAll)
                   <div class="space-y-1.5">
                     <AppVersionStatusBadge :status="approval.status" />
                     <div v-if="approval.notes" class="flex items-start gap-1.5 max-w-xs">
-                      <span class="text-xs font-medium text-gray-400 shrink-0 mt-px">{{ $t('AdminAppsView.notesLabel') }}</span>
-                      <span class="text-xs text-gray-600 italic truncate" :title="approval.notes">{{ approval.notes }}</span>
+                      <span class="text-xs font-medium text-content-disabled shrink-0 mt-px">{{ $t('AdminAppsView.notesLabel') }}</span>
+                      <span class="text-xs text-content-secondary italic truncate" :title="approval.notes">{{ approval.notes }}</span>
                     </div>
                     <div v-if="approval.rejection_reason" class="flex items-start gap-1.5 max-w-xs">
-                      <span class="text-xs font-medium text-red-400 shrink-0 mt-px">{{ $t('AdminAppsView.rejectionLabel') }}</span>
-                      <span class="text-xs text-red-600 italic truncate" :title="approval.rejection_reason">{{ approval.rejection_reason }}</span>
+                      <span class="text-xs font-medium text-status-error/70 shrink-0 mt-px">{{ $t('AdminAppsView.rejectionLabel') }}</span>
+                      <span class="text-xs text-status-error italic truncate" :title="approval.rejection_reason">{{ approval.rejection_reason }}</span>
                     </div>
                   </div>
                 </td>
-                <td class="py-3 px-4 text-gray-500 text-xs">
+                <td class="py-3 px-4 text-content-secondary text-xs">
                   {{ formatDate(approval.created_at) }}
                 </td>
                 <td class="py-3 px-2">
@@ -402,7 +402,7 @@ onMounted(loadAll)
                       <button
                         @click="handleApprove(app.appId, app.name, approval.version_tag)"
                         :disabled="actingOn === `${app.appId}:${approval.version_tag}`"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-xs font-medium hover:bg-green-100 transition-colors disabled:opacity-50"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-status-successLight text-status-success border border-status-success/30 text-xs font-medium hover:bg-status-success/20 transition-colors disabled:opacity-50"
                       >
                         <Check :size="13" />
                         {{ $t('AdminAppsView.approveBtn') }}
@@ -410,7 +410,7 @@ onMounted(loadAll)
                       <button
                         @click="openRejectModal(app.appId, approval.version_tag)"
                         :disabled="actingOn === `${app.appId}:${approval.version_tag}`"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 text-xs font-medium hover:bg-red-100 transition-colors disabled:opacity-50"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-status-errorLight text-status-error border border-status-error/30 text-xs font-medium hover:bg-status-error/20 transition-colors disabled:opacity-50"
                       >
                         <X :size="13" />
                         {{ $t('AdminAppsView.rejectBtn') }}
@@ -422,7 +422,7 @@ onMounted(loadAll)
                       <button
                         @click="openRevokeModal(app.appId, approval.version_tag)"
                         :disabled="actingOn === `${app.appId}:${approval.version_tag}`"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 border border-gray-200 text-xs font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-input text-content-secondary border border-border text-xs font-medium hover:bg-surface-hover transition-colors disabled:opacity-50"
                       >
                         <RotateCcw :size="13" />
                         {{ $t('AdminAppsView.revokeBtn') }}
@@ -434,7 +434,7 @@ onMounted(loadAll)
                       <button
                         @click="handleApprove(app.appId, app.name, approval.version_tag)"
                         :disabled="actingOn === `${app.appId}:${approval.version_tag}`"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-xs font-medium hover:bg-green-100 transition-colors disabled:opacity-50"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-status-successLight text-status-success border border-status-success/30 text-xs font-medium hover:bg-status-success/20 transition-colors disabled:opacity-50"
                       >
                         <Check :size="13" />
                         {{ $t('AdminAppsView.approveBtn') }}
@@ -456,23 +456,23 @@ onMounted(loadAll)
     <!-- Reject Modal -->
     <Modal :show="showRejectModal" @close="showRejectModal = false">
       <template #title>
-        <span class="text-red-700">{{ $t('AdminAppsView.rejectModal.title') }}</span>
+        <span class="text-status-error">{{ $t('AdminAppsView.rejectModal.title') }}</span>
       </template>
       <template #body>
         <div class="space-y-5">
-          <p class="text-sm text-gray-600">
-            <span class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs">{{ rejectTarget?.versionTag }}</span>
+          <p class="text-sm text-content-secondary">
+            <span class="font-mono bg-surface-input px-1.5 py-0.5 rounded text-xs">{{ rejectTarget?.versionTag }}</span>
             &nbsp;—&nbsp;{{ rejectTarget?.appName }}
           </p>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
               {{ $t('AdminAppsView.rejectModal.reasonLabel') }}
             </label>
             <textarea
               v-model="rejectionReason"
               :placeholder="$t('AdminAppsView.rejectModal.reasonPlaceholder')"
               rows="4"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none resize-none"
+              class="w-full rounded-lg border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-status-error/40 focus:border-status-error outline-none resize-none bg-surface-input text-content-primary"
             />
           </div>
         </div>
@@ -496,22 +496,22 @@ onMounted(loadAll)
     <!-- Revoke Modal -->
     <Modal :show="showRevokeModal" @close="showRevokeModal = false">
       <template #title>
-        <span class="text-gray-800">{{ $t('AdminAppsView.revokeModal.title') }}</span>
+        <span class="text-content-primary">{{ $t('AdminAppsView.revokeModal.title') }}</span>
       </template>
       <template #body>
         <div class="space-y-5">
-          <p class="text-sm text-gray-600">
-            <span class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs">{{ revokeTarget?.versionTag }}</span>
+          <p class="text-sm text-content-secondary">
+            <span class="font-mono bg-surface-input px-1.5 py-0.5 rounded text-xs">{{ revokeTarget?.versionTag }}</span>
           </p>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
               {{ $t('AdminAppsView.revokeModal.reasonLabel') }}
             </label>
             <textarea
               v-model="revokeReason"
               :placeholder="$t('AdminAppsView.revokeModal.reasonPlaceholder')"
               rows="4"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 outline-none resize-none"
+              class="w-full rounded-lg border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-border-strong focus:border-border-strong outline-none resize-none bg-surface-input text-content-primary"
             />
           </div>
         </div>

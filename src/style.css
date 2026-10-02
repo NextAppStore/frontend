@@ -1,3 +1,188 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* ================================================================
+   * Design Tokens — Light Mode
+   * ================================================================ */
+  :root {
+    /* ── Brand colors ──────────────────────────────────────────── */
+    --color-primary:          #D92B3A;   /* Main red */
+    --color-primary-light:    #F2606C;   /* Hover, icons */
+    --color-primary-dark:     #A81E2A;   /* Active, pressed */
+
+    --color-secondary:        #8B1A23;   /* Bordeaux — sidebar accent */
+    --color-secondary-light:  #B02530;
+    --color-secondary-dark:   #5C0F16;
+
+    --color-highlight:        #FF4D5E;   /* CTA gradient, hero banner */
+    --color-highlight-light:  #FF8090;
+    --color-highlight-dark:   #C4001A;
+
+    /* ── Surfaces —────────────────────── */
+    --color-surface-page:     #FDF5F5;   /* Warm off-white page bg */
+    --color-surface-card:     #FFFFFF;   /* Pure white cards */
+    --color-surface-sidebar:  #FFFFFF;   /* Sidebar */
+    --color-surface-input:    #FDF0F0;   /* Warm rose form fields */
+    --color-surface-overlay:  #FFFFFF;   /* Modals, drawers */
+    --color-surface-hover:    #FDE8E8;   /* Row hover — visible rose tint */
+
+    /* ── Text ──────────────────────────────────────────────────── */
+    --color-content-primary:   #1A1014;  /* Deep warm anthracite */
+    --color-content-secondary: #6B5C5E;  /* Warm muted — not cold grey */
+    --color-content-disabled:  #C4AAAC;  /* Warm disabled */
+    --color-content-inverse:   #FFFFFF;
+    --color-content-link:      #D92B3A;
+
+    /* ── Buttons ───────────────────────────────────────────────── */
+    --color-btn-primary:       #D92B3A;
+    --color-btn-primary-hover: #A81E2A;
+    --color-btn-primary-text:  #FFFFFF;
+    --color-btn-secondary:     #F5E6E7;
+    --color-btn-secondary-hover: #EDD0D2;
+    --color-btn-secondary-text:  #A81E2A;
+    --color-btn-ghost:         transparent;
+    --color-btn-ghost-hover:   #FDE8E8;
+    --color-btn-ghost-text:    #D92B3A;
+
+    /* ── Cards / Tiles ─────────────────────────────────────────── */
+    --color-card-bg:           #FFFFFF;
+    --color-card-bg-tinted:    #FFF0F0;  /* Warm rose hero cards */
+    --color-card-border:       #EEE0E0;  /* Warm rose-grey border */
+    --color-card-shadow:       rgba(180, 40, 50, 0.06);  /* Red-tinted shadow */
+
+    /* ── Status / Feedback ─────────────────────────────────────── */
+    --color-status-success:       #16A34A;
+    --color-status-success-light: #DCFCE7;
+    --color-status-error:         #D92B3A;
+    --color-status-error-light:   #FDE8E8;
+    --color-status-warning:       #D97706;
+    --color-status-warning-light: #FEF3C7;
+    --color-status-info:          #2563EB;
+    --color-status-info-light:    #DBEAFE;
+
+    /* ── Resource progress bars ────────────────────────────────── */
+    --color-resource-low:     #16A34A;
+    --color-resource-medium:  #D97706;
+    --color-resource-high:    #D92B3A;
+
+    /* ── Borders ───────────────────────────────────────────────── */
+    --color-border:           #EAD8D8;   /* Warm rose-tinted border */
+    --color-border-strong:    #D4B8B8;
+    --color-border-focus:     #D92B3A;
+
+    /* ── Tag / badge palette (neutral semantic roles) ──────────── */
+    --color-tag-info:           #2563EB;   /* blue — info banners, lock, "running" */
+    --color-tag-info-light:     #DBEAFE;
+    --color-tag-info-border:    #BFDBFE;
+
+    --color-tag-warning:        #D97706;   /* amber — pending, pausing, stale */
+    --color-tag-warning-light:  #FEF3C7;
+    --color-tag-warning-border: #FDE68A;
+
+    --color-tag-destroy:        #EA580C;   /* orange — destroy, destroyed */
+    --color-tag-destroy-light:  #FFEDD5;
+    --color-tag-destroy-border: #FED7AA;
+
+    --color-tag-neutral:        #4F46E5;   /* indigo — git tags, version chips */
+    --color-tag-neutral-light:  #EEF2FF;
+    --color-tag-neutral-border: #C7D2FE;
+
+    --color-tag-accent:         #7C3AED;   /* purple — private, access roles */
+    --color-tag-accent-light:   #F5F3FF;
+    --color-tag-accent-border:  #DDD6FE;
+  }
+
+  /* ================================================================
+   * Design Tokens — Dark Mode
+ 
+   * ================================================================ */
+  .dark {
+    /* ── Brand colors -─────── */
+    --color-primary:          #E8192C;   /* Kräftiges Signalrot */
+    --color-primary-light:    #FF4455;
+    --color-primary-dark:     #B5101F;
+
+    --color-secondary:        #CC2030;
+    --color-secondary-light:  #E03040;
+    --color-secondary-dark:   #8B1520;
+
+    --color-highlight:        #FF2D40;
+    --color-highlight-light:  #FF6070;
+    --color-highlight-dark:   #CC001A;
+
+    /* ── Surfaces — dunkles Blaugrau  ───────────────── */
+    --color-surface-page:     #0A1018;   /* Seite: tiefstes Blaugrau */
+    --color-surface-card:     #0F161F;   /* Karten: Schwarzblau */
+    --color-surface-sidebar:  #0A0E16;   /* Sidebar: minimal dunkler */
+    --color-surface-input:    #162030;   /* Inputs: etwas heller */
+    --color-surface-overlay:  #0F161F;   /* Modals */
+    --color-surface-hover:    #1A2535;   /* Hover: sichtbar heller */
+
+    /* ── Text ──────────────────────────────────────────────────── */
+    --color-content-primary:   #F8F0F0;  /* Fast Weiß, sehr gut lesbar */
+    --color-content-secondary: #C8A0A0;  /* Deutlich heller als vorher */
+    --color-content-disabled:  #7A5060;
+    --color-content-inverse:   #0A0608;
+    --color-content-link:      #FF4455;
+
+    /* ── Buttons ───────────────────────────────────────────────── */
+    --color-btn-primary:       #E8192C;
+    --color-btn-primary-hover: #B5101F;
+    --color-btn-primary-text:  #FFFFFF;
+    --color-btn-secondary:     #2A0D14;
+    --color-btn-secondary-hover: #3A1220;
+    --color-btn-secondary-text:  #FFFFFF;
+    --color-btn-ghost:         transparent;
+    --color-btn-ghost-hover:   #1A2535;
+    --color-btn-ghost-text:    #FF4455;
+
+    /* ── Cards / Tiles ─────────────────────────────────────────── */
+    --color-card-bg:           #0F161F;
+    --color-card-bg-tinted:    #131C28;
+    --color-card-border:       #1E2D40;
+    --color-card-shadow:       rgba(0, 0, 0, 0.5);
+
+    /* ── Status / Feedback ─────────────────────────────────────── */
+    --color-status-success:       #4ADE80;
+    --color-status-success-light: #14532D;
+    --color-status-error:         #FF4455;
+    --color-status-error-light:   #3A0810;
+    --color-status-warning:       #FBBF24;
+    --color-status-warning-light: #451A03;
+    --color-status-info:          #60A5FA;
+    --color-status-info-light:    #1E3A5F;
+
+    /* ── Resource progress bars ────────────────────────────────── */
+    --color-resource-low:     #4ADE80;
+    --color-resource-medium:  #FBBF24;
+    --color-resource-high:    #FF4455;
+
+    /* ── Borders ───────────────────────────────────────────────── */
+    --color-border:           #1E2D40;
+    --color-border-strong:    #2A3D54;
+    --color-border-focus:     #E8192C;
+
+    /* ── Tag / badge palette — dark mode ──────────────────────── */
+    --color-tag-info:           #60A5FA;
+    --color-tag-info-light:     #0E1E38;
+    --color-tag-info-border:    #1D4ED8;
+
+    --color-tag-warning:        #FBBF24;
+    --color-tag-warning-light:  #2A1000;
+    --color-tag-warning-border: #92400E;
+
+    --color-tag-destroy:        #FB923C;
+    --color-tag-destroy-light:  #200800;
+    --color-tag-destroy-border: #9A3412;
+
+    --color-tag-neutral:        #818CF8;
+    --color-tag-neutral-light:  #0D0A28;
+    --color-tag-neutral-border: #3730A3;
+
+    --color-tag-accent:         #C084FC;
+    --color-tag-accent-light:   #180828;
+    --color-tag-accent-border:  #6D28D9;
+  }
+}

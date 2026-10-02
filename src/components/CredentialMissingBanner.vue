@@ -19,30 +19,30 @@ const styles = computed(() => {
   switch (props.variant) {
     case 'error':
       return {
-        wrapper: 'bg-red-50 border-red-200 text-red-900',
-        iconBox: 'bg-red-100 text-red-600',
-        title: 'text-red-900',
-        message: 'text-red-800',
-        cta: 'bg-red-600 hover:bg-red-700 text-white',
+        wrapper: 'bg-status-errorLight border-status-error/30 text-content-primary',
+        iconBox: 'bg-status-error/20 text-status-error',
+        title: 'text-content-primary',
+        message: 'text-content-secondary',
+        cta: 'bg-status-error hover:bg-primary-dark text-content-inverse',
         icon: AlertCircle,
       }
     case 'lock':
       return {
-        wrapper: 'bg-blue-50 border-blue-200 text-blue-900',
-        iconBox: 'bg-blue-100 text-blue-600',
-        title: 'text-blue-900',
-        message: 'text-blue-800',
-        cta: 'bg-blue-600 hover:bg-blue-700 text-white',
+        wrapper: 'bg-tag-infoLight border-tag-infoBorder text-content-primary',
+        iconBox: 'bg-tag-info/20 text-tag-info',
+        title: 'text-content-primary',
+        message: 'text-content-secondary',
+        cta: 'bg-tag-info hover:opacity-90 text-content-inverse',
         icon: Lock,
       }
     case 'warning':
     default:
       return {
-        wrapper: 'bg-amber-50 border-amber-200 text-amber-900',
-        iconBox: 'bg-amber-100 text-amber-600',
-        title: 'text-amber-900',
-        message: 'text-amber-800',
-        cta: 'bg-amber-600 hover:bg-amber-700 text-white',
+        wrapper: 'bg-status-warningLight border-status-warning/30 text-content-primary',
+        iconBox: 'bg-status-warning/20 text-status-warning',
+        title: 'text-content-primary',
+        message: 'text-content-secondary',
+        cta: 'bg-status-warning hover:opacity-90 text-content-inverse',
         icon: AlertTriangle,
       }
   }

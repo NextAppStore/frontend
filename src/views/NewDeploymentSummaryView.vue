@@ -541,46 +541,46 @@ const handleBack = () => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl p-10 border shadow-sm max-w-7xl mx-auto min-h-[600px] flex flex-col">
+  <div class="bg-surface-card rounded-2xl p-10 border border-card-border shadow-sm max-w-7xl mx-auto min-h-[600px] flex flex-col">
 
     <div class="mb-8">
       <div class="flex items-center gap-3 mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">
+        <h1 class="text-3xl font-bold text-content-primary">
           {{ t('deployment.title') }}
         </h1>
-        <BarChart3 :size="32" class="text-emerald-600" />
+        <BarChart3 :size="32" class="text-primary" />
       </div>
 
       <DeploymentProgressBar :current-step="4" />
-      <div class="border-b border-gray-100 mt-4"></div>
+      <div class="border-b border-card-border mt-4"></div>
     </div>
 
     <div class="text-center mb-8">
-      <h2 class="text-2xl font-bold text-gray-900">
+      <h2 class="text-2xl font-bold text-content-primary">
         {{ t('deployment.summary.title') }}
       </h2>
-      <p class="text-gray-600 mt-2">{{ t('deployment.summary.subtitle') }}</p>
+      <p class="text-content-secondary mt-2">{{ t('deployment.summary.subtitle') }}</p>
     </div>
 
     <div v-if="isLoadingVariables" class="flex flex-col items-center justify-center py-12 gap-3">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      <span class="text-gray-500 text-sm">{{ t('deployment.summary.loadingConfig') }}</span>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <span class="text-content-secondary text-sm">{{ t('deployment.summary.loadingConfig') }}</span>
     </div>
 
     <div v-else class="flex-grow space-y-6">
       
-      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border-2 border-emerald-200">
+      <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">1</div>
-          <h3 class="text-xl font-bold text-gray-900">{{ t('deployment.summary.baseConfigTitle') }}</h3>
+          <div class="w-8 h-8 rounded-full bg-primary text-content-inverse flex items-center justify-center font-bold text-sm">1</div>
+          <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.baseConfigTitle') }}</h3>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-white rounded-lg p-4 border border-emerald-100">
-            <p class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.deploymentNameLabel') }}</p>
-            <p class="text-lg font-bold text-gray-900">{{ deploymentStore.draft.name || '-' }}</p>
+          <div class="bg-surface-card rounded-lg p-4 border border-card-border">
+            <p class="text-xs text-content-disabled mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.deploymentNameLabel') }}</p>
+            <p class="text-lg font-bold text-content-primary">{{ deploymentStore.draft.name || '-' }}</p>
           </div>
-          <div class="bg-white rounded-lg p-4 border border-emerald-100">
-            <p class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.appLabel') }}</p>
+          <div class="bg-surface-card rounded-lg p-4 border border-card-border">
+            <p class="text-xs text-content-disabled mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.appLabel') }}</p>
             <div class="flex items-center gap-2">
               <img
                 v-if="selectedApp?.image"
@@ -588,19 +588,19 @@ const handleBack = () => {
                 :alt="selectedApp.name"
                 class="w-7 h-7 object-contain rounded"
               />
-              <p class="text-lg font-bold text-emerald-700">{{ selectedApp?.name || t('deployment.summary.appNotFound') }}</p>
+              <p class="text-lg font-bold text-status-success">{{ selectedApp?.name || t('deployment.summary.appNotFound') }}</p>
             </div>
           </div>
-          <div class="bg-white rounded-lg p-4 border border-emerald-100">
-            <p class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.versionLabel') }}</p>
-            <p class="text-lg font-bold text-gray-900">{{ versionDisplay }}</p>
+          <div class="bg-surface-card rounded-lg p-4 border border-card-border">
+            <p class="text-xs text-content-disabled mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.versionLabel') }}</p>
+            <p class="text-lg font-bold text-content-primary">{{ versionDisplay }}</p>
           </div>
         </div>
-          <div class="mt-4 bg-white rounded-lg p-4 border border-emerald-100">
-            <p class="text-xs text-gray-500 mb-2 uppercase tracking-wider font-semibold">{{ t('deployment.summary.selectedStudents', { count: deploymentStore.draft.studentIds.length }) }}</p>
+          <div class="mt-4 bg-surface-card rounded-lg p-4 border border-card-border">
+            <p class="text-xs text-content-disabled mb-2 uppercase tracking-wider font-semibold">{{ t('deployment.summary.selectedStudents', { count: deploymentStore.draft.studentIds.length }) }}</p>
             <div class="flex flex-wrap gap-2">
-              <span v-for="studentId in deploymentStore.draft.studentIds" :key="studentId" 
-                class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium border border-emerald-200">
+              <span v-for="studentId in deploymentStore.draft.studentIds" :key="studentId"
+                class="px-3 py-1 bg-status-successLight text-status-success rounded-full text-sm font-medium border border-status-success/30">
                 {{
                   (deploymentStore.studentCache.get(studentId)?.firstName || deploymentStore.studentCache.get(studentId)?.lastName)
                     ? `${deploymentStore.studentCache.get(studentId)?.firstName || ''} ${deploymentStore.studentCache.get(studentId)?.lastName || ''}`.trim()
@@ -611,145 +611,142 @@ const handleBack = () => {
           </div>
       </div>
 
-      <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border-2 border-blue-200">
+      <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">2</div>
-          <h3 class="text-xl font-bold text-gray-900">{{ t('deployment.summary.teamAssignmentTitle') }}</h3>
+          <div class="w-8 h-8 rounded-full bg-tag-info text-content-inverse flex items-center justify-center font-bold text-sm">2</div>
+          <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.teamAssignmentTitle') }}</h3>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <p class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.teamCountLabel') }}</p>
-            <p class="text-2xl font-bold text-blue-700">{{ deploymentStore.draft.groupCount }}</p>
+          <div class="bg-surface-card rounded-lg p-4 border border-card-border">
+            <p class="text-xs text-content-disabled mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.teamCountLabel') }}</p>
+            <p class="text-2xl font-bold text-tag-info">{{ deploymentStore.draft.groupCount }}</p>
           </div>
-          <div class="bg-white rounded-lg p-4 border border-blue-100">
-            <p class="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.modeLabel') }}</p>
-            <p class="text-lg font-bold text-gray-900">{{ groupModeDisplay }}</p>
+          <div class="bg-surface-card rounded-lg p-4 border border-card-border">
+            <p class="text-xs text-content-disabled mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.modeLabel') }}</p>
+            <p class="text-lg font-bold text-content-primary">{{ groupModeDisplay }}</p>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="(assignments, index) in deploymentStore.draft.assignments" :key="index" 
-            class="bg-white rounded-lg p-4 border-2 border-blue-200 hover:border-blue-400 transition-colors">
+          <div v-for="(assignments, index) in deploymentStore.draft.assignments" :key="index"
+            class="bg-surface-card rounded-lg p-4 border-2 border-card-border hover:border-border transition-colors">
             <div class="flex items-center justify-between mb-3">
-              <p class="font-bold text-gray-900">{{ deploymentStore.draft.groupNames[index] || t('deployment.assignment.vmDefaultName', { index: index + 1 }) }}</p>
-              <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+              <p class="font-bold text-content-primary">{{ deploymentStore.draft.groupNames[index] || t('deployment.assignment.vmDefaultName', { index: index + 1 }) }}</p>
+              <span class="px-2 py-1 bg-tag-infoLight text-tag-info rounded-full text-xs font-bold">
                 {{ t('deployment.assignment.userCount', { count: assignments?.length || 0 }) }}
               </span>
             </div>
             <div class="space-y-1 max-h-32 overflow-y-auto">
-              <div v-for="studentId in assignments" :key="studentId" 
-                class="text-sm text-gray-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+              <div v-for="studentId in assignments" :key="studentId"
+                class="text-sm text-content-secondary bg-surface-input px-2 py-1 rounded border border-card-border">
                 {{
                   (deploymentStore.studentCache && deploymentStore.studentCache.get(studentId)?.firstName || deploymentStore.studentCache.get(studentId)?.lastName)
                     ? `${deploymentStore.studentCache.get(studentId)?.firstName || ''} ${deploymentStore.studentCache.get(studentId)?.lastName || ''}`.trim()
                     : (deploymentStore.studentCache && (deploymentStore.studentCache.get(studentId)?.username || deploymentStore.studentCache.get(studentId)?.email) || studentId)
                 }}
               </div>
-              <p v-if="!assignments || assignments.length === 0" class="text-xs text-gray-400 italic">{{ t('deployment.summary.noUsersAssigned') }}</p>
+              <p v-if="!assignments || assignments.length === 0" class="text-xs text-content-disabled italic">{{ t('deployment.summary.noUsersAssigned') }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
+      <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">3</div>
-            <h3 class="text-xl font-bold text-gray-900">{{ t('deployment.summary.variablesConfigTitle') }}</h3>
+            <div class="w-8 h-8 rounded-full bg-tag-accent text-content-inverse flex items-center justify-center font-bold text-sm">3</div>
+            <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.variablesConfigTitle') }}</h3>
           </div>
           <button @click="handleCustomize"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-100 text-purple-700 font-semibold hover:bg-purple-200 transition-colors border border-purple-300 text-sm">
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-colors border border-tag-accentBorder text-sm">
             <ArrowRight :size="16" />
             {{ t('deployment.summary.editBtn') }}
           </button>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="bg-white rounded-lg border-2 border-blue-200 overflow-hidden">
-            <div class="bg-blue-100 px-4 py-2 border-b border-blue-200 flex items-center gap-2">
-              <Box :size="18" class="text-blue-700" />
-              <h4 class="font-bold text-blue-900 text-sm">{{ t('deployment.summary.packerVars') }}</h4>
-              <span class="ml-auto text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-bold">
+          <div class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden">
+            <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
+              <Box :size="18" class="text-tag-info" />
+              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.packerVars') }}</h4>
+              <span class="ml-auto text-xs bg-tag-infoLight text-tag-info px-2 py-0.5 rounded-full font-bold">
                 {{ packerVars.length }}
               </span>
             </div>
             <div class="p-4 space-y-2 max-h-64 overflow-y-auto">
               <div v-for="item in packerVars" :key="item.label"
-                class="flex justify-between items-start gap-3 py-2 border-b border-gray-100 last:border-0">
-                <span class="text-sm font-semibold text-gray-700 flex-shrink-0">{{ item.label }}</span>
+                class="flex justify-between items-start gap-3 py-2 border-b border-card-border last:border-0">
+                <span class="text-sm font-semibold text-content-secondary flex-shrink-0">{{ item.label }}</span>
                 <span
-                  class="text-sm text-gray-900 font-medium text-right break-all"
+                  class="text-sm text-content-primary font-medium text-right break-all"
                   :title="item.raw ? t('deployment.summary.submittedValue', { value: item.raw }) : undefined"
                 >
                   {{ item.value }}
                 </span>
               </div>
-              <p v-if="packerVars.length === 0" class="text-sm text-gray-400 italic text-center py-4">
+              <p v-if="packerVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
                 {{ t('deployment.summary.noPackerVars') }}
               </p>
             </div>
           </div>
 
-          <div class="bg-white rounded-lg border-2 border-purple-200 overflow-hidden">
-            <div class="bg-purple-100 px-4 py-2 border-b border-purple-200 flex items-center gap-2">
-              <Layers :size="18" class="text-purple-700" />
-              <h4 class="font-bold text-purple-900 text-sm">{{ t('deployment.summary.terraformVars') }}</h4>
-              <span class="ml-auto text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">
+          <div class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden">
+            <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
+              <Layers :size="18" class="text-tag-accent" />
+              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.terraformVars') }}</h4>
+              <span class="ml-auto text-xs bg-tag-accentLight text-tag-accent px-2 py-0.5 rounded-full font-bold">
                 {{ terraformVars.length }}
               </span>
             </div>
             <div class="p-4 space-y-2 max-h-64 overflow-y-auto">
               <div v-for="item in terraformVars" :key="item.label"
-                class="flex justify-between items-start gap-3 py-2 border-b border-gray-100 last:border-0">
-                <span class="text-sm font-semibold text-gray-700 flex-shrink-0">{{ item.label }}</span>
+                class="flex justify-between items-start gap-3 py-2 border-b border-card-border last:border-0">
+                <span class="text-sm font-semibold text-content-secondary flex-shrink-0">{{ item.label }}</span>
                 <span
-                  class="text-sm text-gray-900 font-medium text-right break-all"
+                  class="text-sm text-content-primary font-medium text-right break-all"
                   :title="item.raw ? t('deployment.summary.submittedValue', { value: item.raw }) : undefined"
                 >
                   {{ item.value }}
                 </span>
               </div>
-              <p v-if="terraformVars.length === 0" class="text-sm text-gray-400 italic text-center py-4">
+              <p v-if="terraformVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
                 {{ t('deployment.summary.noTerraformVars') }}
               </p>
             </div>
           </div>
 
-          <!-- Files section. One card per file variable; chips list the
-               uploaded slots (filename + size). Hidden when the app declares
-               no file variables. -->
           <div
             v-if="fileVarSummaries.length > 0"
-            class="bg-white rounded-lg border-2 border-amber-200 overflow-hidden col-span-1 md:col-span-2"
+            class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden col-span-1 md:col-span-2"
           >
-            <div class="bg-amber-100 px-4 py-2 border-b border-amber-200 flex items-center gap-2">
-              <Layers :size="18" class="text-amber-700" />
-              <h4 class="font-bold text-amber-900 text-sm">Hochgeladene Dateien</h4>
-              <span class="ml-auto text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+            <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
+              <Layers :size="18" class="text-status-warning" />
+              <h4 class="font-bold text-content-primary text-sm">Hochgeladene Dateien</h4>
+              <span class="ml-auto text-xs bg-status-warningLight text-status-warning px-2 py-0.5 rounded-full font-bold">
                 {{ fileVarSummaries.reduce((acc, v) => acc + v.chips.length, 0) }}
               </span>
             </div>
             <div class="p-4 space-y-3">
               <div v-for="entry in fileVarSummaries" :key="entry.name">
-                <div class="text-xs font-semibold text-gray-700 mb-1">
+                <div class="text-xs font-semibold text-content-secondary mb-1">
                   {{ entry.name }}
-                  <span class="text-[10px] font-normal text-gray-500 ml-1">
+                  <span class="text-[10px] font-normal text-content-disabled ml-1">
                     (Scope: {{ entry.scope }})
                   </span>
                 </div>
-                <div v-if="entry.chips.length === 0" class="text-xs text-gray-400 italic">
+                <div v-if="entry.chips.length === 0" class="text-xs text-content-disabled italic">
                   Keine Datei hochgeladen
                 </div>
                 <div v-else class="flex flex-wrap gap-1.5">
                   <span
                     v-for="chip in entry.chips"
                     :key="`${entry.name}::${chip.slot}`"
-                    class="inline-flex items-center gap-1 text-xs bg-amber-50 border border-amber-200 text-amber-900 px-2 py-1 rounded"
+                    class="inline-flex items-center gap-1 text-xs bg-status-warningLight border border-status-warning/30 text-status-warning px-2 py-1 rounded"
                   >
                     <span class="font-medium">{{ chip.filename }}</span>
-                    <span class="text-amber-700">·</span>
+                    <span class="text-status-warning/60">·</span>
                     <span>{{ chip.size }}</span>
-                    <span v-if="entry.scope !== 'all'" class="text-amber-700">·</span>
-                    <span v-if="entry.scope !== 'all'" class="text-[10px] text-amber-700">
+                    <span v-if="entry.scope !== 'all'" class="text-status-warning/60">·</span>
+                    <span v-if="entry.scope !== 'all'" class="text-[10px] text-status-warning/80">
                       {{ chip.slot }}
                     </span>
                   </span>
@@ -762,16 +759,16 @@ const handleBack = () => {
 
     </div>
 
-    <div class="flex justify-between items-center mt-8 pt-6 border-t-2 border-gray-200">
+    <div class="flex justify-between items-center mt-8 pt-6 border-t-2 border-card-border">
       <button @click="handleBack"
-        class="flex items-center gap-2 px-8 py-3 rounded-full bg-gray-100 text-gray-600 font-semibold hover:bg-gray-200 transition-colors">
+        class="flex items-center gap-2 px-8 py-3 rounded-full bg-surface-input text-content-secondary font-semibold hover:bg-surface-hover transition-colors">
         <ArrowLeft :size="18" />
         {{ t('deployment.actions.back') }}
       </button>
 
       <button @click="handleDeploy"
         :disabled="isLoadingVariables || isSubmitting || deploymentStore.isLoading"
-        class="flex items-center gap-3 px-10 py-3 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold hover:from-emerald-700 hover:to-teal-700 transition-all shadow-xl shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+        class="flex items-center gap-3 px-10 py-3 rounded-full bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
 
         <span v-if="isSubmitting || deploymentStore.isLoading" class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span>
         <span v-if="isSubmitting || deploymentStore.isLoading">{{ t('deployment.summary.creating') }}</span>

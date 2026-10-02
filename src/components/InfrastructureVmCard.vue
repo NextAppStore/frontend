@@ -111,25 +111,25 @@ const flavorBrief = computed(() => {
 // a teacher who picked IPv6 for RDP sees it as the prominent address
 // here too, consistently.
 const v4AddressClass = computed(() =>
-  ipVersion.value === 'v6' ? 'font-mono text-gray-500' : 'font-mono text-gray-900',
+  ipVersion.value === 'v6' ? 'font-mono text-content-disabled' : 'font-mono text-content-primary',
 )
 const v6AddressClass = computed(() =>
-  ipVersion.value === 'v6' ? 'font-mono text-gray-900' : 'font-mono text-gray-500',
+  ipVersion.value === 'v6' ? 'font-mono text-content-primary' : 'font-mono text-content-disabled',
 )
 
 const cardBorderClass = computed(() => {
-  if (props.resource.drift === 'missing') return 'border-red-300 ring-1 ring-red-100'
-  if (props.resource.drift === 'stale') return 'border-amber-300'
+  if (props.resource.drift === 'missing') return 'border-status-error/50 ring-1 ring-status-errorLight'
+  if (props.resource.drift === 'stale') return 'border-status-warning/50'
   // Subtle accent when the detail panel underneath is open, so the
   // user instantly knows which card the panel belongs to.
-  if (props.isExpanded) return 'border-gray-800 ring-1 ring-gray-200'
-  return 'border-gray-200'
+  if (props.isExpanded) return 'border-content-primary ring-1 ring-card-border'
+  return 'border-card-border'
 })
 </script>
 
 <template>
   <div
-    class="bg-white rounded-lg p-4 border-2 shadow-sm flex flex-col gap-3 transition-colors"
+    class="bg-surface-card rounded-lg p-4 border-2 shadow-sm flex flex-col gap-3 transition-colors"
     :class="cardBorderClass"
   >
     <!-- Header: Team-Badge + VM-Name + Lifecycle-Pill -->
@@ -139,13 +139,13 @@ const cardBorderClass = computed(() => {
           <span
             class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
             :class="resource.team
-              ? 'bg-blue-100 text-blue-700 border-blue-200'
-              : 'bg-gray-100 text-gray-600 border-gray-200'"
+              ? 'bg-tag-infoLight text-tag-info border-tag-infoBorder'
+              : 'bg-surface-input text-content-secondary border-card-border'"
           >
             {{ resource.team || t('vm.sharedTeam') }}
           </span>
         </div>
-        <h3 class="text-base font-bold text-gray-900 truncate" :title="resource.display_name">
+        <h3 class="text-base font-bold text-content-primary truncate" :title="resource.display_name">
           {{ resource.display_name }}
         </h3>
       </div>
@@ -162,8 +162,8 @@ const cardBorderClass = computed(() => {
       v-if="driftBanner"
       class="text-xs p-2 rounded border flex items-start gap-2"
       :class="driftBanner.tone === 'red'
-        ? 'bg-red-50 text-red-800 border-red-200'
-        : 'bg-amber-50 text-amber-800 border-amber-200'"
+        ? 'bg-status-errorLight text-status-error border-status-error/30'
+        : 'bg-status-warningLight text-status-warning border-status-warning/30'"
     >
       <AlertTriangle :size="14" class="mt-0.5 shrink-0" />
       <div>
@@ -175,50 +175,50 @@ const cardBorderClass = computed(() => {
     <!-- Fault banner — only when status=ERROR -->
     <div
       v-if="resource.lifecycle?.fault_message"
-      class="text-xs p-2 rounded border bg-red-50 text-red-800 border-red-200"
+      class="text-xs p-2 rounded border bg-status-errorLight text-status-error border-status-error/30"
     >
       <p class="font-semibold mb-0.5">{{ t('vm.openstackFault') }}</p>
       <p class="font-mono break-all">{{ resource.lifecycle.fault_message }}</p>
     </div>
 
     <!-- Hardware row -->
-    <div v-if="flavorBrief || resource.hardware?.image_name" class="flex items-start gap-2 text-xs text-gray-700">
-      <Cpu :size="14" class="mt-0.5 shrink-0 text-gray-400" />
+    <div v-if="flavorBrief || resource.hardware?.image_name" class="flex items-start gap-2 text-xs text-content-secondary">
+      <Cpu :size="14" class="mt-0.5 shrink-0 text-content-disabled" />
       <div class="space-y-0.5">
         <p v-if="flavorBrief">{{ flavorBrief }}</p>
-        <p v-if="resource.hardware?.image_name" class="text-gray-500">
+        <p v-if="resource.hardware?.image_name" class="text-content-disabled">
           Image: {{ resource.hardware.image_name }}
         </p>
-        <p v-else-if="resource.hardware?.image_id" class="text-gray-500 font-mono">
+        <p v-else-if="resource.hardware?.image_id" class="text-content-disabled font-mono">
           Image-ID: {{ resource.hardware.image_id.slice(0, 8) }}…
         </p>
-        <p v-if="resource.hardware?.availability_zone" class="text-gray-500">
+        <p v-if="resource.hardware?.availability_zone" class="text-content-disabled">
           AZ: {{ resource.hardware.availability_zone }}
         </p>
-        <p v-if="uptime" class="text-gray-500">{{ t('vm.uptimePrefix') }} {{ uptime }}</p>
+        <p v-if="uptime" class="text-content-disabled">{{ t('vm.uptimePrefix') }} {{ uptime }}</p>
       </div>
     </div>
 
     <!-- Addresses — one line per IP (v4/v6/floating each run too long to
          share a line without overflowing the card on narrow widths). -->
-    <div v-if="resource.addresses.length > 0" class="flex items-start gap-2 text-xs text-gray-700">
-      <Network :size="14" class="mt-0.5 shrink-0 text-gray-400" />
+    <div v-if="resource.addresses.length > 0" class="flex items-start gap-2 text-xs text-content-secondary">
+      <Network :size="14" class="mt-0.5 shrink-0 text-content-disabled" />
       <div class="space-y-1.5 flex-1 min-w-0">
         <div
           v-for="addr in resource.addresses"
           :key="`${resource.address}::${addr.network}`"
           class="space-y-0.5"
         >
-          <span class="text-gray-500">{{ addr.network }}:</span>
+          <span class="text-content-disabled">{{ addr.network }}:</span>
           <p v-if="addr.fixed_ip" class="break-all" :class="v4AddressClass">
-            <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv4Label') }}</span>
+            <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv4Label') }}</span>
             {{ addr.fixed_ip }}
           </p>
           <p v-if="addr.fixed_ip_v6" class="break-all" :class="v6AddressClass">
-            <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv6Label') }}</span>
+            <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv6Label') }}</span>
             {{ addr.fixed_ip_v6 }}
           </p>
-          <p v-if="addr.floating_ip" class="font-mono text-emerald-700 break-all">
+          <p v-if="addr.floating_ip" class="font-mono text-status-success break-all">
             → {{ addr.floating_ip }}
           </p>
         </div>
@@ -226,13 +226,13 @@ const cardBorderClass = computed(() => {
     </div>
 
     <!-- Footer: actions -->
-    <div class="flex gap-2 mt-1 pt-2 border-t border-gray-100">
+    <div class="flex gap-2 mt-1 pt-2 border-t border-card-border">
       <button
         @click="emit('open-details', resource.address)"
         class="flex-1 text-xs font-semibold py-1.5 px-3 rounded border transition-colors"
         :class="isExpanded
-          ? 'bg-gray-800 text-white border-gray-800 hover:bg-gray-700'
-          : 'border-gray-200 hover:bg-gray-50'"
+          ? 'bg-content-primary text-content-inverse border-content-primary hover:opacity-90'
+          : 'border-card-border hover:bg-surface-hover'"
       >
         {{ isExpanded ? t('vm.actions.hideDetails') : t('vm.actions.showDetails') }}
       </button>
@@ -241,8 +241,8 @@ const cardBorderClass = computed(() => {
         :disabled="redeploying"
         class="flex-1 text-xs font-semibold py-1.5 px-3 rounded border transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
         :class="resource.drift === 'missing'
-          ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-          : 'bg-white text-red-700 border-red-200 hover:bg-red-50'"
+          ? 'bg-status-errorLight text-status-error border-status-error/30 hover:bg-status-error/20'
+          : 'bg-surface-card text-status-error border-status-error/30 hover:bg-status-errorLight'"
       >
         <RefreshCcw :size="12" :class="redeploying ? 'animate-spin' : ''" />
         {{ redeploying ? t('vm.actions.redeploying') : t('vm.actions.redeploy') }}

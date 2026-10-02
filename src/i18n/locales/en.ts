@@ -702,7 +702,11 @@ export default {
       noTeamsConfigured: 'No teams configured yet — please complete the previous step first.',
       noMembers: 'No members',
       missingRequiredTitle: 'Missing required inputs:',
-      teamRenameToast: 'Team/User change detected — {count} orphaned input(s) removed:\n{lines}'
+      teamRenameToast: 'Team/User change detected — {count} orphaned input(s) removed:\n{lines}',
+      advancedSettings: 'Advanced settings',
+      allPreconfigured: 'Everything is preconfigured — no input needed here. Open the advanced settings to adjust.',
+      recommended: 'Recommended',
+      recommendedHint: 'Value recommended by the app author. You can change it.'
     },
     summary: {
       title: 'Recommended Configuration',
@@ -807,6 +811,16 @@ export default {
       title: 'Settings',
       openstackTitle: 'OpenStack credentials',
       openstackHint: 'Store your own credentials for deployments',
+    },
+    appearance: {
+      title: 'Appearance',
+      hint: 'Controls whether the app is displayed in light, dark, or automatic mode based on your system settings.',
+      auto: 'Automatic',
+      autoHint: 'Follows system settings',
+      light: 'Light',
+      lightHint: 'Always light theme',
+      dark: 'Dark',
+      darkHint: 'Always dark theme',
     },
   },
 
@@ -983,6 +997,7 @@ export default {
       externalGateway: 'External gateway',
     },
     unnamed: '(unnamed)',
+    recommended: 'Recommended',
     toasts: {
       removed: '{label} was removed',
       listRefreshed: 'List refreshed.',

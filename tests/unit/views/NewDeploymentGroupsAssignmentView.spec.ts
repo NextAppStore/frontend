@@ -110,7 +110,7 @@ describe('NewDeploymentTeamsView.vue', () => {
     expect(wrapper.text()).toContain('Jane Smith')
     
     // Next-Button sollte deaktiviert sein (weil nicht alle zugewiesen sind)
-    const nextBtn = wrapper.find('button.bg-gradient-to-r')
+    const nextBtn = wrapper.find('[data-testid="next-btn"]')
     expect(nextBtn.attributes('disabled')).toBeDefined()
   })
 
@@ -193,13 +193,13 @@ describe('NewDeploymentTeamsView.vue', () => {
     })
     await flushPromises()
 
-    const nextBtn = wrapper.find('button.bg-gradient-to-r')
+    const nextBtn = wrapper.find('[data-testid="next-btn"]')
     expect(nextBtn.attributes('disabled')).toBeDefined()
 
     // Weise sie manuell im Store zu
     const store = useDeploymentStore()
     store.draft.assignments = [['u1'], ['u2']]
-    
+
     // Erzwinge Vue-Update
     await wrapper.vm.$nextTick()
 
@@ -215,7 +215,7 @@ describe('NewDeploymentTeamsView.vue', () => {
     const wrapper = createWrapper()
     await flushPromises()
 
-    const backBtn = wrapper.find('button.bg-gray-100')
+    const backBtn = wrapper.find('[data-testid="back-btn"]')
     await backBtn.trigger('click')
 
     expect(routerPushMock).toHaveBeenCalledWith({ name: 'deployment.config' })
