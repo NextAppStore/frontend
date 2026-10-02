@@ -592,6 +592,15 @@ export default {
       next: 'Weiter',
       deploy: 'Deployen'
     },
+    quickDeploy: {
+      button: 'Schnell-Deploy',
+      ready: '{name} ist vorbereitet — bitte vor dem Deployen prüfen.',
+      needsInput: 'Diese App braucht Eingaben, für die es keinen verwendbaren Standardwert gibt. Der Assistent ist bereits vorausgefüllt.',
+      noVersion: 'Für diese App gibt es noch keine Version zum Deployen.',
+      missingCreds: 'Bitte zuerst OpenStack-Credentials hinterlegen.',
+      noIdentity: 'Dein Konto ist noch nicht mit Keycloak verknüpft — bitte den Assistenten nutzen.',
+      error: 'Schnell-Deploy konnte nicht vorbereitet werden.'
+    },
     apps: {
       nodejs: {
         title: 'NodeJS VM',

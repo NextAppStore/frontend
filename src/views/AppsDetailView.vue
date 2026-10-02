@@ -8,7 +8,7 @@ import {
   Layers, Server, Box, Database, Terminal,
   Globe, LayoutTemplate, Shield, ArrowLeft, GitBranch,
   Trash2, AlertCircle, Clock, Send, ShoppingBag, Lock, Undo2,
-  Pencil, Image as ImageIcon,
+  Pencil, Image as ImageIcon, Zap,
 } from 'lucide-vue-next'
 import { useDeploymentStore } from '@/stores/deployment.store'
 import { useOpenStackCredentialsStore } from '@/stores/openstack-credentials.store'
@@ -199,6 +199,41 @@ const handleDeploy = () => {
   deploymentStore.draft.releaseTag = selectedVersion.value
   toast.success(t('AppsDetailView.toasts.preparingConfig', { name: app.value.name }))
   router.push({ name: 'deployment.config' })
+}
+
+const isQuickDeploying = ref(false)
+
+/**
+ * Express deploy with the version already picked here, so the store is spared
+ * the extra detail call the tile needs. Anything that cannot be defaulted sends
+ * the user into the regular wizard, with the draft already filled in.
+ */
+const handleQuickDeploy = async () => {
+  if (!selectedVersion.value) {
+    toast.warning(t('AppsDetailView.toasts.selectVersionFirst'))
+    return
+  }
+  if (isQuickDeploying.value) return
+
+  isQuickDeploying.value = true
+  try {
+    const outcome = await deploymentStore.prepareQuickDeploy(
+      app.value.appId || app.value.id,
+      app.value.name,
+      selectedVersion.value,
+    )
+    if (outcome.ready) {
+      toast.success(t('deployment.quickDeploy.ready', { name: app.value.name }))
+      router.push({ name: 'deployment.summary' })
+      return
+    }
+    toast.info(t(`deployment.quickDeploy.${outcome.reason}`))
+    router.push({ name: 'deployment.config' })
+  } catch {
+    toast.error(t('deployment.quickDeploy.error'))
+  } finally {
+    isQuickDeploying.value = false
+  }
 }
 
 const openSubmitModal = (versionTag: string) => {
@@ -584,15 +619,29 @@ onMounted(async () => {
             </select>
           </div>
 
-          <button
-            @click="handleDeploy"
-            :disabled="!selectedVersion || (credStore.isResolved && !credStore.hasCredential)"
-            :title="credStore.isResolved && !credStore.hasCredential ? $t('AppsDetailView.missingCredsTitle') : ''"
-            class="w-full bg-gradient-to-r from-primary to-primary-dark text-content-inverse px-4 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-          >
-            <Layers :size="18" />
-            {{ $t('AppsDetailView.deployButton') }}
-          </button>
+          <div class="flex flex-col gap-2">
+            <BaseButton
+              variant="yellow"
+              class="w-full"
+              data-testid="app-detail-quick-deploy"
+              :disabled="!selectedVersion || isQuickDeploying || (credStore.isResolved && !credStore.hasCredential)"
+              :title="credStore.isResolved && !credStore.hasCredential ? $t('AppsDetailView.missingCredsTitle') : ''"
+              @click="handleQuickDeploy"
+            >
+              <Zap :size="18" aria-hidden="true" />
+              {{ $t('deployment.quickDeploy.button') }}
+            </BaseButton>
+
+            <button
+              @click="handleDeploy"
+              :disabled="!selectedVersion || (credStore.isResolved && !credStore.hasCredential)"
+              :title="credStore.isResolved && !credStore.hasCredential ? $t('AppsDetailView.missingCredsTitle') : ''"
+              class="w-full bg-gradient-to-r from-primary to-primary-dark text-content-inverse px-4 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+            >
+              <Layers :size="18" />
+              {{ $t('AppsDetailView.deployButton') }}
+            </button>
+          </div>
           <p v-if="credStore.isResolved && !credStore.hasCredential" class="mt-2 text-sm text-status-warning">
             <router-link to="/user/openstack" class="underline font-medium">{{ $t('AppsDetailView.missingCredsLink') }}</router-link>
             {{ $t('AppsDetailView.missingCredsText') }}
