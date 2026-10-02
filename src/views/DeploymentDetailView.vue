@@ -18,8 +18,12 @@ import InfrastructureVmDrawer from '@/components/InfrastructureVmDrawer.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { formatDateTime } from '@/utils/format'
 import { extractErrorMessage } from '@/utils/http-error'
+import { useIpVersionPreference } from '@/composables/useIpVersionPreference'
+import RdpClientHelpPopover from '@/components/RdpClientHelpPopover.vue'
 
 import { Eye, EyeOff } from 'lucide-vue-next'
+
+const { ipVersion, setIpVersion } = useIpVersionPreference()
 
 // Password visibility state, keyed by account index/key.
 const visiblePasswords = ref<Record<string | number, boolean>>({})
@@ -58,11 +62,16 @@ const rdpCommandFor = (data: { ip?: string; port?: number }): string => {
     return `mstsc /v:${target}`
 }
 
-// Same as rdpCommandFor, but for the team VM's IPv6 address (team_vms
-// ``fixed_ip_v6`` — user_accounts only ever carries one ``ip``, so the
-// IPv6 target comes from the team-level block, not the member's account).
-// IPv6 literals need brackets in an mstsc target.
+// Same as rdpCommandFor, but for an IPv6 target. IPv6 literals need
+// brackets in an mstsc target.
 const rdpCommandForV6 = (ipv6: string): string => `mstsc /v:[${ipv6}]`
+
+// Resolve the IPv6 address to use for a member's RDP command: the
+// account's own ``ip_v6`` wins when present (per-member precision, now
+// that the worker output carries it), falling back to the team VM's
+// ``fixed_ip_v6`` for apps that only publish it at the team level.
+const rdpIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null =>
+    account.ip_v6 || team.vm?.fixed_ip_v6 || null
 
 
 const route = useRoute()
@@ -95,6 +104,9 @@ interface UserAccount {
     username: string
     team: string
     ip: string
+    // IPv6 counterpart to ``ip``, worker-side addition — optional since
+    // only RDP-style apps (Windows) currently publish it.
+    ip_v6?: string
     port: number
     auth: string
     type?: 'password' | 'ssh_key' | 'oauth' | 'none' | string
@@ -256,6 +268,15 @@ const enrichedTeams = computed(() => {
         };
     });
 });
+
+// Whether any member across any team has an RDP account — the IPv4/IPv6
+// toggle only makes sense (and only renders) when there's an RDP pill
+// anywhere to apply it to.
+const hasAnyRdpAccount = computed(() =>
+    enrichedTeams.value.some((team) =>
+        team.members.some((member) => member.account?.data.authtype === 'rdp'),
+    ),
+)
 
 /**
  * Pull the ``team_vms`` object out of the active task's outputs. Same
@@ -1929,6 +1950,23 @@ const deselectTask = () => {
                 <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-bold rounded">
                     {{ deployment.teams.length }}
                 </span>
+
+                <!-- One global IPv4/IPv6 preference for all RDP pills below —
+                     not per-team or per-row, since network reachability
+                     (VPN vs. no VPN) is typically the same for everyone. -->
+                <div v-if="hasAnyRdpAccount" class="ml-auto inline-flex rounded-lg border border-gray-200 bg-gray-100 p-0.5"
+                    role="group" :aria-label="$t('DeploymentDetailView.ipToggle.ariaLabel')">
+                    <button type="button" @click="setIpVersion('v4')"
+                        class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
+                        :class="ipVersion === 'v4' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">
+                        {{ $t('DeploymentDetailView.ipToggle.ipv4') }}
+                    </button>
+                    <button type="button" @click="setIpVersion('v6')"
+                        class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
+                        :class="ipVersion === 'v6' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">
+                        {{ $t('DeploymentDetailView.ipToggle.ipv6') }}
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-4">
@@ -2024,33 +2062,32 @@ const deselectTask = () => {
                                 </div>
 
                                 <!-- Ready-to-use RDP command line (mstsc), for Windows-style
-                                     apps that set authtype: "rdp" on their user_accounts. -->
+                                     apps that set authtype: "rdp" on their user_accounts.
+                                     Shows IPv4 or IPv6 depending on the shared toggle above —
+                                     never both at once — falling back to IPv4 when a team has
+                                     no IPv6 target so the pill is never empty. -->
                                 <div v-if="member.account.data.authtype === 'rdp'"
                                     class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100 max-w-full">
-                                    <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider flex-shrink-0">RDP:</span>
-                                    <span class="truncate">{{ rdpCommandFor(member.account.data) }}</span>
+                                    <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && rdpIpv6For(member.account.data, team) ? 'RDP (IPv6):' : 'RDP:' }}
+                                    </span>
+                                    <span class="truncate"
+                                        :title="ipVersion === 'v6' && !rdpIpv6For(member.account.data, team) ? $t('DeploymentDetailView.rdp.unavailableV6') : undefined">
+                                        {{ ipVersion === 'v6' && rdpIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(rdpIpv6For(member.account.data, team) ?? '')
+                                            : rdpCommandFor(member.account.data) }}
+                                    </span>
                                     <button
-                                        @click="copyToClipboard(rdpCommandFor(member.account.data), 'rdp-' + member.account.key)"
+                                        @click="copyToClipboard(ipVersion === 'v6' && rdpIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(rdpIpv6For(member.account.data, team) ?? '')
+                                            : rdpCommandFor(member.account.data), 'rdp-' + member.account.key)"
                                         class="text-gray-400 hover:text-amber-600 p-0.5 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
                                         :title="copiedKey === 'rdp-' + member.account.key ? 'Kopiert!' : 'RDP-Befehl kopieren'">
                                         <component :is="copiedKey === 'rdp-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
-                                </div>
-
-                                <!-- IPv6 RDP target from ``team_vms.<team>.fixed_ip_v6``.
-                                     Additive, next to the IPv4 RDP pill above — apps like
-                                     Windows-App document IPv6 as the primary route (works
-                                     without VPN), IPv4 as the fallback. -->
-                                <div v-if="member.account.data.authtype === 'rdp' && team.vm?.fixed_ip_v6"
-                                    class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded border border-gray-100 max-w-full">
-                                    <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider flex-shrink-0">RDP (IPv6):</span>
-                                    <span class="truncate">{{ rdpCommandForV6(team.vm.fixed_ip_v6) }}</span>
-                                    <button
-                                        @click="copyToClipboard(rdpCommandForV6(team.vm.fixed_ip_v6 ?? ''), 'rdp6-' + member.account.key)"
-                                        class="text-gray-400 hover:text-amber-600 p-0.5 rounded hover:bg-gray-200 transition-colors flex-shrink-0"
-                                        :title="copiedKey === 'rdp6-' + member.account.key ? 'Kopiert!' : 'RDP-Befehl (IPv6) kopieren'">
-                                        <component :is="copiedKey === 'rdp6-' + member.account.key ? Check : Copy" :size="12" />
-                                    </button>
+                                    <RdpClientHelpPopover
+                                        :ip="ipVersion === 'v6' && rdpIpv6For(member.account.data, team) ? (rdpIpv6For(member.account.data, team) ?? '') : (member.account.data.ip ?? '')"
+                                        :port="member.account.data.port" />
                                 </div>
 
                                 <div v-if="member.account.data.auth"

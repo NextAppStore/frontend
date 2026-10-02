@@ -20,9 +20,11 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DeploymentResource } from '@/types'
 import { formatUptime, pillToneClass } from '@/composables/useVmPresentation'
+import { useIpVersionPreference } from '@/composables/useIpVersionPreference'
 import { RefreshCcw, AlertTriangle, Cpu, Network } from 'lucide-vue-next'
 
 const { t } = useI18n()
+const { ipVersion } = useIpVersionPreference()
 
 const props = defineProps<{
   resource: DeploymentResource
@@ -101,6 +103,19 @@ const flavorBrief = computed(() => {
   if (hw.disk_gb != null) parts.push(`${hw.disk_gb} ${t('vm.units.gb')}`)
   return parts.length > 0 ? parts.join(' · ') : null
 })
+
+// --- IPv4/IPv6 visual emphasis ---
+// Both addresses stay visible on this compact card (no room for a
+// per-card toggle without noise across many VMs) — only the preferred
+// version from the shared ``useIpVersionPreference`` is emphasised, so
+// a teacher who picked IPv6 for RDP sees it as the prominent address
+// here too, consistently.
+const v4AddressClass = computed(() =>
+  ipVersion.value === 'v6' ? 'font-mono text-gray-500' : 'font-mono text-gray-900',
+)
+const v6AddressClass = computed(() =>
+  ipVersion.value === 'v6' ? 'font-mono text-gray-900' : 'font-mono text-gray-500',
+)
 
 const cardBorderClass = computed(() => {
   if (props.resource.drift === 'missing') return 'border-red-300 ring-1 ring-red-100'
@@ -184,21 +199,28 @@ const cardBorderClass = computed(() => {
       </div>
     </div>
 
-    <!-- Addresses -->
+    <!-- Addresses — one line per IP (v4/v6/floating each run too long to
+         share a line without overflowing the card on narrow widths). -->
     <div v-if="resource.addresses.length > 0" class="flex items-start gap-2 text-xs text-gray-700">
       <Network :size="14" class="mt-0.5 shrink-0 text-gray-400" />
-      <div class="space-y-1 flex-1 min-w-0">
+      <div class="space-y-1.5 flex-1 min-w-0">
         <div
           v-for="addr in resource.addresses"
           :key="`${resource.address}::${addr.network}`"
-          class="flex flex-wrap items-baseline gap-1"
+          class="space-y-0.5"
         >
           <span class="text-gray-500">{{ addr.network }}:</span>
-          <span v-if="addr.fixed_ip" class="font-mono">{{ addr.fixed_ip }}</span>
-          <span v-if="addr.fixed_ip_v6" class="font-mono text-xs text-gray-500">{{ addr.fixed_ip_v6 }}</span>
-          <span v-if="addr.floating_ip" class="font-mono text-emerald-700">
+          <p v-if="addr.fixed_ip" class="break-all" :class="v4AddressClass">
+            <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv4Label') }}</span>
+            {{ addr.fixed_ip }}
+          </p>
+          <p v-if="addr.fixed_ip_v6" class="break-all" :class="v6AddressClass">
+            <span class="text-gray-400 font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv6Label') }}</span>
+            {{ addr.fixed_ip_v6 }}
+          </p>
+          <p v-if="addr.floating_ip" class="font-mono text-emerald-700 break-all">
             → {{ addr.floating_ip }}
-          </span>
+          </p>
         </div>
       </div>
     </div>

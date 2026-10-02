@@ -329,15 +329,19 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
                   <span class="text-gray-500">{{ t('vm.drawer.network.fixedIp') }}</span>
                   <code class="ml-1 font-mono">{{ addr.fixed_ip || '—' }}</code>
                 </div>
-                <div v-if="addr.fixed_ip_v6">
-                  <span class="text-gray-500">{{ t('vm.drawer.network.fixedIpV6') }}</span>
-                  <code class="ml-1 font-mono">{{ addr.fixed_ip_v6 }}</code>
-                </div>
                 <div v-if="addr.floating_ip">
                   <span class="text-gray-500">{{ t('vm.drawer.network.floatingIp') }}</span>
                   <code class="ml-1 font-mono text-emerald-700">{{ addr.floating_ip }}</code>
                 </div>
-                <div v-if="addr.mac">
+                <!-- IPv6 and MAC get the full row — both are long enough
+                     ("xxxx:xxxx:...:xxxx" / "xx:xx:xx:xx:xx:xx") that
+                     cramming them into a half-width cell next to another
+                     field pushes them past the panel edge. -->
+                <div v-if="addr.fixed_ip_v6" class="col-span-2">
+                  <span class="text-gray-500">{{ t('vm.drawer.network.fixedIpV6') }}</span>
+                  <code class="ml-1 font-mono break-all">{{ addr.fixed_ip_v6 }}</code>
+                </div>
+                <div v-if="addr.mac" class="col-span-2">
                   <span class="text-gray-500">{{ t('vm.drawer.network.mac') }}</span>
                   <code class="ml-1 font-mono">{{ addr.mac }}</code>
                 </div>
@@ -397,11 +401,11 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
                   <span class="text-gray-500">IP</span>
                   <code class="ml-1 font-mono">{{ port.fixed_ip || '—' }}</code>
                 </div>
-                <div v-if="port.fixed_ip_v6">
+                <div v-if="port.fixed_ip_v6" class="col-span-2">
                   <span class="text-gray-500">{{ t('vm.drawer.network.fixedIpV6') }}</span>
-                  <code class="ml-1 font-mono">{{ port.fixed_ip_v6 }}</code>
+                  <code class="ml-1 font-mono break-all">{{ port.fixed_ip_v6 }}</code>
                 </div>
-                <div>
+                <div class="col-span-2">
                   <span class="text-gray-500">{{ t('vm.drawer.network.mac') }}</span>
                   <code class="ml-1 font-mono">{{ port.mac || '—' }}</code>
                 </div>
