@@ -1,6 +1,7 @@
 import axios, { type AxiosError } from 'axios'
 import { useKeycloak } from '@/composables/useKeycloak'
 import { useLtiSession, getActiveAccessToken } from '@/composables/useLtiSession'
+import { currentLocale } from '@/i18n/locale'
 import { env } from '@/env'
 
 const api = axios.create({
@@ -11,7 +12,17 @@ const api = axios.create({
   },
 })
 
-// Token from the active session (LTI first, then Keycloak) automatically added to requests
+// Token from the active session (LTI first, then Keycloak) automatically added to requests.
+//
+// Hier hängt außerdem die im UI gewählte Sprache als ``Accept-Language`` dran,
+// damit das Backend weiß, in welcher Sprache es antworten soll — Fehlertexte
+// und alles andere, was dort erzeugt wird. Der Browser schickt den Header von
+// sich aus bereits mit (in seiner langen Form, z.B. ``de-DE,de;q=0.9,…``); die
+// explizite Zuweisung überschreibt ihn bewusst, weil die Auswahl im Umschalter
+// Vorrang vor der Browser-Einstellung hat.
+//
+// Der SSE-Stream in ``composables/useDeploymentStream.ts`` läuft über ``fetch``
+// statt über diese Instanz — der Header muss dort separat gesetzt werden.
 api.interceptors.request.use(
   async (config) => {
     const token = await getActiveAccessToken()
@@ -19,6 +30,7 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    config.headers['Accept-Language'] = currentLocale()
     return config
   },
   (error) => Promise.reject(error)
