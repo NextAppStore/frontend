@@ -23,6 +23,14 @@ export interface User {
   role: UserRole
   courseId: string | null
   created_at: string
+  // Keycloak subject id. Deployment membership is keyed by this, never by
+  // ``userId`` — see ``DeploymentCreate.teams[].userIds``. Optional because an
+  // LTI-provisioned account can exist before it is linked to Keycloak.
+  keycloak_id?: string | null
+  // Mirrored from Keycloak on login; either can be missing for accounts that
+  // never filled them in, which is why the UI falls back to ``username``.
+  firstName?: string | null
+  lastName?: string | null
 }
 
 export interface UserWithCourse extends User {
@@ -96,6 +104,17 @@ export interface App {
 
 export interface AppWithUser extends App {
   user: User
+}
+
+/**
+ * ``GET /apps/{id}`` only. The list endpoint returns plain ``AppResponse``
+ * without versions, which is why anything that needs a deployable tag has to
+ * go through the detail call. Entries are the backend's ``list[dict[str, str]]``
+ * verbatim; the tag lives under ``version`` for current apps and under
+ * ``releaseTag`` for older ones.
+ */
+export interface AppWithVersions extends AppWithUser {
+  versions: Array<Record<string, string>>
 }
 
 export interface AppCreate {

@@ -632,6 +632,15 @@ export default {
       next: 'Next',
       deploy: 'Deploy'
     },
+    quickDeploy: {
+      button: 'Quick deploy',
+      ready: '{name} is ready — please review before deploying.',
+      needsInput: 'This app needs input for which there is no usable default. The wizard is already prefilled.',
+      noVersion: 'This app has no version to deploy yet.',
+      missingCreds: 'Please store your OpenStack credentials first.',
+      noIdentity: 'Your account is not linked to Keycloak yet — please use the wizard.',
+      error: 'Could not prepare the quick deploy.'
+    },
     apps: {
       nodejs: {
         title: 'NodeJS VM',

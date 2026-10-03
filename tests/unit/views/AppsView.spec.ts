@@ -22,12 +22,34 @@ vi.mock('vue-i18n', () => ({
 }))
 
 const mockToastError = vi.fn()
+const mockToastSuccess = vi.fn()
+const mockToastInfo = vi.fn()
+const mockToastWarning = vi.fn()
 vi.mock('@/composables/useToast', () => ({
-    useToast: () => ({ error: mockToastError })
+    useToast: () => ({
+        error: mockToastError,
+        success: mockToastSuccess,
+        info: mockToastInfo,
+        warning: mockToastWarning,
+    })
 }))
 
 vi.mock('@/stores/auth.store', () => ({
     useAuthStore: () => ({ userId: 'other-user-id', isTeacherOrAdmin: false })
+}))
+
+const mockPrepareQuickDeploy = vi.fn()
+vi.mock('@/stores/deployment.store', () => ({
+    useDeploymentStore: () => ({ prepareQuickDeploy: mockPrepareQuickDeploy })
+}))
+
+// Credential state per test case — the quick deploy button gates on it.
+let mockHasCredential = true
+vi.mock('@/stores/openstack-credentials.store', () => ({
+    useOpenStackCredentialsStore: () => ({
+        isResolved: true,
+        get hasCredential() { return mockHasCredential }
+    })
 }))
 
 vi.mock('@/api/app.api', () => ({
@@ -46,6 +68,7 @@ describe('AppsView.vue', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
+        mockHasCredential = true
         // Unterdrücke die Konsolenausgabe für Fehler in unseren Tests
         vi.spyOn(console, 'error').mockImplementation(() => {})
     })
@@ -196,5 +219,94 @@ describe('AppsView.vue', () => {
         const img = wrapper.find('img')
         expect(img.exists()).toBe(true)
         expect(img.attributes('src')).toBe('https://mein-server.de/logo.png')
+    })
+
+    // --- Quick deploy (Issue #11) ---
+
+    describe('Quick deploy', () => {
+        const mountWithApp = async () => {
+            ;(appApi.list as any).mockResolvedValue({
+                data: [{ appId: 'app-1', name: 'Jupyter-Notebook' }]
+            })
+            const wrapper = mountComponent()
+            await flushPromises()
+            return wrapper
+        }
+
+        it('springt direkt zur Zusammenfassung, wenn der Draft vollständig ist', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            const wrapper = await mountWithApp()
+
+            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
+            await flushPromises()
+
+            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith('app-1', 'Jupyter-Notebook')
+            expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.summary' })
+            expect(mockToastSuccess).toHaveBeenCalledWith('deployment.quickDeploy.ready')
+        })
+
+        it('leitet in den Wizard um, wenn Variablen Eingaben brauchen', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: false, reason: 'needsInput' })
+            const wrapper = await mountWithApp()
+
+            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
+            await flushPromises()
+
+            expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.config' })
+            expect(mockToastInfo).toHaveBeenCalledWith('deployment.quickDeploy.needsInput')
+        })
+
+        it('führt ohne deploybare Version zurück auf die Detailseite', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: false, reason: 'noVersion' })
+            const wrapper = await mountWithApp()
+
+            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
+            await flushPromises()
+
+            expect(mockToastWarning).toHaveBeenCalledWith('deployment.quickDeploy.noVersion')
+            expect(mockPush).toHaveBeenCalledWith({
+                name: 'apps.detail',
+                params: { id: 'app-1' }
+            })
+        })
+
+        it('zeigt einen Fehler-Toast, wenn die Vorbereitung fehlschlägt', async () => {
+            mockPrepareQuickDeploy.mockRejectedValue(new Error('boom'))
+            const wrapper = await mountWithApp()
+
+            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
+            await flushPromises()
+
+            expect(mockToastError).toHaveBeenCalledWith('deployment.quickDeploy.error')
+            expect(mockPush).not.toHaveBeenCalledWith({ name: 'deployment.summary' })
+        })
+
+        it('ist gesperrt, solange keine OpenStack-Credentials hinterlegt sind', async () => {
+            mockHasCredential = false
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            const wrapper = await mountWithApp()
+
+            const button = wrapper.find('[data-testid="app-quick-deploy"]')
+            expect(button.attributes('disabled')).toBeDefined()
+            expect(button.attributes('title')).toBe('deployment.quickDeploy.missingCreds')
+
+            await button.trigger('click')
+            await flushPromises()
+            expect(mockPrepareQuickDeploy).not.toHaveBeenCalled()
+        })
+
+        it('öffnet nicht die Detailseite, wenn der Quick-Deploy-Button geklickt wird', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            const wrapper = await mountWithApp()
+
+            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
+            await flushPromises()
+
+            // ``@click.stop`` — sonst würde der Karten-Klick zusätzlich navigieren.
+            expect(mockPush).not.toHaveBeenCalledWith({
+                name: 'apps.detail',
+                params: { id: 'app-1' }
+            })
+        })
     })
 })
