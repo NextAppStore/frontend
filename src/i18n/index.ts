@@ -2,12 +2,15 @@ import { createI18n } from 'vue-i18n'
 
 import de from './locales/de'
 import en from './locales/en'
-
-const savedLocale = localStorage.getItem('locale') || 'de'
+import { currentLocale } from './locale'
 
 const i18n = createI18n({
   legacy: false,
-  locale: savedLocale,
+  // Dieselbe Quelle wie der ``Accept-Language``-Header. Sonst könnten
+  // Oberfläche und Backend bei einem unbekannten gespeicherten Wert
+  // auseinanderlaufen: die Oberfläche über ``fallbackLocale`` auf Englisch,
+  // das Backend auf der Standardsprache.
+  locale: currentLocale(),
   fallbackLocale: 'en',
   messages: {
     de,

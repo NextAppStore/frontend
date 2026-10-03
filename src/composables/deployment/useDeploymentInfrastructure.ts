@@ -94,7 +94,7 @@ export function useDeploymentInfrastructure(
     redeployInFlight.value.add(address)
     try {
       await deploymentApi.redeployResource(deploymentId, address)
-      toastStore.success(`Redeploy gestartet für ${address}`)
+      toastStore.success(t('vm.toasts.redeployStarted', { address }))
       // Refresh the task list right away so the freshly-dispatched
       // REDEPLOY row shows up as the new ``activeTask``. That in
       // turn flips ``isStreamRelevant`` to true → the SSE stream
@@ -108,13 +108,13 @@ export function useDeploymentInfrastructure(
       const detail = err?.response?.data?.detail
       const reason = detail?.reason
       if (reason === 'non_redeployable_resource_type') {
-        toastStore.error('Nur Compute-Instanzen können einzeln redeployed werden.')
+        toastStore.error(t('vm.toasts.onlyComputeInstances'))
       } else if (reason === 'resource_not_in_state') {
-        toastStore.error('Diese Resource ist nicht mehr im aktuellen State.')
+        toastStore.error(t('vm.toasts.resourceNotInState'))
       } else if (err?.response?.status === 409) {
-        toastStore.error('Es läuft bereits eine Lifecycle-Aktion für dieses Deployment.')
+        toastStore.error(t('vm.toasts.lifecycleBusy'))
       } else {
-        toastStore.error(err?.message || 'Redeploy fehlgeschlagen.')
+        toastStore.error(err?.message || t('vm.toasts.redeployFailed'))
       }
     }
   }

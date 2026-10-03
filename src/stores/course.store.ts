@@ -1,4 +1,8 @@
 import { defineStore } from 'pinia'
+// Fallback-Fehlertexte werden hier über die globale i18n-Instanz
+// übersetzt: Ein Store ist kein Setup-Kontext, ``useI18n()`` steht also
+// nicht zur Verfügung. Dasselbe Muster nutzt ``router/index.ts``.
+import i18n from '@/i18n'
 import { courseApi } from '@/api/course.api'
 import type { Course, CourseWithUsers, CourseCreate, CourseUpdate, User } from '@/types'
 import { runRequest } from './_request'
@@ -89,7 +93,7 @@ export const useCourseStore = defineStore('course', {
         this.currentMembers = data
         return data
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to fetch members'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.fetchMembers')
         throw err
       }
     },
@@ -100,7 +104,7 @@ export const useCourseStore = defineStore('course', {
         this.currentMembers = data
         return data
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to add members'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.addMembers')
         throw err
       }
     },
@@ -110,7 +114,7 @@ export const useCourseStore = defineStore('course', {
         await courseApi.removeMember(courseId, userId)
         this.currentMembers = this.currentMembers.filter((u) => u.userId !== userId)
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to remove member'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.removeMember')
         throw err
       }
     },

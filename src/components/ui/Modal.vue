@@ -30,7 +30,7 @@ defineEmits(['close'])
         <button
           @click="$emit('close')"
           class="p-2 -mr-1 text-content-disabled hover:text-content-secondary hover:bg-surface-input rounded-lg transition-colors flex-shrink-0"
-          aria-label="Close"
+          :aria-label="$t('action.close')"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>

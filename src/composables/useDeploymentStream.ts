@@ -25,6 +25,7 @@
 
 import { ref, type Ref } from 'vue'
 import { getActiveAccessToken } from '@/composables/useLtiSession'
+import { currentLocale } from '@/i18n/locale'
 import { env } from '@/env'
 
 export interface LogEntry {
@@ -214,6 +215,11 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
           Accept: 'text/event-stream',
+          // Dieser ``fetch`` umgeht die axios-Instanz (``EventSource`` kann
+          // keinen Authorization-Header setzen), also greift deren Interceptor
+          // hier nicht — die Sprache muss eigens mitgegeben werden. Sonst
+          // bliebe ausgerechnet der Live-Log in der Backend-Standardsprache.
+          'Accept-Language': currentLocale(),
         },
       })
     } catch (err) {

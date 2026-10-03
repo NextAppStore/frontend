@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast.store'
 import { taskApi } from '@/api/task.api'
 import type { ComputedRef } from 'vue'
@@ -8,6 +9,7 @@ export function useDeploymentTasks(
   deploymentId: string,
   isOwnerView: ComputedRef<boolean>,
 ) {
+  const { t } = useI18n()
   const toastStore = useToastStore()
 
   const tasks = ref<Task[]>([])
@@ -223,7 +225,7 @@ export function useDeploymentTasks(
       console.error('Error loading task details:', err)
       toastStore.addToast({
         type: 'error',
-        message: 'Failed to load task details'
+        message: t('DeploymentDetailView.taskDetailsError'),
       })
     } finally {
       loadingTaskDetail.value = false

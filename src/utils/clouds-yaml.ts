@@ -7,6 +7,12 @@
  */
 
 import { load as yamlLoad, YAMLException } from 'js-yaml'
+// Die geworfenen Meldungen landen unverändert in der Oberfläche
+// (``SettingsOpenStackView`` zeigt ``err.message`` an), müssen also übersetzt
+// sein. Hier über die globale Instanz statt ``useI18n()`` — dieses Modul ist
+// kein Composable und läuft außerhalb eines Setup-Kontexts. Dasselbe Muster
+// nutzt bereits ``router/index.ts``.
+import i18n from '@/i18n'
 
 export type ParsedCloudsYaml = {
   cloud_name: string
@@ -50,16 +56,20 @@ export function parseCloudsYaml(text: string, preferredName?: string): ParsedClo
     root = yamlLoad(text)
   } catch (err) {
     if (err instanceof YAMLException) {
-      throw new CloudsYamlError(`Datei konnte nicht als YAML gelesen werden: ${(err as YAMLException).reason}`)
+      throw new CloudsYamlError(
+        i18n.global.t('cloudsYaml.parseErrorWithReason', {
+          reason: (err as YAMLException).reason,
+        }),
+      )
     }
-    throw new CloudsYamlError('Datei konnte nicht als YAML gelesen werden.')
+    throw new CloudsYamlError(i18n.global.t('cloudsYaml.parseError'))
   }
 
   const rootMap = asMap(root)
   const clouds = asMap(rootMap.clouds)
   const names = Object.keys(clouds)
   if (names.length === 0) {
-    throw new CloudsYamlError('Keine "clouds:" Sektion gefunden.')
+    throw new CloudsYamlError(i18n.global.t('cloudsYaml.noCloudsSection'))
   }
 
   const name = (preferredName && names.includes(preferredName) ? preferredName : names[0]) as string

@@ -27,10 +27,48 @@ export default {
     help: "Hilfe",
     config: "Konfiguration",
     approvals: "Freigaben",
+    profile: "Profil",
+    logout: "Abmelden",
+    openSidebar: "Seitenleiste öffnen",
+    closeSidebar: "Seitenleiste schließen",
   },
 
   action: {
     back: "Zurück",
+    close: "Schließen",
+  },
+
+  // Fehlertexte, die greifen, wenn das Backend keine eigene Meldung liefert.
+  // Sie stehen in Stores und Composables, also außerhalb von Komponenten —
+  // dort wird über ``i18n.global.t`` übersetzt.
+  errors: {
+    loginFailed: "Anmeldung fehlgeschlagen",
+    callbackFailed: "Anmeldung konnte nicht abgeschlossen werden",
+    authenticationFailed: "Authentifizierung fehlgeschlagen",
+    ltiTokenMissing: "Kein LTI-Sitzungstoken in der Weiterleitung gefunden",
+    fetchMembers: "Mitglieder konnten nicht geladen werden",
+    addMembers: "Mitglieder konnten nicht hinzugefügt werden",
+    removeMember: "Mitglied konnte nicht entfernt werden",
+    fetchDeployments: "Deployments konnten nicht geladen werden",
+    fetchDeployment: "Deployment konnte nicht geladen werden",
+    createDeployment: "Deployment konnte nicht erstellt werden",
+    deleteDeployment: "Deployment konnte nicht gelöscht werden",
+    pauseDeployment: "Deployment konnte nicht pausiert werden",
+    resumeDeployment: "Deployment konnte nicht fortgesetzt werden",
+    fetchQuotas: "Quotas konnten nicht geladen werden",
+  },
+
+  // Meldungen aus ``utils/clouds-yaml.ts``. Der Parser wirft sie als
+  // ``CloudsYamlError``; die Einstellungsseite zeigt ``err.message`` direkt an.
+  cloudsYaml: {
+    parseErrorWithReason: "Datei konnte nicht als YAML gelesen werden: {reason}",
+    parseError: "Datei konnte nicht als YAML gelesen werden.",
+    noCloudsSection: "Keine „clouds:\"-Sektion gefunden.",
+  },
+
+  scopeBadge: {
+    perTeam: "Pro Team",
+    perUser: "Pro User",
   },
 
   markdownEditor: {
@@ -342,6 +380,11 @@ export default {
     destroyStartedToast: "Zerstören gestartet — Live-Fortschritt unten.",
     destroySuccessToast: "Deployment wurde erfolgreich zerstört und entfernt.",
     destroyErrorToast: "Fehler beim Starten des Zerstörens.",
+    deploymentInfoTitle: "Deployment-Infos",
+    taskDetailsError: "Task-Details konnten nicht geladen werden.",
+    deleteDisabledReason: "Löschen ist möglich, sobald der Status einer der folgenden ist: {statuses}",
+    redeployVmTitle: "VM neu erstellen?",
+    redeployVmBody: "Diese VM wird zerstört und identisch neu erstellt. Andere VMs in diesem Deployment bleiben unangetastet.",
   },
   AppsView: {
     title: "Apps",
@@ -711,6 +754,7 @@ export default {
       terraformVars: 'Terraform Variablen',
       noPackerVars: 'Keine Packer Variablen',
       noTerraformVars: 'Keine Terraform Variablen',
+      noFileUploaded: 'Keine Datei hochgeladen',
       submittedValue: 'Wird übermittelt: {value}',
       creating: 'Wird erstellt...',
       invalidJson: 'Eigene Variablenwerte konnten nicht gelesen werden (ungültiges JSON). Standardwerte werden verwendet.',
@@ -964,6 +1008,13 @@ export default {
         device: 'Device',
         bootable: 'Bootable',
       },
+    },
+    toasts: {
+      redeployStarted: 'Redeploy gestartet für {address}',
+      onlyComputeInstances: 'Nur Compute-Instanzen können einzeln redeployed werden.',
+      resourceNotInState: 'Diese Resource ist nicht mehr im aktuellen State.',
+      lifecycleBusy: 'Es läuft bereits eine Lifecycle-Aktion für dieses Deployment.',
+      redeployFailed: 'Redeploy fehlgeschlagen.',
     },
   },
 

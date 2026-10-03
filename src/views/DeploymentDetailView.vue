@@ -834,7 +834,7 @@ const formatDate = formatDateTime
             <div class="bg-surface-card rounded-xl border border-card-border p-6 shadow-sm">
                 <h2 class="text-lg font-semibold text-content-primary mb-4 flex items-center gap-2">
                     <Package :size="20" class="text-primary" />
-                    Deployment Info
+                    {{ $t('DeploymentDetailView.deploymentInfoTitle') }}
                 </h2>
                 <div class="space-y-4">
                     <div>
@@ -1746,13 +1746,12 @@ const formatDate = formatDateTime
              ``window.confirm``. -->
         <Modal :show="showRedeployModal" @close="showRedeployModal = false">
             <template #title>
-                VM neu erstellen?
+                {{ $t('DeploymentDetailView.redeployVmTitle') }}
             </template>
             <template #body>
                 <div class="space-y-3">
                     <p class="text-content-secondary">
-                        Diese VM wird zerstört und identisch neu erstellt.
-                        Andere VMs in diesem Deployment bleiben unangetastet.
+                        {{ $t('DeploymentDetailView.redeployVmBody') }}
                     </p>
                     <p v-if="redeployTargetAddress" class="text-xs font-mono text-content-secondary bg-surface-input border border-card-border rounded-lg px-3 py-2 break-all">
                         {{ redeployTargetAddress }}

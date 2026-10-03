@@ -150,7 +150,7 @@ const navItems = computed(() => [
         <button
           @click="sidebarCollapsed = false"
           class="sidebar-toggle-btn"
-          aria-label="Open sidebar"
+          :aria-label="$t('nav.openSidebar')"
         >
           <PanelLeftOpen :size="18" />
         </button>
@@ -191,7 +191,7 @@ const navItems = computed(() => [
             v-if="!sidebarCollapsed"
             @click="sidebarCollapsed = true"
             class="nav-toggle-btn"
-            aria-label="Close sidebar"
+            :aria-label="$t('nav.closeSidebar')"
           >
             <PanelLeftClose :size="20" />
           </button>
@@ -248,7 +248,7 @@ const navItems = computed(() => [
                   class="flex items-center gap-2.5 px-3.5 py-2 text-sm text-content-primary hover:bg-surface-hover transition-colors"
                 >
                   <User :size="15" class="text-content-disabled" />
-                  Profil
+                  {{ $t('nav.profile') }}
                 </RouterLink>
                 <div class="my-1 border-t border-card-border" />
                 <button
@@ -256,7 +256,7 @@ const navItems = computed(() => [
                   class="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-status-error hover:bg-status-errorLight transition-colors"
                 >
                   <LogOut :size="15" />
-                  Abmelden
+                  {{ $t('nav.logout') }}
                 </button>
               </div>
             </Transition>

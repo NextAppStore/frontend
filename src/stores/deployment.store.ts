@@ -1,4 +1,8 @@
 import { defineStore } from 'pinia'
+// Fallback-Fehlertexte werden hier über die globale i18n-Instanz
+// übersetzt: Ein Store ist kein Setup-Kontext, ``useI18n()`` steht also
+// nicht zur Verfügung. Dasselbe Muster nutzt ``router/index.ts``.
+import i18n from '@/i18n'
 import { deploymentApi } from '@/api/deployment.api'
 import { useAppStore } from './app.store'
 import { useAuthStore } from './auth.store'
@@ -75,7 +79,7 @@ export const useDeploymentStore = defineStore('deployment', {
         const response = await deploymentApi.list(params)
         this.deployments = response.data
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to fetch deployments'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.fetchDeployments')
       } finally {
         this.isLoading = false
       }
@@ -96,7 +100,7 @@ export const useDeploymentStore = defineStore('deployment', {
         if (status === 404) {
           this.currentDeployment = null
         } else {
-          this.error = err.response?.data?.detail || 'Failed to fetch deployment'
+          this.error = err.response?.data?.detail || i18n.global.t('errors.fetchDeployment')
         }
       } finally {
         this.isLoading = false
@@ -110,7 +114,7 @@ export const useDeploymentStore = defineStore('deployment', {
         this.deployments.push(response.data)
         return response.data
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to create deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.createDeployment')
         throw err
       } finally {
         this.isLoading = false
@@ -135,7 +139,7 @@ export const useDeploymentStore = defineStore('deployment', {
         this.deployments = this.deployments.filter((d: any) => d.deploymentId !== id)
         return response
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to delete deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.deleteDeployment')
         throw err
       } finally {
         this.isLoading = false
@@ -157,7 +161,7 @@ export const useDeploymentStore = defineStore('deployment', {
       try {
         return await deploymentApi.pause(id)
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to pause deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.pauseDeployment')
         throw err
       } finally {
         this.isLoading = false
@@ -174,7 +178,7 @@ export const useDeploymentStore = defineStore('deployment', {
       try {
         return await deploymentApi.resume(id)
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to resume deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.resumeDeployment')
         throw err
       } finally {
         this.isLoading = false
