@@ -25,8 +25,14 @@ vi.mock('vue-i18n', () => ({
 const mockToastError = vi.fn()
 const mockToastSuccess = vi.fn()
 const mockToastWarning = vi.fn()
+const mockToastInfo = vi.fn()
 vi.mock('@/composables/useToast', () => ({
-    useToast: () => ({ error: mockToastError, success: mockToastSuccess, warning: mockToastWarning })
+    useToast: () => ({
+        error: mockToastError,
+        success: mockToastSuccess,
+        warning: mockToastWarning,
+        info: mockToastInfo
+    })
 }))
 
 // API
@@ -41,11 +47,13 @@ import { appApi } from '@/api/app.api'
 // Stores (Pinia) simulieren
 const mockDeploymentReset = vi.fn()
 const mockDeploymentDraft = { appId: '', releaseTag: '' }
+const mockPrepareQuickDeploy = vi.fn()
 
 vi.mock('@/stores/deployment.store', () => ({
     useDeploymentStore: () => ({
         resetDraft: mockDeploymentReset,
-        draft: mockDeploymentDraft
+        draft: mockDeploymentDraft,
+        prepareQuickDeploy: mockPrepareQuickDeploy
     })
 }))
 
@@ -214,5 +222,42 @@ describe('AppsDetailView.vue', () => {
         await backButton.trigger('click')
 
         expect(mockBack).toHaveBeenCalledTimes(1)
+    })
+
+    // --- Quick deploy (Issue #11) ---
+
+    describe('Quick deploy', () => {
+        const clickQuickDeploy = async () => {
+            const wrapper = mountComponent()
+            await flushPromises()
+            await wrapper.find('[data-testid="app-detail-quick-deploy"]').trigger('click')
+            await flushPromises()
+            return wrapper
+        }
+
+        it('reicht die hier gewählte Version an den Store durch', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            await clickQuickDeploy()
+
+            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith('app-123', 'Test App', 'v1.0')
+            expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.summary' })
+            expect(mockToastSuccess).toHaveBeenCalledWith('deployment.quickDeploy.ready')
+        })
+
+        it('leitet in den Wizard um, wenn Eingaben fehlen', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: false, reason: 'needsInput' })
+            await clickQuickDeploy()
+
+            expect(mockToastInfo).toHaveBeenCalledWith('deployment.quickDeploy.needsInput')
+            expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.config' })
+        })
+
+        it('zeigt einen Fehler-Toast, wenn die Vorbereitung fehlschlägt', async () => {
+            mockPrepareQuickDeploy.mockRejectedValue(new Error('boom'))
+            await clickQuickDeploy()
+
+            expect(mockToastError).toHaveBeenCalledWith('deployment.quickDeploy.error')
+            expect(mockPush).not.toHaveBeenCalledWith({ name: 'deployment.summary' })
+        })
     })
 })

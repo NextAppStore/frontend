@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia'
+// Fallback-Fehlertexte werden hier über die globale i18n-Instanz
+// übersetzt: Ein Store ist kein Setup-Kontext, ``useI18n()`` steht also
+// nicht zur Verfügung. Dasselbe Muster nutzt ``router/index.ts``.
+import i18n from '@/i18n'
 import { deploymentApi } from '@/api/deployment.api'
+import { appApi } from '@/api/app.api'
 import { useAppStore } from './app.store'
 import { useAuthStore } from './auth.store'
+import { runRequest } from './_request'
+import { formatDate } from '@/utils/format'
 
 import type {
   Deployment,
@@ -11,6 +18,31 @@ import type {
   DeploymentDraft,
   AppVariable
 } from '@/types'
+
+/**
+ * Why a quick deploy could not skip the wizard.
+ *
+ * - ``noIdentity`` — the session carries no Keycloak subject, so there is
+ *   nobody to put in the team.
+ * - ``noVersion``  — the app has no release tag yet and cannot be deployed
+ *   at all, by any route.
+ * - ``needsInput`` — at least one variable has no usable default (see
+ *   ``prepareQuickDeploy``).
+ */
+export type QuickDeployBlocker = 'noIdentity' | 'noVersion' | 'needsInput'
+
+/**
+ * Result of ``prepareQuickDeploy``. ``ready`` means the draft holds everything
+ * the summary step needs. Otherwise ``reason`` says what is missing, so the
+ * view can explain the detour instead of dropping the user into step 1 without
+ * a word.
+ */
+export type QuickDeployOutcome =
+  | { ready: true }
+  | { ready: false; reason: QuickDeployBlocker }
+
+/** Team name for a quick deploy — one team, one member. */
+const QUICK_DEPLOY_TEAM_NAME = 'Team 1'
 
 const defaultDraft: DeploymentDraft = {
   appId: null,
@@ -75,7 +107,7 @@ export const useDeploymentStore = defineStore('deployment', {
         const response = await deploymentApi.list(params)
         this.deployments = response.data
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to fetch deployments'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.fetchDeployments')
       } finally {
         this.isLoading = false
       }
@@ -96,7 +128,7 @@ export const useDeploymentStore = defineStore('deployment', {
         if (status === 404) {
           this.currentDeployment = null
         } else {
-          this.error = err.response?.data?.detail || 'Failed to fetch deployment'
+          this.error = err.response?.data?.detail || i18n.global.t('errors.fetchDeployment')
         }
       } finally {
         this.isLoading = false
@@ -110,7 +142,7 @@ export const useDeploymentStore = defineStore('deployment', {
         this.deployments.push(response.data)
         return response.data
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to create deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.createDeployment')
         throw err
       } finally {
         this.isLoading = false
@@ -135,7 +167,7 @@ export const useDeploymentStore = defineStore('deployment', {
         this.deployments = this.deployments.filter((d: any) => d.deploymentId !== id)
         return response
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to delete deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.deleteDeployment')
         throw err
       } finally {
         this.isLoading = false
@@ -157,7 +189,7 @@ export const useDeploymentStore = defineStore('deployment', {
       try {
         return await deploymentApi.pause(id)
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to pause deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.pauseDeployment')
         throw err
       } finally {
         this.isLoading = false
@@ -174,7 +206,7 @@ export const useDeploymentStore = defineStore('deployment', {
       try {
         return await deploymentApi.resume(id)
       } catch (err: any) {
-        this.error = err.response?.data?.detail || 'Failed to resume deployment'
+        this.error = err.response?.data?.detail || i18n.global.t('errors.resumeDeployment')
         throw err
       } finally {
         this.isLoading = false
@@ -183,6 +215,157 @@ export const useDeploymentStore = defineStore('deployment', {
 
     resetDraft() {
       this.draft = JSON.parse(JSON.stringify(defaultDraft))
+    },
+
+    /**
+     * Express deploy — fill the entire wizard draft straight from an app tile.
+     *
+     * The four wizard steps exist because a course deployment needs decisions:
+     * who takes part, how they are split into teams, what the variables are.
+     * A lecturer who just wants the app running for themselves makes none of
+     * those, so this prefills the draft the way that lecturer would: one team,
+     * themselves as its only member, every variable left on the author's
+     * default. The summary step stays in front of the actual deploy, so the
+     * result is reviewed and still editable before anything is created.
+     *
+     * Membership is keyed by the Keycloak subject (``DeploymentCreate.teams[]
+     * .userIds``), never by ``userId`` — see ``NewDeploymentConfigView``, which
+     * collects ``keycloak_id`` as well.
+     *
+     * Falls back to the full wizard when a variable is ``required`` — in the
+     * backend that flag is exactly ``default is None``, so it marks the one
+     * case where there is nothing to prefill. Scoped and file variables go
+     * through: a scoped default is written as the author left it (an empty map
+     * stays empty, which is what the wizard would produce for an untouched
+     * slot), and files are skipped because they travel in their own channel.
+     *
+     * The draft keeps app, version and name on a fallback, so step 1 opens
+     * prefilled instead of empty.
+     */
+    async prepareQuickDeploy(
+      appId: string,
+      appName: string,
+      version?: string,
+    ): Promise<QuickDeployOutcome> {
+      const ctx = {
+        setLoading: (v: boolean) => { this.isLoading = v },
+        setError: (e: string | null) => { this.error = e },
+      }
+
+      return runRequest(ctx, async (): Promise<QuickDeployOutcome> => {
+        const authStore = useAuthStore()
+        const appStore = useAppStore()
+
+        this.resetDraft()
+        this.draft.appId = appId
+
+        const memberId = authStore.user?.keycloak_id
+        if (!memberId) return { ready: false, reason: 'noIdentity' }
+
+        // A tile only carries what ``GET /apps/`` returns, and that response
+        // has no versions — the deployable tag has to come from the detail
+        // endpoint. Same pick as ``AppsDetailView``: the first entry.
+        let releaseTag = version
+        if (!releaseTag) {
+          const { data } = await appApi.getById(appId)
+          releaseTag = (data.versions ?? [])
+            .map((v) => v.version || v.releaseTag || '')
+            .find((v) => Boolean(v))
+        }
+        if (!releaseTag) return { ready: false, reason: 'noVersion' }
+        this.draft.releaseTag = releaseTag
+
+        this.draft.name = `${appName} ${formatDate(new Date())}`
+
+        // Same dedup key as ``NewDeploymentVariableView``: a Packer variable is
+        // identified by its template, a Terraform one by its bare name.
+        const rawVariables = await appStore.fetchAppVariables(appId, releaseTag)
+        const unique = new Map<string, AppVariable>()
+        for (const v of rawVariables) {
+          const key = v.source === 'packer' ? `${v.template_key ?? 'default'}.${v.name}` : v.name
+          if (!unique.has(key)) unique.set(key, v)
+        }
+        const definitions = Array.from(unique.values())
+        this.draft.variableDefinitions = definitions
+
+        // Issue #11 draws the line at required variables, and in the backend
+        // ``required`` is exactly ``default is None``.
+        //
+        // That flag misses one case. A ``team``/``user``-scoped variable is
+        // seeded by spreading its default across the slots, so a default of
+        // ``{}`` leaves every slot empty while still counting as "has a
+        // default" — ``Online-IDE``'s ``team_flavor_ids`` is exactly that, and
+        // a summary built from it carries no flavor for the team VM. Treat an
+        // empty scoped default as input the user still owes us. A non-scoped
+        // empty list stays untouched: there the default *is* the value.
+        const hasNoSeedableValue = (v: AppVariable): boolean => {
+          if (v.varScope !== 'team' && v.varScope !== 'user') return false
+          const d = v.default
+          if (Array.isArray(d)) return d.length === 0
+          if (d && typeof d === 'object') return Object.keys(d).length === 0
+          return d === undefined || d === null || d === ''
+        }
+
+        const needsInput = definitions.some(
+          // Files are never seeded, so an empty file default is no reason to
+          // send the user to the wizard.
+          (v) => v.required === true || (v.osType !== 'file' && hasNoSeedableValue(v)),
+        )
+        if (needsInput) return { ready: false, reason: 'needsInput' }
+
+        // The summary resolves the app name out of ``appStore.apps``. Coming
+        // from a tile that list can still be empty — ``AppsView`` keeps its
+        // apps in a view-local ref — and the summary's own lazy load is
+        // skipped because the draft already carries the variable definitions.
+        // Without this it reads "App nicht gefunden".
+        if (appStore.apps.length === 0) await appStore.fetchApps()
+
+        // Membership is set only on the direct-to-summary path. On a fallback
+        // the wizard has to behave like any other run: ``NewDeploymentConfigView``
+        // resolves its member list through a view-local cache, so a prefilled
+        // ``studentIds`` would sit in the draft while the step shows "0
+        // selected" — state the user cannot see or correct.
+        this.draft.studentIds = [memberId]
+        // The summary renders member names out of ``studentCache`` and falls
+        // back to the raw id — without this the lecturer would read their own
+        // Keycloak UUID instead of their name.
+        this.studentCache.set(memberId, authStore.user)
+        this.draft.groupMode = 'one'
+        this.draft.groupCount = 1
+        this.draft.groupNames = [QUICK_DEPLOY_TEAM_NAME]
+        this.draft.assignments = { 0: [memberId] }
+
+        // Mirrors how ``NewDeploymentVariableView.handleNext`` writes the draft:
+        // ``variables`` holds every value, and multi-image Packer apps nest
+        // theirs under ``packer[<template_key>]``. ``userInputVar`` stays empty
+        // on purpose — it carries only the values a user changed, and a quick
+        // deploy changes none.
+        const packerKeys = new Set(
+          definitions.filter((v) => v.source === 'packer').map((v) => v.template_key ?? 'default'),
+        )
+        const isMultiImagePacker =
+          packerKeys.size > 1 || (packerKeys.size === 1 && !packerKeys.has('default'))
+
+        const values: Record<string, unknown> = {}
+        const packerNested: Record<string, Record<string, unknown>> = {}
+        for (const v of definitions) {
+          // File variables travel through ``draft.fileUploads``, never through
+          // ``draft.variables`` — same split as ``NewDeploymentVariableView``.
+          // A quick deploy uploads nothing, so they are simply left out.
+          if (v.osType === 'file') continue
+          if (v.default === undefined || v.default === null) continue
+          if (v.source === 'packer' && isMultiImagePacker) {
+            const tkey = v.template_key ?? 'default'
+            ;(packerNested[tkey] ??= {})[v.name] = v.default
+          } else {
+            values[v.name] = v.default
+          }
+        }
+        if (Object.keys(packerNested).length > 0) values.packer = packerNested
+        this.draft.variables = values
+
+        return { ready: true }
+      }, 'Failed to prepare quick deploy')
     },
 
     async submitDraft() {

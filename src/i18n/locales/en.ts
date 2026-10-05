@@ -27,10 +27,48 @@ export default {
     help: "Help",
     config: "Configuration",
     approvals: "Approvals",
+    profile: "Profile",
+    logout: "Log out",
+    openSidebar: "Open sidebar",
+    closeSidebar: "Close sidebar",
   },
 
   action: {
     back: "Back",
+    close: "Close",
+  },
+
+  // Error texts used when the backend provides no message of its own. They
+  // live in stores and composables, i.e. outside components — translated
+  // there via ``i18n.global.t``.
+  errors: {
+    loginFailed: "Login failed",
+    callbackFailed: "Could not complete sign-in",
+    authenticationFailed: "Authentication failed",
+    ltiTokenMissing: "No LTI session token found in the launch redirect",
+    fetchMembers: "Could not load members",
+    addMembers: "Could not add members",
+    removeMember: "Could not remove member",
+    fetchDeployments: "Could not load deployments",
+    fetchDeployment: "Could not load deployment",
+    createDeployment: "Could not create deployment",
+    deleteDeployment: "Could not delete deployment",
+    pauseDeployment: "Could not pause deployment",
+    resumeDeployment: "Could not resume deployment",
+    fetchQuotas: "Could not load quotas",
+  },
+
+  // Messages from ``utils/clouds-yaml.ts``. The parser throws them as a
+  // ``CloudsYamlError``; the settings page shows ``err.message`` directly.
+  cloudsYaml: {
+    parseErrorWithReason: "File could not be read as YAML: {reason}",
+    parseError: "File could not be read as YAML.",
+    noCloudsSection: "No \"clouds:\" section found.",
+  },
+
+  scopeBadge: {
+    perTeam: "Per team",
+    perUser: "Per user",
   },
 
   markdownEditor: {
@@ -150,7 +188,7 @@ export default {
   },
 
   DashboardView: {
-    title: "Welcome back to Six7!",
+    title: "Welcome back to ScholarStack!",
     subtitle: "Welcome back to your deployment environment.",
     timeGreetings: {
       morning: "Good morning",
@@ -179,6 +217,10 @@ export default {
     noCredentialsTitle: "No credentials configured",
     noCredentialsHint: "Add your OpenStack credentials.",
     setUpNow: "Set up now",
+    recentDeployments: "Recent Deployments",
+    allDeployments: "All Deployments",
+    noDeploymentsTitle: "No deployments yet",
+    noDeploymentsHint: "Choose an app and start your first environment.",
   },
 
   HelpView: {
@@ -362,6 +404,11 @@ export default {
     destroyStartedToast: "Destroy started — see live progress below.",
     destroySuccessToast: "Deployment destroyed and removed.",
     destroyErrorToast: "Error starting destroy.",
+    deploymentInfoTitle: "Deployment info",
+    taskDetailsError: "Could not load task details.",
+    deleteDisabledReason: "Delete becomes available once the status is one of: {statuses}",
+    redeployVmTitle: "Recreate VM?",
+    redeployVmBody: "This VM will be destroyed and recreated identically. Other VMs in this deployment stay untouched.",
   },
   AppsView: {
     title: "Apps",
@@ -609,6 +656,15 @@ export default {
       next: 'Next',
       deploy: 'Deploy'
     },
+    quickDeploy: {
+      button: 'Quick deploy',
+      ready: '{name} is ready — please review before deploying.',
+      needsInput: 'This app needs input for which there is no usable default. The wizard is already prefilled.',
+      noVersion: 'This app has no version to deploy yet.',
+      missingCreds: 'Please store your OpenStack credentials first.',
+      noIdentity: 'Your account is not linked to Keycloak yet — please use the wizard.',
+      error: 'Could not prepare the quick deploy.'
+    },
     apps: {
       nodejs: {
         title: 'NodeJS VM',
@@ -728,6 +784,7 @@ export default {
       terraformVars: 'Terraform Variables',
       noPackerVars: 'No Packer variables',
       noTerraformVars: 'No Terraform variables',
+      noFileUploaded: 'No file uploaded',
       submittedValue: 'Submitted value: {value}',
       creating: 'Creating...',
       invalidJson: 'Custom variable values could not be read (invalid JSON). Default values will be used.',
@@ -985,6 +1042,13 @@ export default {
         device: 'Device',
         bootable: 'Bootable',
       },
+    },
+    toasts: {
+      redeployStarted: 'Redeploy started for {address}',
+      onlyComputeInstances: 'Only compute instances can be redeployed individually.',
+      resourceNotInState: 'This resource is no longer part of the current state.',
+      lifecycleBusy: 'A lifecycle action is already running for this deployment.',
+      redeployFailed: 'Redeploy failed.',
     },
   },
 

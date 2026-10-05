@@ -1,19 +1,5 @@
 <script setup lang="ts">
 import { ArrowLeft, User } from 'lucide-vue-next'
-import { computed } from 'vue'
-import { useColorScheme } from '@/composables/useColorScheme'
-
-const { scheme } = useColorScheme()
-
-const isDark = computed(() => {
-  void scheme.value
-  return document.documentElement.classList.contains('dark')
-})
-
-const headerStyle = computed(() => isDark.value
-  ? { background: 'linear-gradient(90deg, #0D1520 0%, #0A1018 60%, #080E16 100%)' }
-  : { background: 'var(--color-primary)' }
-)
 </script>
 
 <template>
@@ -21,24 +7,25 @@ const headerStyle = computed(() => isDark.value
 
     <!-- Header -->
     <header
-      class="h-16 text-white flex items-center justify-between px-8 border-b border-white/10"
-      :style="headerStyle"
+      class="h-16 flex items-center justify-between px-8 flex-shrink-0 relative header-border"
+      style="background: var(--color-surface-header);"
     >
       <div class="flex items-center gap-4">
         <RouterLink
           to="/dashboard"
-          class="hover:text-white/80 transition flex items-center gap-2"
+          class="flex items-center gap-2 text-sm transition-colors"
+          style="color: var(--color-nav-text);"
         >
           <ArrowLeft :size="20" />
           {{ $t('action.back') }}
         </RouterLink>
 
-        <span class="font-semibold tracking-wide">
+        <span class="font-semibold tracking-wide" style="color: var(--color-nav-text-hover);">
           {{ $t('user.title') }}
         </span>
       </div>
 
-      <User :size="20" class="opacity-80" />
+      <User :size="20" style="color: var(--color-nav-text);" />
     </header>
 
     <!-- Content -->
@@ -50,3 +37,15 @@ const headerStyle = computed(() => isDark.value
 
   </div>
 </template>
+
+<style scoped>
+.header-border::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--color-header-border);
+}
+</style>

@@ -5,7 +5,9 @@ export type ColorScheme = 'auto' | 'light' | 'dark'
 const STORAGE_KEY = 'color-scheme'
 
 const scheme = ref<ColorScheme>(
-  (localStorage.getItem(STORAGE_KEY) as ColorScheme | null) ?? 'auto'
+  (typeof localStorage !== 'undefined'
+    ? (localStorage.getItem(STORAGE_KEY) as ColorScheme | null)
+    : null) ?? 'auto'
 )
 
 function applyScheme(value: ColorScheme) {

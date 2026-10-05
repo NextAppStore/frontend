@@ -1,7 +1,7 @@
 import api from './axios'
 import type {
   App,
-  AppWithUser,
+  AppWithVersions,
   AppCreate,
   AppUpdate,
   AppQueryParams,
@@ -19,7 +19,7 @@ export const appApi = {
   },
 
   getById: (appId: string, refresh: boolean = false) => {
-    return api.get<AppWithUser>(`/apps/${appId}`, {
+    return api.get<AppWithVersions>(`/apps/${appId}`, {
       params: { refresh }
     })
   },

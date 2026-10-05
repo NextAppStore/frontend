@@ -6,7 +6,7 @@
 
       <!-- Logo / Titel -->
       <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-primary">SIX7</h1>
+        <h1 class="text-3xl font-bold text-primary">ScholarStack</h1>
         <p class="text-content-secondary mt-2">
           Click'n Deploy
         </p>

@@ -11,16 +11,26 @@ import { appApi } from '@/api/app.api'
 import { useI18n } from 'vue-i18n'
 import {
   Layers, Server, Box, Database, Terminal,
-  Globe, LayoutTemplate, Shield, Inbox, Plus, Lock
+  Globe, LayoutTemplate, Shield, Inbox, Plus, Lock, Zap
 } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth.store'
+import { useDeploymentStore } from '@/stores/deployment.store'
+import { useOpenStackCredentialsStore } from '@/stores/openstack-credentials.store'
 import type { AppVersionApproval } from '@/types'
 
 const { t, locale } = useI18n()
 const toast = useToast()
 const router = useRouter()
 const authStore = useAuthStore()
+const deploymentStore = useDeploymentStore()
+const credStore = useOpenStackCredentialsStore()
+
+// A quick deploy runs the whole way to the summary, so it needs the same
+// credential gate the detail page puts on its deploy button — without one the
+// deployment can only fail at the very last step. Waiting for ``isResolved``
+// keeps the button from flashing disabled during the initial fetch.
+const isMissingCredential = computed(() => credStore.isResolved && !credStore.hasCredential)
 
 const isLoading = ref(false)
 const apps = ref<any[]>([])
@@ -85,6 +95,42 @@ const fetchApps = async () => {
 
 const handleDeploy = (app: any) => {
   router.push({ name: 'apps.detail', params: { id: app.id || app._id || app.appId } })
+}
+
+// Tracks the tile whose quick deploy is currently being prepared, so only that
+// one button shows the pending state instead of the whole grid.
+const quickDeployBusyId = ref<string | null>(null)
+
+/**
+ * Express deploy straight from the tile: prefill the draft and jump to the
+ * summary. When a value cannot be defaulted the store says so, and we route
+ * into the regular wizard with a toast that names the reason — the draft
+ * already carries app and version at that point, so nothing is retyped.
+ */
+const handleQuickDeploy = async (app: any) => {
+  const id = app.appId || app.id || app._id
+  if (!id || quickDeployBusyId.value) return
+
+  quickDeployBusyId.value = id
+  try {
+    const outcome = await deploymentStore.prepareQuickDeploy(id, app.name)
+    if (outcome.ready) {
+      toast.success(t('deployment.quickDeploy.ready', { name: app.name }))
+      router.push({ name: 'deployment.summary' })
+      return
+    }
+    if (outcome.reason === 'noVersion') {
+      toast.warning(t('deployment.quickDeploy.noVersion'))
+      router.push({ name: 'apps.detail', params: { id } })
+      return
+    }
+    toast.info(t(`deployment.quickDeploy.${outcome.reason}`))
+    router.push({ name: 'deployment.config' })
+  } catch {
+    toast.error(t('deployment.quickDeploy.error'))
+  } finally {
+    quickDeployBusyId.value = null
+  }
 }
 
 onMounted(() => {
@@ -180,7 +226,18 @@ onMounted(() => {
             </p>
           </div>
 
-          <div class="mt-auto">
+          <div class="mt-auto flex flex-col gap-2">
+            <BaseButton
+              variant="yellow"
+              class="w-full flex items-center justify-center gap-2"
+              data-testid="app-quick-deploy"
+              :disabled="isMissingCredential || quickDeployBusyId === (app.appId || app.id || app._id)"
+              :title="isMissingCredential ? $t('deployment.quickDeploy.missingCreds') : ''"
+              @click.stop="handleQuickDeploy(app)"
+            >
+              <Zap :size="16" aria-hidden="true" />
+              {{ $t('deployment.quickDeploy.button') }}
+            </BaseButton>
             <BaseButton
               variant="green"
               class="w-full flex items-center justify-center gap-2"

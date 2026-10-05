@@ -9,49 +9,24 @@ import { useRole } from '@/composables/useRole'
 import { useToastStore } from '@/stores/toast.store'
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { taskApi } from '@/api/task.api'
 import { deploymentApi } from '@/api/deployment.api'
-import type { Task, DeploymentResource } from '@/types'
+import { taskApi } from '@/api/task.api'
+import type { Task } from '@/types'
 import { useDeploymentStream } from '@/composables/useDeploymentStream'
 import InfrastructureVmCard from '@/components/InfrastructureVmCard.vue'
 import InfrastructureVmDrawer from '@/components/InfrastructureVmDrawer.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { formatDateTime } from '@/utils/format'
-import { extractErrorMessage } from '@/utils/http-error'
+import { Eye, EyeOff } from 'lucide-vue-next'
+import { useDeploymentLifecycle } from '@/composables/deployment/useDeploymentLifecycle'
+import { useDeploymentCredentials } from '@/composables/deployment/useDeploymentCredentials'
+import type { UserAccount } from '@/composables/deployment/useDeploymentCredentials'
+import { useDeploymentInfrastructure } from '@/composables/deployment/useDeploymentInfrastructure'
+import { useDeploymentTasks } from '@/composables/deployment/useDeploymentTasks'
 import { useIpVersionPreference } from '@/composables/useIpVersionPreference'
 import RdpClientHelpPopover from '@/components/RdpClientHelpPopover.vue'
 
-import { Eye, EyeOff } from 'lucide-vue-next'
-
 const { ipVersion, setIpVersion } = useIpVersionPreference()
-
-// Password visibility state, keyed by account index/key.
-const visiblePasswords = ref<Record<string | number, boolean>>({})
-
-const togglePasswordVisibility = (key: string | number) => {
-    visiblePasswords.value[key] = !visiblePasswords.value[key]
-}
-
-// Build a copy-paste SSH command from an account. Skips ``-p`` for the
-// default port 22 so the line stays short for the common case.
-const sshCommandFor = (data: { username?: string; ip?: string; port?: number }): string => {
-    if (!data.username || !data.ip) return ''
-    const portFlag = data.port && data.port !== 22 ? `-p ${data.port} ` : ''
-    return `ssh ${portFlag}${data.username}@${data.ip}`
-}
-
-// Build a per-user URL from user_accounts (ip + port), preserving any path
-// suffix the team VM url carries (e.g. "/pgadmin4").
-const userUrlFor = (data: { ip?: string; port?: number }, teamVmUrl?: string): string | null => {
-    if (!data.ip || !data.port) return null
-    let path = ''
-    if (teamVmUrl) {
-        try {
-            path = new URL(teamVmUrl).pathname.replace(/\/$/, '')
-        } catch { /* ignore malformed url */ }
-    }
-    return `http://${data.ip}:${data.port}${path}`
-}
 
 // Build a copy-paste RDP command from an account. Skips the port suffix
 // for the default 3389 so the line stays short, mirroring sshCommandFor's
@@ -81,276 +56,10 @@ const authStore = useAuthStore()
 const { isStaff } = useRole()
 const toastStore = useToastStore()
 const { t } = useI18n()
-const tasks = ref<Task[]>([])
-const loadingTasks = ref(false)
-const selectedTask = ref<Task | null>(null)
-const latestTaskOutputs = ref<Task | null>(null)
-// Member self-access: a non-owner (student) can't read the owner-only
-// task outputs, so we fetch just their own credentials from the
-// dedicated ``/my-access`` endpoint into this map. It mirrors the raw
-// ``user_accounts.value`` shape so ``typedUserAccounts`` can fall back
-// to it and the existing account-matching pipeline works unchanged.
-const myAccounts = ref<Record<string, UserAccount> | null>(null)
-const myTeamVms = ref<Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }> | null>(null)
-// Always returns the currently active data task for the UI blocks.
-const activeDataTask = computed(() => selectedTask.value || latestTaskOutputs.value)
-const loadingTaskDetail = ref(false)
 
 const deploymentId = route.params.id as string
 
 const deployment = computed(() => deploymentStore.currentDeployment)
-// Structure of a single account.
-interface UserAccount {
-    username: string
-    team: string
-    ip: string
-    // IPv6 counterpart to ``ip``, worker-side addition — optional since
-    // only RDP-style apps (Windows) currently publish it.
-    ip_v6?: string
-    port: number
-    auth: string
-    type?: 'password' | 'ssh_key' | 'oauth' | 'none' | string
-    authtype?: 'ssh' | 'rdp' | 'url' | string
-    url?: string
-}
-
-const typedUserAccounts = computed<Record<string, UserAccount> | null>(() => {
-    const currentTarget = selectedTask.value || latestTaskOutputs.value
-    const rawOutputs = currentTarget?.outputs
-    // Member fallback: non-owners have no task outputs (the owner-only
-    // task endpoint 403s / is skipped), so use the per-user credentials
-    // fetched from ``/my-access``. Already in the ``user_accounts.value``
-    // shape, so it feeds the matching pipeline below directly.
-    if (!rawOutputs) return myAccounts.value
-
-    let outputsObj: any = rawOutputs
-
-    // Case 1: outputs arrive as a JSON string from the DB text column.
-    if (typeof rawOutputs === 'string') {
-        try {
-            const trimmed = rawOutputs.trim()
-            if (trimmed.startsWith('{')) {
-                outputsObj = JSON.parse(trimmed)
-            }
-        } catch (e) {
-            console.error('Failed to parse raw outputs data:', e)
-            return myAccounts.value
-        }
-    }
-
-    // Case 2: it is already an object (or was parsed successfully above).
-    if (outputsObj && typeof outputsObj === 'object' && 'user_accounts' in outputsObj) {
-        const userAccountsContainer = outputsObj.user_accounts
-
-        // Reach through to the Terraform ``.value`` object.
-        if (userAccountsContainer && userAccountsContainer.value) {
-            return userAccountsContainer.value as Record<string, UserAccount>
-        }
-    }
-
-    return myAccounts.value
-})
-
-
-
-const enrichedTeams = computed(() => {
-    const currentDeployment = deployment && 'value' in deployment
-        ? deployment.value
-        : deployment;
-
-    if (!currentDeployment?.teams) return [];
-
-    const accounts = typedUserAccounts && 'value' in typedUserAccounts
-        ? typedUserAccounts.value
-        : typedUserAccounts;
-
-    // Team-level VM metadata from terraform's ``team_vms`` output. Apps
-    // that serve a Web-UI publish ``url`` here; SSH-only apps don't.
-    // We surface that as ``team.vm`` so the template can decide between
-    // a URL pill and an SSH-command pill per team.
-    const teamVms = extractTeamVms()
-
-    // Resolve member ↔ account.
-    //
-    // The canonical contract is the ``user_accounts`` MAP KEY, which every app
-    // template constructs the same way:
-    //
-    //     key = "<team>-" + email.split("@")[0].replace(".", "-")
-    //
-    // Since the member's email and team are known here, that key can be
-    // reproduced deterministically. The value's ``username`` field is not a
-    // reliable identifier (some templates write the email local-part, others a
-    // shared team-wide pseudo-email), so we index by key and look up the derived
-    // key per member. Three fallbacks cover templates not matched by the key.
-    const accountByEmail = new Map<string, { key: string; data: UserAccount }>()
-    const accountByUsername = new Map<string, { key: string; data: UserAccount }>()
-    const accountByKey = new Map<string, { key: string; data: UserAccount }>()
-    if (accounts) {
-        for (const [key, acc] of Object.entries(accounts)) {
-            const candidate = acc?.username?.trim().toLowerCase()
-            if (candidate && candidate.includes('@')) {
-                accountByEmail.set(candidate, { key, data: acc })
-            } else if (candidate) {
-                accountByUsername.set(candidate, { key, data: acc })
-            }
-            accountByKey.set(key.trim().toLowerCase(), { key, data: acc })
-        }
-    }
-
-    // Mirror the terraform key sanitisation: lowercase the local-part
-    // and replace dots with dashes. Only dots — terraform's
-    // ``replace(local_part, ".", "-")`` does not touch other characters.
-    const deriveExpectedKey = (teamName: string, email: string | undefined): string | null => {
-        if (!email) return null
-        const localPart = email.split('@')[0]
-        if (!localPart) return null
-        const sanitised = localPart.replace(/\./g, '-').toLowerCase()
-        return `${teamName.trim().toLowerCase()}-${sanitised}`
-    }
-
-    return currentDeployment.teams.map(team => {
-        const vm = teamVms?.[team.name] ?? null
-        const teamNameLower = team.name.trim().toLowerCase()
-        return {
-            ...team,
-            vm,
-            members: team.members.map(member => {
-                const memberEmail = member?.email?.trim().toLowerCase()
-                const memberName = member?.username?.trim().toLowerCase()
-
-                // Strategy 0 (canonical): derive the terraform key from
-                // member.email + team.name and look it up directly.
-                let hit: { key: string; data: UserAccount } | undefined
-                const expectedKey = deriveExpectedKey(team.name, memberEmail)
-                if (expectedKey) hit = accountByKey.get(expectedKey)
-
-                // Strategy 1: email-based (templates that write the
-                // member's full email into ``account.username``).
-                if (!hit && memberEmail) hit = accountByEmail.get(memberEmail)
-
-                // Strategy 2: username substring against account.username
-                if (!hit && memberName) {
-                    for (const [accUser, entry] of accountByUsername) {
-                        if (accUser.includes(memberName) || memberName.includes(accUser)) {
-                            hit = entry
-                            break
-                        }
-                    }
-                }
-
-                // Strategy 3: username substring against the account key
-                // (``Team #1-leon-priemer`` etc.). Last-resort fallback
-                // for templates where ``account.username`` is missing
-                // and the keycloak username happens to match the slug.
-                if (!hit && memberName) {
-                    for (const [accKey, entry] of accountByKey) {
-                        if (accKey.includes(memberName)) {
-                            hit = entry
-                            break
-                        }
-                    }
-                }
-
-                // Team scope guard so an account from team A can't be
-                // attached to a member of team B.
-                const accountTeam = hit?.data.team?.trim().toLowerCase()
-                const keyLower = hit?.key.trim().toLowerCase()
-                const teamMatches = hit && (
-                    accountTeam === teamNameLower ||
-                    (keyLower?.startsWith(`${teamNameLower}-`) ?? false) ||
-                    (keyLower?.includes(teamNameLower) ?? false)
-                )
-                return {
-                    ...member,
-                    account: teamMatches ? hit : null
-                };
-            })
-        };
-    });
-});
-
-// Whether any member across any team has an RDP account — the IPv4/IPv6
-// toggle only makes sense (and only renders) when there's an RDP pill
-// anywhere to apply it to.
-const hasAnyRdpAccount = computed(() =>
-    enrichedTeams.value.some((team) =>
-        team.members.some((member) => member.account?.data.authtype === 'rdp'),
-    ),
-)
-
-/**
- * Pull the ``team_vms`` object out of the active task's outputs. Same
- * unwrap chain as ``typedUserAccounts`` — the outputs may arrive as a
- * raw JSON string from the DB or as an already-parsed object, and the
- * actual map sits under ``.value`` because Terraform stamps the output
- * shape on the wrapper. Returns ``null`` if anything along the way
- * isn't there.
- */
-function extractTeamVms(): Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }> | null {
-    const currentTarget = selectedTask.value || latestTaskOutputs.value
-    const rawOutputs = currentTarget?.outputs
-    // Member fallback: use the team VM block from ``/my-access`` so a
-    // non-owner still gets the Web-URL pill (SSH/PW render even without it).
-    if (!rawOutputs) return myTeamVms.value
-
-    let outputsObj: any = rawOutputs
-    if (typeof rawOutputs === 'string') {
-        try {
-            const trimmed = rawOutputs.trim()
-            if (trimmed.startsWith('{')) outputsObj = JSON.parse(trimmed)
-        } catch {
-            return myTeamVms.value
-        }
-    }
-    const vms = outputsObj?.team_vms?.value
-    return vms && typeof vms === 'object' ? vms : myTeamVms.value
-}
-
-// Counts the resources in the state for the header sub-headline.
-const tfResourcesCount = computed(() => {
-    const state = selectedTask.value?.tf_state
-    if (!state) return 0
-
-    try {
-        const parsed = typeof state === 'string' ? JSON.parse(state) : state
-        return parsed?.resources?.length || 0
-    } catch {
-        return 0
-    }
-})
-
-// Lightweight, safe syntax highlighting for JSON.
-const highlightJson = (jsonString: string): string => {
-    if (!jsonString) return ''
-
-    let safeStr = jsonString
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-
-    return safeStr.replace(
-        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
-        (match) => {
-            let cls = 'text-status-warning'
-
-            if (/^"/.test(match)) {
-                if (/:$/.test(match)) {
-                    cls = 'text-tag-info font-medium' // keys
-                } else {
-                    cls = 'text-status-success' // string values
-                }
-            } else if (/true|false/.test(match)) {
-                cls = 'text-tag-accent font-bold' // booleans
-            } else if (/null/.test(match)) {
-                cls = 'text-content-disabled italic' // null
-            } else {
-                cls = 'text-cyan-500' // numbers
-            }
-
-            return `<span class="${cls}">${match}</span>`
-        }
-    )
-}
 
 // Owner-view vs member-view — mirrors backend/app/utils/permissions.py
 // ``is_deployment_owner_view``. Drives every gated UI element on
@@ -369,180 +78,79 @@ const isOwnerView = computed(() => {
 })
 
 // ----------------------------------------------------------------
+// TASKS
+// ----------------------------------------------------------------
+const {
+    tasks,
+    loadingTasks,
+    loadTasks,
+    selectedTask,
+    latestTaskOutputs,
+    activeDataTask,
+    loadingTaskDetail,
+    tfResourcesCount,
+    logEntryCount,
+    prettyJson,
+    highlightJson,
+    taskLogsSplit,
+    showTaskLogsTrace,
+    selectTask,
+    deselectTask,
+} = useDeploymentTasks(deploymentId, isOwnerView)
+
+// ----------------------------------------------------------------
 // INFRASTRUCTURE TAB — Stage-1 list + Stage-2 drawer + redeploy
 // ----------------------------------------------------------------
-//
-// State for the resource panel sits on the page (not in a Pinia
-// store) because it's strictly per-deployment and we want it to
-// reset on navigation. The list view polls gently when the latest
-// task is idle and refreshes once when a task transitions to
-// success/failed; the drawer fetches lazy.
-
-const resources = ref<DeploymentResource[]>([])
-const resourcesLoading = ref(false)
-const resourcesError = ref<string | null>(null)
-// Addresses currently waiting on a redeploy task. Used both to
-// disable the button on the card and to know we should refetch the
-// list as soon as the task finishes.
-const redeployInFlight = ref<Set<string>>(new Set())
-// Address of the VM whose detail drawer is currently open. ``null``
-// means the drawer is closed; the drawer component lazy-loads on
-// mount, so toggling this prop is enough.
-const openDrawerAddress = ref<string | null>(null)
-
-const loadResources = async (refresh = true) => {
-    if (!isOwnerView.value) return
-    resourcesLoading.value = true
-    resourcesError.value = null
-    try {
-        const response = await deploymentApi.listResources(deploymentId, { refresh })
-        resources.value = response.data.resources
-    } catch (err: any) {
-        const status = err?.response?.status
-        if (status === 412) {
-            resourcesError.value = t('vm.resourcesErrors.missingCredentials')
-        } else if (status === 502) {
-            resourcesError.value = t('vm.resourcesErrors.unreachable')
-        } else if (status === 404) {
-            // Deployment was soft-deleted upstream (e.g. right after a
-            // successful destroy). The resources are gone; the stream watcher
-            // handles the ``gone`` path, so just clear silently here.
-            resources.value = []
-        } else {
-            resourcesError.value = err?.message || t('vm.resourcesErrors.generic')
-        }
-    } finally {
-        resourcesLoading.value = false
-    }
-}
-
-// Separate compute groups for the three sub-sections.
-const vmResources = computed(() => resources.value.filter(r => r.category === 'instance'))
-const networkResources = computed(() => resources.value.filter(
-    r => r.category === 'network' || r.category === 'subnet' || r.category === 'floating_ip'
-))
-const securityResources = computed(() => resources.value.filter(r => r.category === 'security_group'))
-
-// Click on the card's "Details" button toggles the inline panel:
-// open if a different card is currently shown (or none), close if the
-// same card is already expanded. Matches accordion semantics — only
-// one VM detail is visible at a time.
-const openVmDrawer = (address: string) => {
-    if (openDrawerAddress.value === address) {
-        openDrawerAddress.value = null
-    } else {
-        openDrawerAddress.value = address
-    }
-}
-const closeVmDrawer = () => {
-    openDrawerAddress.value = null
-}
-
-// Redeploy is a two-step UX: the VmCard's "Redeploy" button emits
-// ``@redeploy`` with an address, which opens a confirmation Modal
-// (same pattern as Delete). The actual API call lives in
-// ``executeRedeploy`` so the Modal's confirm button can call it
-// without re-doing the address-extraction.
-const redeployVm = (address: string) => {
-    if (redeployInFlight.value.has(address)) return
-    redeployTargetAddress.value = address
-    showRedeployModal.value = true
-}
-
-const executeRedeploy = async (address: string) => {
-    redeployInFlight.value.add(address)
-    try {
-        await deploymentApi.redeployResource(deploymentId, address)
-        toastStore.success(`Redeploy gestartet für ${address}`)
-        // Refresh the task list right away so the freshly-dispatched
-        // REDEPLOY row shows up as the new ``activeTask``. That in
-        // turn flips ``isStreamRelevant`` to true → the SSE stream
-        // attaches → live progress + logs render under the page's
-        // existing active-task card, identical to deploy/destroy.
-        // Without this poll, the new task only becomes visible on
-        // the next manual page reload.
-        await loadTasks()
-    } catch (err: any) {
-        redeployInFlight.value.delete(address)
-        const detail = err?.response?.data?.detail
-        const reason = detail?.reason
-        if (reason === 'non_redeployable_resource_type') {
-            toastStore.error('Nur Compute-Instanzen können einzeln redeployed werden.')
-        } else if (reason === 'resource_not_in_state') {
-            toastStore.error('Diese Resource ist nicht mehr im aktuellen State.')
-        } else if (err?.response?.status === 409) {
-            toastStore.error('Es läuft bereits eine Lifecycle-Aktion für dieses Deployment.')
-        } else {
-            toastStore.error(err?.message || 'Redeploy fehlgeschlagen.')
-        }
-    }
-}
-
-// Lifecycle action gating — the action bar exposes Delete plus a
-// dynamic Pause/Resume button. The backend picks the right Delete
-// behaviour (terraform destroy + soft-delete vs. straight soft-delete)
-// based on status, so the frontend just surfaces availability.
-// Mirrors backend/app/services/lifecycle.py:
-//   * success                 → Delete (dispatches Destroy), Pause
-//   * paused                  → Delete (dispatches Destroy), Resume
-//   * pause_failed            → Delete, Pause-Retry, Resume
-//   * resume_failed           → Delete, Resume-Retry, Pause
-//   * failed                  → Delete (Destroy or soft-delete)
-//   * cancelled               → Delete (soft-delete)
-//   * pending / running / destroying / pausing / resuming → 409, all disabled
-//
-// Members can never act on lifecycle; the action-bar hides the
-// buttons entirely for them rather than rendering permanently-disabled
-// controls.
-const DELETE_STATUSES = [
-  'success', 'failed', 'cancelled', 'paused', 'pause_failed', 'resume_failed',
-]
-
-const canDelete = computed(() => {
-    if (!isOwnerView.value) return false
-    return DELETE_STATUSES.includes(deployment.value?.status ?? '')
-})
-
-const deleteDisabledReason = computed(() => {
-    if (canDelete.value) return ''
-    return `Delete available when status is ${DELETE_STATUSES.join(', ')}`
-})
-
-// One Pause/Resume button — what it does depends on status. Most
-// common case: ``success`` → Pause; ``paused`` → Resume. Failure
-// states (pause_failed / resume_failed) also expose a retry that
-// matches what just broke. Anything else hides it entirely.
-const canPause = computed(() => {
-    if (!isOwnerView.value) return false
-    const s = deployment.value?.status
-    return s === 'success' || s === 'pause_failed' || s === 'resume_failed'
-})
-const canResume = computed(() => {
-    if (!isOwnerView.value) return false
-    const s = deployment.value?.status
-    return s === 'paused' || s === 'pause_failed' || s === 'resume_failed'
-})
-const canPauseOrResume = computed(() => canPause.value || canResume.value)
-const pauseResumeAction = computed<'pause' | 'resume' | null>(() => {
-    // Prefer the action that matches the steady-state semantic of
-    // the current status: from ``success`` we pause, from ``paused``
-    // we resume. From the failure states we pick the retry that
-    // matches what just broke.
-    const s = deployment.value?.status
-    if (s === 'success' || s === 'pause_failed') return 'pause'
-    if (s === 'paused' || s === 'resume_failed') return 'resume'
-    return null
-})
-
-const showDeleteModal = ref(false)
-// Per-VM redeploy confirmation. Mirrors the Delete-modal pattern, but
-// the action targets a single resource (identified by its TF state
-// address), so we also remember which VM the user clicked while the
-// modal is open.
 const showRedeployModal = ref(false)
 const redeployTargetAddress = ref<string | null>(null)
-const showPauseResumeModal = ref(false)
-const pauseResumeBusy = ref(false)
+
+const {
+    resourcesLoading,
+    resourcesError,
+    loadResources,
+    vmResources,
+    networkResources,
+    securityResources,
+    openVmDrawer,
+    closeVmDrawer,
+    openDrawerAddress,
+    redeployVm,
+    redeployInFlight,
+    confirmRedeploy,
+} = useDeploymentInfrastructure(deploymentId, isOwnerView, showRedeployModal, redeployTargetAddress, loadTasks)
+
+// ----------------------------------------------------------------
+// LIFECYCLE
+// ----------------------------------------------------------------
+const {
+    showDeleteModal,
+    showPauseResumeModal,
+    pauseResumeBusy,
+    canDelete,
+    deleteDisabledReason,
+    canPauseOrResume,
+    pauseResumeAction,
+    confirmDelete,
+    confirmPauseResume,
+} = useDeploymentLifecycle(deploymentId, deployment, isOwnerView, loadTasks)
+
+// ----------------------------------------------------------------
+// CREDENTIALS
+// ----------------------------------------------------------------
+const {
+    myAccounts,
+    myTeamVms,
+    visiblePasswords,
+    togglePasswordVisibility,
+    sshCommandFor,
+    userUrlFor,
+    enrichedTeams,
+    hasAnyRdpAccount,
+    copiedKey,
+    copyToClipboard,
+    resendState,
+    resendAccess,
+} = useDeploymentCredentials(deploymentId, deployment, selectedTask, latestTaskOutputs)
 
 onMounted(async () => {
     await deploymentStore.fetchDeploymentById(deploymentId)
@@ -578,7 +186,7 @@ onMounted(async () => {
             // The API type marks fields optional; the local UserAccount
             // interface is stricter but structurally compatible at the
             // point of use, so cast the map through unknown.
-            myAccounts.value = (data.user_accounts ?? null) as Record<string, UserAccount> | null
+            myAccounts.value = (data.user_accounts ?? null) as Record<string, import('@/composables/deployment/useDeploymentCredentials').UserAccount> | null
             myTeamVms.value = data.team_vms ?? null
         } catch (err) {
             console.error('Error loading own access credentials:', err)
@@ -591,25 +199,6 @@ onMounted(async () => {
     loadResources()
 })
 
-const loadTasks = async () => {
-    // Members can't read tasks (backend returns 403 for the
-    // owner-only endpoint). Skip the call entirely so the network
-    // tab stays clean and the UI doesn't briefly flicker a loader
-    // for data we'll never receive.
-    if (!isOwnerView.value) {
-        tasks.value = []
-        return
-    }
-    loadingTasks.value = true
-    try {
-        const { data } = await taskApi.listByDeployment(deploymentId)
-        tasks.value = data
-    } catch (err) {
-        console.error('Error loading tasks:', err)
-    } finally {
-        loadingTasks.value = false
-    }
-}
 
 // ----------------------------------------------------------------
 // LIVE STREAM (progress bar + log tail)
@@ -997,87 +586,6 @@ onBeforeUnmount(() => {
 // string falls back to an empty label so the template never sees a
 // non-string slip through (e.g. the brief moment an unwrapped ref
 // produced the original ``phase.split is not a function`` crash).
-// Pretty-print arbitrary JSON-ish values for the terraform state /
-// outputs / raw-logs blocks. The backend persists these as TEXT
-// columns, so they arrive as either:
-//
-//  * a JSON string (terraform state pulled from the pg backend, or the
-//    JSON-stringified outputs map),
-//  * a real object/array (when the API layer has already parsed it),
-//  * a plain non-JSON string (a stack trace, a single error line),
-//  * null / undefined when the worker had nothing to record.
-//
-// The helper unifies those into a 2-space-indented JSON dump when the
-// payload parses, and falls back to the raw text otherwise so we never
-// clobber a non-JSON string by trying to parse it.
-const prettyJson = (value: unknown): string => {
-    if (value === null || value === undefined) return ''
-    if (typeof value === 'object') {
-        try {
-            return JSON.stringify(value, null, 2)
-        } catch {
-            return String(value)
-        }
-    }
-    if (typeof value === 'string') {
-        const trimmed = value.trim()
-        // Cheap pre-check: only attempt JSON.parse on strings that look
-        // like JSON. Saves a try/catch round-trip for ordinary log
-        // text and avoids accidentally parsing a bare number or "null"
-        // string into something the consumer didn't expect.
-        if (
-            (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-            (trimmed.startsWith('[') && trimmed.endsWith(']'))
-        ) {
-            try {
-                return JSON.stringify(JSON.parse(trimmed), null, 2)
-            } catch {
-                return value
-            }
-        }
-        return value
-    }
-    return String(value)
-}
-
-// Copy-to-clipboard state. Each "card" (logs/state/outputs) tags its
-// copy button with a unique key; the key of whichever was last
-// successfully copied is stored here for ~1.5s so we can flip its
-// icon to a check as feedback. Multiple cards can share the same state
-// because only one can be the "just copied" target at a time.
-const copiedKey = ref<string | null>(null)
-let copyResetTimer: number | null = null
-
-const copyToClipboard = async (text: string, key: string) => {
-    if (!text) return
-    try {
-        // Modern ``navigator.clipboard`` requires a secure context
-        // (https or localhost). Falls back to the legacy
-        // ``execCommand('copy')`` so the button still works behind
-        // plain http on the dev box.
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(text)
-        } else {
-            const ta = document.createElement('textarea')
-            ta.value = text
-            ta.style.position = 'fixed'
-            ta.style.opacity = '0'
-            document.body.appendChild(ta)
-            ta.select()
-            document.execCommand('copy')
-            document.body.removeChild(ta)
-        }
-        copiedKey.value = key
-        if (copyResetTimer !== null) window.clearTimeout(copyResetTimer)
-        copyResetTimer = window.setTimeout(() => {
-            copiedKey.value = null
-            copyResetTimer = null
-        }, 1500)
-    } catch (err) {
-        console.error('Copy failed:', err)
-    }
-}
-
 const phaseLabel = (phase: unknown): string => {
     if (typeof phase !== 'string' || !phase) return ''
     // Worker-emitted multi-image phases carry the template key as a ``:<key>``
@@ -1093,47 +601,6 @@ const phaseLabel = (phase: unknown): string => {
         .join(' ')
     return subKey ? `${formattedBase} [${subKey}]` : formattedBase
 }
-
-// Count of log entries inside ``selectedTask.logs`` for the badge in
-// the Logs card header. Logs arrive in three flavours:
-//
-//  * an object ``{logs: [...], error?: ...}`` — the Failure payload
-//    serialised by the worker on a failed deploy
-//  * a plain array on the success path (the success result is just
-//    ``logs: list[dict]``)
-//  * a JSON string when the API serialises one of the above as text
-//
-// The computed handles all three so the "N entries" pill stays
-// accurate regardless of the wire shape; returns null when the count
-// can't be determined (e.g. logs is a non-JSON string), in which case
-// the badge is hidden.
-const logEntryCount = computed<number | null>(() => {
-    const raw = selectedTask.value?.logs
-    if (raw == null) return null
-    let value: unknown = raw
-    if (typeof value === 'string') {
-        const trimmed = value.trim()
-        if (
-            (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-            (trimmed.startsWith('[') && trimmed.endsWith(']'))
-        ) {
-            try {
-                value = JSON.parse(trimmed)
-            } catch {
-                return null
-            }
-        } else {
-            return null
-        }
-    }
-    if (Array.isArray(value)) return value.length
-    if (value && typeof value === 'object') {
-        const inner = (value as Record<string, unknown>).logs
-        if (Array.isArray(inner)) return inner.length
-    }
-    return null
-})
-
 
 const deploymentTimestamp = computed(() => {
     return deployment.value?.created_at ? formatDate(deployment.value.created_at) : '-'
@@ -1313,232 +780,7 @@ const cleanVariableValue = (value?: string) => {
     return cleaned.trim() || '-'
 }
 
-/**
- * Split a task-logs string into a friendly headline + a collapsible
- * technical-details body. The backend's ``celery_event_listener.py``
- * emits Celery-infrastructure failures (``NotRegistered``,
- * ``WorkerLostError``, …) in a stable two-section format separated
- * by ``--- Technische Details ---``; we honour that boundary so the
- * raw stack trace stays available but isn't shoved into the user's
- * face by default.
- *
- * Returns ``{headline, details, isFailure}`` — ``isFailure`` lets
- * the template pick the destructive palette without re-doing the
- * regex on render.
- */
-const FAILURE_DETAIL_DIVIDER = '--- Technische Details ---'
-
-const splitTaskLogs = (raw: string | Record<string, unknown> | null | undefined) => {
-    if (!raw) return { headline: '', details: '', isFailure: false }
-    const text = String(raw)
-    // Backend "infra" failure with the explicit divider — we get a
-    // one-line headline and a raw block underneath.
-    const dividerIdx = text.indexOf(FAILURE_DETAIL_DIVIDER)
-    if (dividerIdx >= 0) {
-        return {
-            headline: text.slice(0, dividerIdx).trim(),
-            details: text.slice(dividerIdx + FAILURE_DETAIL_DIVIDER.length).trim(),
-            isFailure: true,
-        }
-    }
-    // Fallback: the legacy ``Task failed: ...\n<traceback>`` shape.
-    // Take the first line as headline if the body is multi-line.
-    if (text.startsWith('Task failed:')) {
-        const newlineIdx = text.indexOf('\n')
-        if (newlineIdx > 0) {
-            return {
-                headline: text.slice(0, newlineIdx).trim(),
-                details: text.slice(newlineIdx + 1).trim(),
-                isFailure: true,
-            }
-        }
-        return { headline: text.trim(), details: '', isFailure: true }
-    }
-    return { headline: '', details: '', isFailure: false }
-}
-
-// ``logs`` can be either a backend-formatted ``Task failed: ...`` string
-// (the failure shape this splitter cares about) or a structured
-// ``TaskLogsObject`` for normal runs. Only the string form triggers the
-// headline/details split — anything else falls through to the generic
-// pretty-print path below.
-const taskLogsSplit = computed(() => {
-  const raw = selectedTask.value?.logs
-  return splitTaskLogs(typeof raw === 'string' ? raw : null)
-})
-const showTaskLogsTrace = ref(false)
-
-// Unified delete handler. The backend's DELETE endpoint returns 202
-// when it dispatched a destroy task (live progress to follow) or 204
-// when it soft-deleted directly (no resources to clean up). Branch
-// on response.status so the UX matches what's actually happening:
-//   * 202 → stay on the page, refresh tasks so the live stream
-//     attaches to the new DESTROY task; the streamConnectionState
-//     watcher routes back to the list when the task completes.
-//   * 204 → leave immediately with a success toast.
-const confirmDelete = async () => {
-    if (!deploymentId) return
-    try {
-        const response = await deploymentStore.deleteDeployment(deploymentId)
-        if (response?.status === 202) {
-            // Destroy task dispatched. Reload deployment + tasks so
-            // ``activeTask`` flips to the new DESTROY row and the
-            // live-progress card swaps in.
-            toastStore.addToast({
-                type: 'info',
-                message: t('DeploymentDetailView.deleteStartedToast'),
-            })
-            await deploymentStore.fetchDeploymentById(deploymentId)
-            await loadTasks()
-        } else {
-            // 204: nothing to destroy, soft-delete completed
-            // synchronously. Row is gone — back to the list.
-            toastStore.addToast({
-                type: 'success',
-                message: t('DeploymentDetailView.deleteSuccessToast'),
-            })
-            router.push({ name: 'deployments.list' })
-        }
-    } catch (err: any) {
-        toastStore.addToast({
-            type: 'error',
-            message: `${t('DeploymentDetailView.deleteErrorToast')}: ` + extractErrorMessage(err),
-        })
-    } finally {
-        showDeleteModal.value = false
-    }
-}
-
-// Redeploy confirmation handler — close the modal first (so the user
-// gets immediate visual feedback that their click registered) and
-// then dispatch the actual API call. ``executeRedeploy`` owns its
-// own toast handling and adds/removes the in-flight marker.
-const confirmRedeploy = async () => {
-    const address = redeployTargetAddress.value
-    showRedeployModal.value = false
-    if (!address) return
-    try {
-        await executeRedeploy(address)
-    } finally {
-        redeployTargetAddress.value = null
-    }
-}
-
-// Pause / resume handler — same wiring as ``confirmDelete``: the
-// backend returns 202 with a ``task_id`` when it dispatched the
-// worker, so we just reload the deployment + tasks and the existing
-// SSE stream / activeTask plumbing takes over from there. The button
-// itself is hidden while ``pausing``/``resuming`` so the user can't
-// double-click; ``pauseResumeBusy`` debounces the in-flight HTTP call
-// in case the click lands faster than the deployment status refresh.
-const confirmPauseResume = async () => {
-    if (!deploymentId || pauseResumeBusy.value) return
-    const action = pauseResumeAction.value
-    if (!action) return
-    pauseResumeBusy.value = true
-    try {
-        const call = action === 'pause'
-            ? deploymentStore.pauseDeployment(deploymentId)
-            : deploymentStore.resumeDeployment(deploymentId)
-        await call
-        toastStore.addToast({
-            type: 'info',
-            message: action === 'pause'
-                ? t('DeploymentDetailView.pauseStartedToast')
-                : t('DeploymentDetailView.resumeStartedToast'),
-        })
-        await deploymentStore.fetchDeploymentById(deploymentId)
-        await loadTasks()
-    } catch (err: any) {
-        toastStore.addToast({
-            type: 'error',
-            message: (action === 'pause'
-                ? t('DeploymentDetailView.pauseErrorToast')
-                : t('DeploymentDetailView.resumeErrorToast'))
-                + ': '
-                + extractErrorMessage(err),
-        })
-    } finally {
-        pauseResumeBusy.value = false
-        showPauseResumeModal.value = false
-    }
-}
-
-// Per-user resend-access state. Map ``userId → 'sending' | 'sent' | 'error'``
-// so the button can show inline feedback on the row that was clicked
-// without forcing a re-render of the whole list. The 'sent' state
-// auto-clears after 2s so the user can resend again.
-const resendState = ref<Record<string, 'sending' | 'sent' | 'error'>>({})
-
-const resendAccess = async (teamId: string, userId: string) => {
-    resendState.value = { ...resendState.value, [userId]: 'sending' }
-    try {
-        await deploymentApi.resendAccess(deploymentId, teamId, userId)
-        resendState.value = { ...resendState.value, [userId]: 'sent' }
-        toastStore.addToast({
-            type: 'success',
-            message: t('DeploymentDetailView.resendAccessSuccess'),
-        })
-        window.setTimeout(() => {
-            const next = { ...resendState.value }
-            delete next[userId]
-            resendState.value = next
-        }, 2000)
-    } catch (err: any) {
-        resendState.value = { ...resendState.value, [userId]: 'error' }
-        // Backend returns ``{detail: {reason: '...'}}``; surface the
-        // reason verbatim — the UI doesn't need to localise every
-        // possible code, the toast is for the operator.
-        //
-        // Two reasons get a dedicated toast string so the user
-        // understands WHY mail didn't go out:
-        //   * smtp_disabled (503): platform-wide kill-switch; needs
-        //     an admin to flip ``SMTP_ENABLED`` in the backend env.
-        //     A generic "Failed to send" toast would mislead them
-        //     into thinking the SMTP server is down.
-        //   * everything else: stays in the existing failure path
-        //     so SMTP-rejected-the-recipient, transient errors, and
-        //     unknown reasons all get the verbose toast.
-        const reason = err?.response?.data?.detail?.reason || err?.message || 'unknown'
-        const isSmtpDisabled = err?.response?.status === 503 && reason === 'smtp_disabled'
-        const isDeploymentBusyErr = err?.response?.status === 409 && reason === 'deployment_busy'
-        toastStore.addToast({
-            type: (isSmtpDisabled || isDeploymentBusyErr) ? 'warning' : 'error',
-            message: isSmtpDisabled
-                ? t('DeploymentDetailView.resendAccessSmtpDisabled')
-                : isDeploymentBusyErr
-                    ? t('DeploymentDetailView.resendAccessDeploymentBusy')
-                    : `${t('DeploymentDetailView.resendAccessError')}: ${reason}`,
-        })
-        window.setTimeout(() => {
-            const next = { ...resendState.value }
-            delete next[userId]
-            resendState.value = next
-        }, 3000)
-    }
-}
-
 const formatDate = formatDateTime
-
-const selectTask = async (task: Task) => {
-    loadingTaskDetail.value = true
-    try {
-        const { data } = await taskApi.getById(task.taskId)
-        selectedTask.value = data
-    } catch (err) {
-        console.error('Error loading task details:', err)
-        toastStore.addToast({
-            type: 'error',
-            message: 'Failed to load task details'
-        })
-    } finally {
-        loadingTaskDetail.value = false
-    }
-}
-
-const deselectTask = () => {
-    selectedTask.value = null
-}
 </script>
 
 
@@ -1618,7 +860,7 @@ const deselectTask = () => {
             <div class="bg-surface-card rounded-xl border border-card-border p-6 shadow-sm">
                 <h2 class="text-lg font-semibold text-content-primary mb-4 flex items-center gap-2">
                     <Package :size="20" class="text-primary" />
-                    Deployment Info
+                    {{ $t('DeploymentDetailView.deploymentInfoTitle') }}
                 </h2>
                 <div class="space-y-4">
                     <div>
@@ -2578,13 +1820,12 @@ const deselectTask = () => {
              ``window.confirm``. -->
         <Modal :show="showRedeployModal" @close="showRedeployModal = false">
             <template #title>
-                VM neu erstellen?
+                {{ $t('DeploymentDetailView.redeployVmTitle') }}
             </template>
             <template #body>
                 <div class="space-y-3">
                     <p class="text-content-secondary">
-                        Diese VM wird zerstört und identisch neu erstellt.
-                        Andere VMs in diesem Deployment bleiben unangetastet.
+                        {{ $t('DeploymentDetailView.redeployVmBody') }}
                     </p>
                     <p v-if="redeployTargetAddress" class="text-xs font-mono text-content-secondary bg-surface-input border border-card-border rounded-lg px-3 py-2 break-all">
                         {{ redeployTargetAddress }}
