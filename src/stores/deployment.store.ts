@@ -246,6 +246,13 @@ export const useDeploymentStore = defineStore('deployment', {
       appId: string,
       appName: string,
       version?: string,
+      /**
+       * Keycloak-Subjects der Teilnehmer, aus dem Schnell-Deploy-Dialog.
+       * Leer oder nicht gesetzt heißt „nur ich" — dann zieht der Dozent selbst
+       * ein. Ohne mindestens ein Mitglied hätte das Deployment keine VM, die
+       * Mitgliedschaft ist im Datenmodell die einzige Zuweisung.
+       */
+      memberIds?: string[],
     ): Promise<QuickDeployOutcome> {
       const ctx = {
         setLoading: (v: boolean) => { this.isLoading = v },
@@ -325,15 +332,27 @@ export const useDeploymentStore = defineStore('deployment', {
         // resolves its member list through a view-local cache, so a prefilled
         // ``studentIds`` would sit in the draft while the step shows "0
         // selected" — state the user cannot see or correct.
-        this.draft.studentIds = [memberId]
+        // Teilnehmer aus dem Dialog, sonst der Dozent selbst. Ein leeres Array
+        // wird wie „nicht gesetzt" behandelt — ohne Mitglied gäbe es keine VM.
+        const members = memberIds && memberIds.length > 0 ? memberIds : [memberId]
+        this.draft.studentIds = members
         // The summary renders member names out of ``studentCache`` and falls
         // back to the raw id — without this the lecturer would read their own
-        // Keycloak UUID instead of their name.
-        this.studentCache.set(memberId, authStore.user)
+        // Keycloak UUID instead of their name. Für Kursteilnehmer füllt der
+        // Dialog den Cache bereits beim Laden der Kursliste.
+        if (!this.studentCache.has(memberId)) {
+          this.studentCache.set(memberId, authStore.user)
+        }
         this.draft.groupMode = 'one'
         this.draft.groupCount = 1
         this.draft.groupNames = [QUICK_DEPLOY_TEAM_NAME]
-        this.draft.assignments = { 0: [memberId] }
+        // Als ARRAY, nicht als ``{ 0: [...] }``. Der deklarierte Typ
+        // ``Record<number, string[]>`` legt ein Objekt nahe, der Code erwartet
+        // zur Laufzeit aber durchgängig ein Array: ``defaultDraft`` setzt ``[]``,
+        // ``submitDraft`` prüft ``Array.isArray``, und
+        // ``NewDeploymentGroupsAssignmentView`` ruft ``.filter()`` / ``.forEach()``
+        // darauf auf — mit einem Objekt stürzt die Ansicht beim Mounten ab.
+        this.draft.assignments = [members]
 
         // Mirrors how ``NewDeploymentVariableView.handleNext`` writes the draft:
         // ``variables`` holds every value, and multi-image Packer apps nest

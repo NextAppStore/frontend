@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EntityListState from '@/components/ui/EntityListState.vue'
 import AppVersionStatusBadge from '@/components/ui/AppVersionStatusBadge.vue'
+import QuickDeployModal from '@/components/QuickDeployModal.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { useRouter } from 'vue-router'
 import { appApi } from '@/api/app.api'
@@ -107,13 +108,27 @@ const quickDeployBusyId = ref<string | null>(null)
  * into the regular wizard with a toast that names the reason — the draft
  * already carries app and version at that point, so nothing is retyped.
  */
-const handleQuickDeploy = async (app: any) => {
+// Die App, für die der Teilnehmer-Dialog offen ist. Der Schnell-Deploy startet
+// erst nach dessen Bestätigung: Wer die Umgebung bekommt, lässt sich aus der
+// App nicht ableiten — alles andere schon.
+const quickDeployApp = ref<any | null>(null)
+
+const openQuickDeploy = (app: any) => {
+  if (quickDeployBusyId.value) return
+  quickDeployApp.value = app
+}
+
+const handleQuickDeploy = async (memberIds: string[]) => {
+  const app = quickDeployApp.value
+  quickDeployApp.value = null
+  if (!app) return
+
   const id = app.appId || app.id || app._id
   if (!id || quickDeployBusyId.value) return
 
   quickDeployBusyId.value = id
   try {
-    const outcome = await deploymentStore.prepareQuickDeploy(id, app.name)
+    const outcome = await deploymentStore.prepareQuickDeploy(id, app.name, undefined, memberIds)
     if (outcome.ready) {
       toast.success(t('deployment.quickDeploy.ready', { name: app.name }))
       router.push({ name: 'deployment.summary' })
@@ -233,7 +248,7 @@ onMounted(() => {
               data-testid="app-quick-deploy"
               :disabled="isMissingCredential || quickDeployBusyId === (app.appId || app.id || app._id)"
               :title="isMissingCredential ? $t('deployment.quickDeploy.missingCreds') : ''"
-              @click.stop="handleQuickDeploy(app)"
+              @click.stop="openQuickDeploy(app)"
             >
               <Zap :size="16" aria-hidden="true" />
               {{ $t('deployment.quickDeploy.button') }}
@@ -249,5 +264,12 @@ onMounted(() => {
         </Card>
       </div>
     </EntityListState>
+
+    <QuickDeployModal
+      :show="quickDeployApp !== null"
+      :app-name="quickDeployApp?.name || ''"
+      @close="quickDeployApp = null"
+      @confirm="handleQuickDeploy"
+    />
   </div>
 </template>

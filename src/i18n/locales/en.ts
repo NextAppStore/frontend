@@ -36,6 +36,7 @@ export default {
   action: {
     back: "Back",
     close: "Close",
+    cancel: "Cancel",
   },
 
   // Error texts used when the backend provides no message of its own. They
@@ -663,7 +664,20 @@ export default {
       noVersion: 'This app has no version to deploy yet.',
       missingCreds: 'Please store your OpenStack credentials first.',
       noIdentity: 'Your account is not linked to Keycloak yet — please use the wizard.',
-      error: 'Could not prepare the quick deploy.'
+      error: 'Could not prepare the quick deploy.',
+      modalTitle: 'Quick deploy {name}',
+      modalHint: 'Name, version and variables are already filled in. Just choose who gets the environment.',
+      courseLabel: 'Course',
+      selfOnly: 'Just me',
+      selfOnlyNamed: 'Just me ({name})',
+      selfOnlyHint: 'You get your own environment — handy for trying an app out.',
+      loadingCourses: 'Loading courses…',
+      coursesError: 'Could not load courses.',
+      participantsLabel: 'Participants',
+      selectedCount: '{selected} of {total} selected',
+      loadingParticipants: 'Loading participants…',
+      noParticipants: 'This course has no participants yet.',
+      confirm: 'Continue to summary'
     },
     apps: {
       nodejs: {
