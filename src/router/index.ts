@@ -198,6 +198,12 @@ const router = createRouter({
       meta: { requiresAuth: true, layout: 'app', requiresRole: ['admin'] as UserRole[] },
     },
     {
+      path: '/admin/settings',
+      name: 'admin.settings',
+      component: () => import('@/views/AdminSettingsView.vue'),
+      meta: { requiresAuth: true, layout: 'app', requiresRole: ['admin'] as UserRole[] },
+    },
+    {
       path: '/user/openstack',
       name: 'user.openstack',
       component: () => import('@/views/SettingsOpenStackView.vue'),

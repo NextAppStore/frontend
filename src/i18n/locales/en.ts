@@ -27,6 +27,7 @@ export default {
     help: "Help",
     config: "Configuration",
     approvals: "Approvals",
+    adminSettings: "Admin Settings",
     profile: "Profile",
     logout: "Log out",
     openSidebar: "Open sidebar",
@@ -1081,6 +1082,18 @@ export default {
     listPlaceholder: 'Value 1, Value 2',
     defaultPlaceholder: 'Default: {value}',
     enterValue: 'Enter value...',
+  },
+
+  AdminSettingsView: {
+    title: 'Admin Settings',
+    subtitle: 'Configure appearance for this instance.',
+    accentLabel: 'Accent color',
+    accentHint: 'Applied to buttons, links, highlights and navigation.',
+    previewBtn: 'Primary button',
+    previewGhost: 'Ghost button',
+    applyBtn: 'Apply',
+    applySuccess: 'Color applied.',
+    persistNote: 'This change applies to the current session only. Persistent per-tenant configuration requires backend support.',
   },
 
 };
