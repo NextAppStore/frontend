@@ -6,6 +6,9 @@ import i18n from './i18n'
 import { useAuthStore } from '@/stores/auth.store'
 
 import '@/style.css'
+import { initAccentColor } from '@/composables/useAccentColor'
+
+initAccentColor()
 
 const app = createApp(App)
 

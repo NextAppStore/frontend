@@ -27,6 +27,7 @@ export default {
     help: "Hilfe",
     config: "Konfiguration",
     approvals: "Freigaben",
+    adminSettings: "Admin-Einstellungen",
     profile: "Profil",
     logout: "Abmelden",
     openSidebar: "Seitenleiste öffnen",
@@ -1083,6 +1084,18 @@ export default {
     listPlaceholder: 'Wert 1, Wert 2',
     defaultPlaceholder: 'Standard: {value}',
     enterValue: 'Wert eingeben...',
+  },
+
+  AdminSettingsView: {
+    title: 'Admin-Einstellungen',
+    subtitle: 'Erscheinungsbild dieser Instanz anpassen.',
+    accentLabel: 'Akzentfarbe',
+    accentHint: 'Wird auf Buttons, Links, Hervorhebungen und Navigation angewendet.',
+    previewBtn: 'Primär-Button',
+    previewGhost: 'Ghost-Button',
+    applyBtn: 'Anwenden',
+    applySuccess: 'Farbe übernommen.',
+    persistNote: 'Diese Änderung gilt nur für die aktuelle Sitzung. Dauerhafte Konfiguration pro Tenant erfordert Backend-Unterstützung.',
   },
 
 };
