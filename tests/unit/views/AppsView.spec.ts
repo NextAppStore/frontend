@@ -87,6 +87,14 @@ describe('AppsView.vue', () => {
                     BackCard: { template: '<div><slot /></div>' },
                     BaseButton: { template: '<button><slot /></button>' },
                     AppVersionStatusBadge: { template: '<span></span>' },
+                    // Der Teilnehmer-Dialog lädt Kurse und Studierende selbst.
+                    // Hier wird die View getestet, nicht der Dialog — gestubbt
+                    // und über ``confirm`` ausgelöst.
+                    QuickDeployModal: {
+                        name: 'QuickDeployModal',
+                        props: ['show', 'appName'],
+                        template: '<div />'
+                    },
                     MarkdownRenderer: {
                         props: ['source'],
                         template: '<div>{{ source }}</div>'
@@ -233,24 +241,56 @@ describe('AppsView.vue', () => {
             return wrapper
         }
 
+        /**
+         * Kachel-Knopf klicken und den Teilnehmer-Dialog bestätigen. Der
+         * Schnell-Deploy startet erst danach — der Knopf allein öffnet nur den
+         * Dialog.
+         */
+        const quickDeploy = async (wrapper: any, memberIds: string[] = []) => {
+            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
+            await wrapper.findComponent({ name: 'QuickDeployModal' }).vm.$emit('confirm', memberIds)
+            await flushPromises()
+        }
+
         it('springt direkt zur Zusammenfassung, wenn der Draft vollständig ist', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            const wrapper = await mountWithApp()
+
+            await quickDeploy(wrapper)
+
+            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith('app-1', 'Jupyter-Notebook', undefined, [])
+            expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.summary' })
+            expect(mockToastSuccess).toHaveBeenCalledWith('deployment.quickDeploy.ready')
+        })
+
+        it('reicht die im Dialog gewählten Teilnehmer an den Store durch', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            const wrapper = await mountWithApp()
+
+            await quickDeploy(wrapper, ['kc-1', 'kc-2'])
+
+            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith(
+                'app-1', 'Jupyter-Notebook', undefined, ['kc-1', 'kc-2'],
+            )
+        })
+
+        it('startet den Schnell-Deploy erst nach Bestätigung des Dialogs', async () => {
+            // Der Knopf öffnet nur den Dialog. Ohne diese Trennung wäre die
+            // Teilnehmerauswahl wirkungslos.
             mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
             const wrapper = await mountWithApp()
 
             await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
             await flushPromises()
 
-            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith('app-1', 'Jupyter-Notebook')
-            expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.summary' })
-            expect(mockToastSuccess).toHaveBeenCalledWith('deployment.quickDeploy.ready')
+            expect(mockPrepareQuickDeploy).not.toHaveBeenCalled()
         })
 
         it('leitet in den Wizard um, wenn Variablen Eingaben brauchen', async () => {
             mockPrepareQuickDeploy.mockResolvedValue({ ready: false, reason: 'needsInput' })
             const wrapper = await mountWithApp()
 
-            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
-            await flushPromises()
+            await quickDeploy(wrapper)
 
             expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.config' })
             expect(mockToastInfo).toHaveBeenCalledWith('deployment.quickDeploy.needsInput')
@@ -260,8 +300,7 @@ describe('AppsView.vue', () => {
             mockPrepareQuickDeploy.mockResolvedValue({ ready: false, reason: 'noVersion' })
             const wrapper = await mountWithApp()
 
-            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
-            await flushPromises()
+            await quickDeploy(wrapper)
 
             expect(mockToastWarning).toHaveBeenCalledWith('deployment.quickDeploy.noVersion')
             expect(mockPush).toHaveBeenCalledWith({
@@ -274,8 +313,7 @@ describe('AppsView.vue', () => {
             mockPrepareQuickDeploy.mockRejectedValue(new Error('boom'))
             const wrapper = await mountWithApp()
 
-            await wrapper.find('[data-testid="app-quick-deploy"]').trigger('click')
-            await flushPromises()
+            await quickDeploy(wrapper)
 
             expect(mockToastError).toHaveBeenCalledWith('deployment.quickDeploy.error')
             expect(mockPush).not.toHaveBeenCalledWith({ name: 'deployment.summary' })

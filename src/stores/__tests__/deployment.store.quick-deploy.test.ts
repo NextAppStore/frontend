@@ -77,8 +77,20 @@ describe('deployment.store — prepareQuickDeploy', () => {
     expect(store.draft.studentIds).toEqual(['kc-lecturer-1'])
     expect(store.draft.groupMode).toBe('one')
     expect(store.draft.groupCount).toBe(1)
-    expect(store.draft.assignments).toEqual({ 0: ['kc-lecturer-1'] })
+    expect(store.draft.assignments).toEqual([['kc-lecturer-1']])
     expect(store.draft.name).toContain('Jupyter-Notebook')
+  })
+
+  it('legt assignments als Array an, nicht als Objekt', async () => {
+    // Der deklarierte Typ ``Record<number, string[]>`` legt ein Objekt nahe,
+    // der Code erwartet zur Laufzeit aber ein Array: ``submitDraft`` prüft
+    // ``Array.isArray`` und die Team-Ansicht ruft ``.filter()`` darauf auf.
+    // Mit einem Objekt stürzt sie beim Mounten ab — dieser Test hält die Form
+    // fest, weil der Unterschied sonst erst im Browser auffällt.
+    const store = useDeploymentStore()
+    await store.prepareQuickDeploy('app-1', 'App')
+
+    expect(Array.isArray(store.draft.assignments)).toBe(true)
   })
 
   it('loads the app list so the summary can name the app', async () => {
