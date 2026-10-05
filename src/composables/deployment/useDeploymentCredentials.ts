@@ -10,10 +10,13 @@ export interface UserAccount {
   username: string
   team: string
   ip: string
+  // IPv6 counterpart to ``ip``, worker-side addition — optional since
+  // only RDP-style apps (Windows) currently publish it.
+  ip_v6?: string
   port: number
   auth: string
   type?: 'password' | 'ssh_key' | 'oauth' | 'none' | string
-  authtype?: 'ssh' | 'url' | string
+  authtype?: 'ssh' | 'rdp' | 'url' | string
   url?: string
 }
 
@@ -32,7 +35,7 @@ export function useDeploymentCredentials(
   // ``user_accounts.value`` shape so ``typedUserAccounts`` can fall back
   // to it and the existing account-matching pipeline works unchanged.
   const myAccounts = ref<Record<string, UserAccount> | null>(null)
-  const myTeamVms = ref<Record<string, { url?: string; floating_ip?: string; fixed_ip?: string }> | null>(null)
+  const myTeamVms = ref<Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }> | null>(null)
 
   const visiblePasswords = ref<Record<string | number, boolean>>({})
 
@@ -106,7 +109,7 @@ export function useDeploymentCredentials(
    * shape on the wrapper. Returns ``null`` if anything along the way
    * isn't there.
    */
-  function extractTeamVms(): Record<string, { url?: string; floating_ip?: string; fixed_ip?: string }> | null {
+  function extractTeamVms(): Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }> | null {
     const currentTarget = selectedTask.value || latestTaskOutputs.value
     const rawOutputs = currentTarget?.outputs
     // Member fallback: use the team VM block from ``/my-access`` so a
@@ -242,6 +245,15 @@ export function useDeploymentCredentials(
     });
   });
 
+  // Whether any member across any team has an RDP account — the IPv4/IPv6
+  // toggle only makes sense (and only renders) when there's an RDP pill
+  // anywhere to apply it to.
+  const hasAnyRdpAccount = computed(() =>
+    enrichedTeams.value.some((team) =>
+      team.members.some((member) => member.account?.data.authtype === 'rdp'),
+    ),
+  )
+
   const copiedKey = ref<string | null>(null)
   let copyResetTimer: number | null = null
 
@@ -335,6 +347,7 @@ export function useDeploymentCredentials(
     typedUserAccounts,
     extractTeamVms,
     enrichedTeams,
+    hasAnyRdpAccount,
     copiedKey,
     copyToClipboard,
     resendState,

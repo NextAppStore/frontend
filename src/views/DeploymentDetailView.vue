@@ -20,8 +20,33 @@ import { formatDateTime } from '@/utils/format'
 import { Eye, EyeOff } from 'lucide-vue-next'
 import { useDeploymentLifecycle } from '@/composables/deployment/useDeploymentLifecycle'
 import { useDeploymentCredentials } from '@/composables/deployment/useDeploymentCredentials'
+import type { UserAccount } from '@/composables/deployment/useDeploymentCredentials'
 import { useDeploymentInfrastructure } from '@/composables/deployment/useDeploymentInfrastructure'
 import { useDeploymentTasks } from '@/composables/deployment/useDeploymentTasks'
+import { useIpVersionPreference } from '@/composables/useIpVersionPreference'
+import RdpClientHelpPopover from '@/components/RdpClientHelpPopover.vue'
+
+const { ipVersion, setIpVersion } = useIpVersionPreference()
+
+// Build a copy-paste RDP command from an account. Skips the port suffix
+// for the default 3389 so the line stays short, mirroring sshCommandFor's
+// port-22 omission.
+const rdpCommandFor = (data: { ip?: string; port?: number }): string => {
+    if (!data.ip) return ''
+    const target = data.port && data.port !== 3389 ? `${data.ip}:${data.port}` : data.ip
+    return `mstsc /v:${target}`
+}
+
+// Same as rdpCommandFor, but for an IPv6 target. IPv6 literals need
+// brackets in an mstsc target.
+const rdpCommandForV6 = (ipv6: string): string => `mstsc /v:[${ipv6}]`
+
+// Resolve the IPv6 address to use for a member's RDP command: the
+// account's own ``ip_v6`` wins when present (per-member precision, now
+// that the worker output carries it), falling back to the team VM's
+// ``fixed_ip_v6`` for apps that only publish it at the team level.
+const rdpIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null =>
+    account.ip_v6 || team.vm?.fixed_ip_v6 || null
 
 
 const route = useRoute()
@@ -120,6 +145,7 @@ const {
     sshCommandFor,
     userUrlFor,
     enrichedTeams,
+    hasAnyRdpAccount,
     copiedKey,
     copyToClipboard,
     resendState,
@@ -1166,6 +1192,23 @@ const formatDate = formatDateTime
                 <span class="px-2 py-0.5 bg-surface-input text-content-secondary text-xs font-bold rounded">
                     {{ deployment.teams.length }}
                 </span>
+
+                <!-- One global IPv4/IPv6 preference for all RDP pills below —
+                     not per-team or per-row, since network reachability
+                     (VPN vs. no VPN) is typically the same for everyone. -->
+                <div v-if="hasAnyRdpAccount" class="ml-auto inline-flex rounded-lg border border-card-border bg-surface-input p-0.5"
+                    role="group" :aria-label="$t('DeploymentDetailView.ipToggle.ariaLabel')">
+                    <button type="button" @click="setIpVersion('v4')"
+                        class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
+                        :class="ipVersion === 'v4' ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-disabled hover:text-content-secondary'">
+                        {{ $t('DeploymentDetailView.ipToggle.ipv4') }}
+                    </button>
+                    <button type="button" @click="setIpVersion('v6')"
+                        class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
+                        :class="ipVersion === 'v6' ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-disabled hover:text-content-secondary'">
+                        {{ $t('DeploymentDetailView.ipToggle.ipv6') }}
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-4">
@@ -1206,8 +1249,10 @@ const formatDate = formatDateTime
 
                                 <!-- Web-app URL from ``team_vms.<team>.url``,
                                      shared by every team member. When set, the
-                                     SSH pill is dropped and the username shows next to it. -->
-                                <div v-if="team.vm?.url"
+                                     SSH pill is dropped and the username shows next to it.
+                                     Also shown for RDP accounts — mstsc doesn't embed the
+                                     username the way the SSH command line does. -->
+                                <div v-if="team.vm?.url || member.account.data.authtype === 'rdp'"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border">
                                     <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">User:</span>
                                     <span>{{ member.account.data.username }}</span>
@@ -1219,7 +1264,7 @@ const formatDate = formatDateTime
                                     </button>
                                 </div>
 
-                                <div v-if="member.account.data.ip && member.account.data.port && member.account.data.type !== 'ssh_key' && member.account.data.authtype !== 'ssh' && member.account.data.port !== 22"
+                                <div v-if="member.account.data.ip && member.account.data.port && member.account.data.type !== 'ssh_key' && member.account.data.authtype !== 'ssh' && member.account.data.authtype !== 'rdp' && member.account.data.port !== 22 && member.account.data.port !== 3389"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-[280px]">
                                     <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">URL:</span>
                                     <a :href="userUrlFor(member.account.data, team.vm?.url) ?? ''" target="_blank" rel="noopener noreferrer"
@@ -1256,6 +1301,35 @@ const formatDate = formatDateTime
                                         :title="copiedKey === 'ssh-' + member.account.key ? 'Kopiert!' : 'SSH-Befehl kopieren'">
                                         <component :is="copiedKey === 'ssh-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
+                                </div>
+
+                                <!-- Ready-to-use RDP command line (mstsc), for Windows-style
+                                     apps that set authtype: "rdp" on their user_accounts.
+                                     Shows IPv4 or IPv6 depending on the shared toggle above —
+                                     never both at once — falling back to IPv4 when a team has
+                                     no IPv6 target so the pill is never empty. -->
+                                <div v-if="member.account.data.authtype === 'rdp'"
+                                    class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-full">
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && rdpIpv6For(member.account.data, team) ? 'RDP (IPv6):' : 'RDP:' }}
+                                    </span>
+                                    <span class="truncate"
+                                        :title="ipVersion === 'v6' && !rdpIpv6For(member.account.data, team) ? $t('DeploymentDetailView.rdp.unavailableV6') : undefined">
+                                        {{ ipVersion === 'v6' && rdpIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(rdpIpv6For(member.account.data, team) ?? '')
+                                            : rdpCommandFor(member.account.data) }}
+                                    </span>
+                                    <button
+                                        @click="copyToClipboard(ipVersion === 'v6' && rdpIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(rdpIpv6For(member.account.data, team) ?? '')
+                                            : rdpCommandFor(member.account.data), 'rdp-' + member.account.key)"
+                                        class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
+                                        :title="copiedKey === 'rdp-' + member.account.key ? 'Kopiert!' : 'RDP-Befehl kopieren'">
+                                        <component :is="copiedKey === 'rdp-' + member.account.key ? Check : Copy" :size="12" />
+                                    </button>
+                                    <RdpClientHelpPopover
+                                        :ip="ipVersion === 'v6' && rdpIpv6For(member.account.data, team) ? (rdpIpv6For(member.account.data, team) ?? '') : (member.account.data.ip ?? '')"
+                                        :port="member.account.data.port" />
                                 </div>
 
                                 <div v-if="member.account.data.auth"

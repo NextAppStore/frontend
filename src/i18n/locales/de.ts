@@ -347,6 +347,30 @@ export default {
     deploymentUserName: "Benutzername",
     deploymentUserRole: "Rolle",
     teamsAndMembers: "Teams & Mitglieder",
+    ipToggle: {
+      ipv4: "IPv4",
+      ipv6: "IPv6",
+      ariaLabel: "IP-Version für RDP-Befehle wählen",
+    },
+    rdp: {
+      unavailableV6: "IPv6 für dieses Team nicht verfügbar",
+    },
+    rdpHelp: {
+      triggerLabel: "Hilfe für andere Betriebssysteme",
+      title: "Remotedesktop-Verbindung herstellen",
+      windows: {
+        heading: "Windows",
+        body: "Befehl oben kopieren und in der Eingabeaufforderung ausführen.",
+      },
+      macos: {
+        heading: "macOS",
+        body: "App „Microsoft Remote Desktop\" aus dem App Store installieren, PC hinzufügen und {ip} als Adresse eingeben.",
+      },
+      linux: {
+        heading: "Linux",
+        body: "Remmina (grafisch) verwenden oder folgenden Befehl ausführen:",
+      },
+    },
     teamOrUser: "Team / Nutzer",
     IPAddress: "IP-Adresse",
     port: "Port",
@@ -959,6 +983,8 @@ export default {
     sharedTeam: 'Shared',
     openstackFault: 'OpenStack Fault',
     uptimePrefix: 'Läuft seit',
+    ipv4Label: 'IPv4:',
+    ipv6Label: 'IPv6:',
     actions: {
       hideDetails: 'Ausblenden',
       showDetails: 'Details',
@@ -1002,6 +1028,7 @@ export default {
       },
       network: {
         fixedIp: 'Fixed IP',
+        fixedIpV6: 'Fixed IP (v6)',
         floatingIp: 'Floating IP',
         mac: 'MAC',
         noPorts: 'Keine Ports vorhanden.',

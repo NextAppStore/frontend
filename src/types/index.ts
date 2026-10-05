@@ -220,7 +220,7 @@ export interface DeploymentUserAccount {
   port?: number;
   auth?: string;
   type?: 'password' | 'ssh_key' | 'oauth' | 'none' | string;
-  authtype?: 'ssh' | 'url' | string;
+  authtype?: 'ssh' | 'rdp' | 'url' | string;
   url?: string;
 }
 
@@ -231,7 +231,7 @@ export interface DeploymentUserAccount {
 // mean "no credentials yet".
 export interface MyAccessResponse {
   user_accounts: Record<string, DeploymentUserAccount>;
-  team_vms: Record<string, { url?: string; floating_ip?: string; fixed_ip?: string }>;
+  team_vms: Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }>;
 }
 
 export interface DeploymentCreate {
@@ -327,6 +327,7 @@ export interface HardwareSpec {
 export interface NetworkAddress {
   network: string
   fixed_ip: string | null
+  fixed_ip_v6: string | null
   floating_ip: string | null
   mac: string | null
 }
@@ -337,6 +338,7 @@ export interface NetworkPort {
   status: string | null
   mac: string | null
   fixed_ip: string | null
+  fixed_ip_v6: string | null
   security_group_ids: string[]
 }
 
