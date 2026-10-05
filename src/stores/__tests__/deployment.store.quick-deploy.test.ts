@@ -81,6 +81,35 @@ describe('deployment.store — prepareQuickDeploy', () => {
     expect(store.draft.name).toContain('Jupyter-Notebook')
   })
 
+  it('nimmt die übergebenen Teilnehmer statt des Dozenten', async () => {
+    // Der Dialog reicht die Kursteilnehmer durch. Ohne diesen Pfad bekäme
+    // weiterhin nur der Dozent eine Umgebung — genau der Fehler aus #28.
+    const store = useDeploymentStore()
+    await store.prepareQuickDeploy('app-1', 'App', 'v1.0.0', ['kc-a', 'kc-b'])
+
+    expect(store.draft.studentIds).toEqual(['kc-a', 'kc-b'])
+    expect(store.draft.assignments).toEqual([['kc-a', 'kc-b']])
+  })
+
+  it('fällt bei leerer Teilnehmerliste auf den Dozenten zurück', async () => {
+    // „Nur ich" im Dialog sendet ein leeres Array. Ohne Mitglied gäbe es keine
+    // VM, also zieht dann der Dozent selbst ein.
+    const store = useDeploymentStore()
+    await store.prepareQuickDeploy('app-1', 'App', 'v1.0.0', [])
+
+    expect(store.draft.studentIds).toEqual(['kc-lecturer-1'])
+    expect(store.draft.assignments).toEqual([['kc-lecturer-1']])
+  })
+
+  it('behält ein Team, egal wie viele Teilnehmer gewählt sind', async () => {
+    const store = useDeploymentStore()
+    await store.prepareQuickDeploy('app-1', 'App', 'v1.0.0', ['kc-a', 'kc-b', 'kc-c'])
+
+    expect(store.draft.groupMode).toBe('one')
+    expect(store.draft.groupCount).toBe(1)
+    expect(store.draft.groupNames).toHaveLength(1)
+  })
+
   it('legt assignments als Array an, nicht als Objekt', async () => {
     // Der deklarierte Typ ``Record<number, string[]>`` legt ein Objekt nahe,
     // der Code erwartet zur Laufzeit aber ein Array: ``submitDraft`` prüft
