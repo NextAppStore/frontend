@@ -75,6 +75,34 @@ export function useDeploymentCredentials(
     return `http://${data.ip}:${data.port}${path}`
   }
 
+  // Same as userUrlFor, but for an IPv6 target. IPv6 literals need
+  // brackets in a URL authority component (unlike a plain ssh target).
+  const userUrlForV6 = (ipv6: string, data: { port?: number }, teamVmUrl?: string): string | null => {
+    if (!ipv6 || !data.port) return null
+    let path = ''
+    if (teamVmUrl) {
+      try {
+        path = new URL(teamVmUrl).pathname.replace(/\/$/, '')
+      } catch { /* ignore malformed url */ }
+    }
+    return `http://[${ipv6}]:${data.port}${path}`
+  }
+
+  // team.vm.url is pre-built by terraform with the v4 address baked in
+  // (e.g. "http://10.200.2.205/pgadmin4"), so an IPv6 variant can't be
+  // assembled from parts like userUrlForV6 — the hostname has to be
+  // swapped in the existing URL instead. Falls back to the original URL
+  // on any parse failure so the pill never goes empty.
+  const teamVmUrlForV6 = (teamVmUrl: string, ipv6: string): string => {
+    try {
+      const parsed = new URL(teamVmUrl)
+      parsed.hostname = `[${ipv6}]`
+      return parsed.toString()
+    } catch {
+      return teamVmUrl
+    }
+  }
+
   const typedUserAccounts = computed<Record<string, UserAccount> | null>(() => {
     const currentTarget = selectedTask.value || latestTaskOutputs.value
     const rawOutputs = currentTarget?.outputs
@@ -257,19 +285,16 @@ export function useDeploymentCredentials(
   });
 
   // Whether any member across any team has an account the IPv4/IPv6 toggle
-  // could apply to — an RDP account (always offered the toggle), or an SSH
-  // account whose own ``ip_v6``/the team VM's ``fixed_ip_v6`` is set. The
-  // toggle only makes sense (and only renders) when there's at least one
-  // such pill anywhere to apply it to.
+  // could apply to — an RDP account (always offered the toggle), or an
+  // SSH/URL account whose own ``ip_v6``/the team VM's ``fixed_ip_v6`` is
+  // set. The toggle only makes sense (and only renders) when there's at
+  // least one such pill anywhere to apply it to.
   const hasAnyIpv6Account = computed(() =>
     enrichedTeams.value.some((team) =>
       team.members.some((member) => {
         const authtype = member.account?.data.authtype
         if (authtype === 'rdp') return true
-        if (!authtype || authtype === 'ssh') {
-          return Boolean(member.account?.data.ip_v6 || team.vm?.fixed_ip_v6)
-        }
-        return false
+        return Boolean(member.account?.data.ip_v6 || team.vm?.fixed_ip_v6)
       }),
     ),
   )
@@ -365,6 +390,8 @@ export function useDeploymentCredentials(
     sshCommandFor,
     sshCommandForV6,
     userUrlFor,
+    userUrlForV6,
+    teamVmUrlForV6,
     typedUserAccounts,
     extractTeamVms,
     enrichedTeams,
