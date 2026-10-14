@@ -48,6 +48,11 @@ const rdpCommandForV6 = (ipv6: string): string => `mstsc /v:[${ipv6}]`
 const rdpIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null =>
     account.ip_v6 || team.vm?.fixed_ip_v6 || null
 
+// Same resolution as rdpIpv6For, for SSH accounts (authtype "ssh" or
+// unset, e.g. Ubuntu-App, Online-IDE, Jupyter-Notebook).
+const sshIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null =>
+    account.ip_v6 || team.vm?.fixed_ip_v6 || null
+
 
 const route = useRoute()
 const router = useRouter()
@@ -143,9 +148,10 @@ const {
     visiblePasswords,
     togglePasswordVisibility,
     sshCommandFor,
+    sshCommandForV6,
     userUrlFor,
     enrichedTeams,
-    hasAnyRdpAccount,
+    hasAnyIpv6Account,
     copiedKey,
     copyToClipboard,
     resendState,
@@ -1193,10 +1199,11 @@ const formatDate = formatDateTime
                     {{ deployment.teams.length }}
                 </span>
 
-                <!-- One global IPv4/IPv6 preference for all RDP pills below —
-                     not per-team or per-row, since network reachability
-                     (VPN vs. no VPN) is typically the same for everyone. -->
-                <div v-if="hasAnyRdpAccount" class="ml-auto inline-flex rounded-lg border border-card-border bg-surface-input p-0.5"
+                <!-- One global IPv4/IPv6 preference for all RDP/SSH pills
+                     below — not per-team or per-row, since network
+                     reachability (VPN vs. no VPN) is typically the same
+                     for everyone. -->
+                <div v-if="hasAnyIpv6Account" class="ml-auto inline-flex rounded-lg border border-card-border bg-surface-input p-0.5"
                     role="group" :aria-label="$t('DeploymentDetailView.ipToggle.ariaLabel')">
                     <button type="button" @click="setIpVersion('v4')"
                         class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
@@ -1290,13 +1297,26 @@ const formatDate = formatDateTime
                                 </div>
 
                                 <!-- Ready-to-use SSH command line — already
-                                     includes username, IP and (for non-22) the port. -->
+                                     includes username, IP and (for non-22) the port.
+                                     Shows IPv4 or IPv6 depending on the shared toggle
+                                     above — never both at once — falling back to IPv4
+                                     when no IPv6 target is available so the pill is
+                                     never empty. -->
                                 <div v-if="!team.vm?.url && member.account.data.ip && member.account.data.username && (!member.account.data.authtype || member.account.data.authtype === 'ssh')"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-full">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">SSH:</span>
-                                    <span class="truncate">{{ sshCommandFor(member.account.data) }}</span>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && sshIpv6For(member.account.data, team) ? 'SSH (IPv6):' : 'SSH:' }}
+                                    </span>
+                                    <span class="truncate"
+                                        :title="ipVersion === 'v6' && !sshIpv6For(member.account.data, team) ? $t('DeploymentDetailView.ssh.unavailableV6') : undefined">
+                                        {{ ipVersion === 'v6' && sshIpv6For(member.account.data, team)
+                                            ? sshCommandForV6(sshIpv6For(member.account.data, team) ?? '', member.account.data)
+                                            : sshCommandFor(member.account.data) }}
+                                    </span>
                                     <button
-                                        @click="copyToClipboard(sshCommandFor(member.account.data), 'ssh-' + member.account.key)"
+                                        @click="copyToClipboard(ipVersion === 'v6' && sshIpv6For(member.account.data, team)
+                                            ? sshCommandForV6(sshIpv6For(member.account.data, team) ?? '', member.account.data)
+                                            : sshCommandFor(member.account.data), 'ssh-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
                                         :title="copiedKey === 'ssh-' + member.account.key ? 'Kopiert!' : 'SSH-Befehl kopieren'">
                                         <component :is="copiedKey === 'ssh-' + member.account.key ? Check : Copy" :size="12" />

@@ -10,8 +10,8 @@ export interface UserAccount {
   username: string
   team: string
   ip: string
-  // IPv6 counterpart to ``ip``, worker-side addition — optional since
-  // only RDP-style apps (Windows) currently publish it.
+  // IPv6 counterpart to ``ip``, worker-side addition — not every app
+  // publishes it yet.
   ip_v6?: string
   port: number
   auth: string
@@ -49,6 +49,17 @@ export function useDeploymentCredentials(
     if (!data.username || !data.ip) return ''
     const portFlag = data.port && data.port !== 22 ? `-p ${data.port} ` : ''
     return `ssh ${portFlag}${data.username}@${data.ip}`
+  }
+
+  // Same as sshCommandFor, but for an IPv6 target. IPv6 literals need no
+  // brackets in an ssh command line (unlike mstsc), but do need brackets
+  // when a non-default port follows via ``-p`` — ssh itself doesn't
+  // require them, only mstsc-style ``host:port`` targets do, so this
+  // stays a plain ``user@ipv6``.
+  const sshCommandForV6 = (ipv6: string, data: { username?: string; port?: number }): string => {
+    if (!data.username || !ipv6) return ''
+    const portFlag = data.port && data.port !== 22 ? `-p ${data.port} ` : ''
+    return `ssh ${portFlag}${data.username}@${ipv6}`
   }
 
   // Build a per-user URL from user_accounts (ip + port), preserving any path
@@ -245,12 +256,21 @@ export function useDeploymentCredentials(
     });
   });
 
-  // Whether any member across any team has an RDP account — the IPv4/IPv6
-  // toggle only makes sense (and only renders) when there's an RDP pill
-  // anywhere to apply it to.
-  const hasAnyRdpAccount = computed(() =>
+  // Whether any member across any team has an account the IPv4/IPv6 toggle
+  // could apply to — an RDP account (always offered the toggle), or an SSH
+  // account whose own ``ip_v6``/the team VM's ``fixed_ip_v6`` is set. The
+  // toggle only makes sense (and only renders) when there's at least one
+  // such pill anywhere to apply it to.
+  const hasAnyIpv6Account = computed(() =>
     enrichedTeams.value.some((team) =>
-      team.members.some((member) => member.account?.data.authtype === 'rdp'),
+      team.members.some((member) => {
+        const authtype = member.account?.data.authtype
+        if (authtype === 'rdp') return true
+        if (!authtype || authtype === 'ssh') {
+          return Boolean(member.account?.data.ip_v6 || team.vm?.fixed_ip_v6)
+        }
+        return false
+      }),
     ),
   )
 
@@ -343,11 +363,12 @@ export function useDeploymentCredentials(
     visiblePasswords,
     togglePasswordVisibility,
     sshCommandFor,
+    sshCommandForV6,
     userUrlFor,
     typedUserAccounts,
     extractTeamVms,
     enrichedTeams,
-    hasAnyRdpAccount,
+    hasAnyIpv6Account,
     copiedKey,
     copyToClipboard,
     resendState,
