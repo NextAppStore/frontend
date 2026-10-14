@@ -455,6 +455,18 @@ onMounted(() => {
 })
 
 // --- Actions ---
+// Each summary section links back to the wizard step that produced it. Without
+// the first two, anyone arriving here from the express deploy was stuck: that
+// path fills the draft with a single team holding the lecturer, and the only
+// way to a course was to start the wizard over from the tile.
+const handleEditBaseConfig = () => {
+  router.push({ name: 'deployment.config' })
+}
+
+const handleEditTeams = () => {
+  router.push({ name: 'deployment.teams' })
+}
+
 const handleCustomize = () => {
   // Navigate to the variables page.
   router.push({ name: 'deployment.variables' })
@@ -570,9 +582,17 @@ const handleBack = () => {
     <div v-else class="flex-grow space-y-6">
       
       <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 rounded-full bg-primary text-content-inverse flex items-center justify-center font-bold text-sm">1</div>
-          <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.baseConfigTitle') }}</h3>
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-primary text-content-inverse flex items-center justify-center font-bold text-sm">1</div>
+            <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.baseConfigTitle') }}</h3>
+          </div>
+          <button @click="handleEditBaseConfig"
+            data-testid="summary-edit-base-config"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-colors border border-tag-accentBorder text-sm">
+            <ArrowRight :size="16" />
+            {{ t('deployment.summary.editBtn') }}
+          </button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-surface-card rounded-lg p-4 border border-card-border">
@@ -612,9 +632,17 @@ const handleBack = () => {
       </div>
 
       <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 rounded-full bg-tag-info text-content-inverse flex items-center justify-center font-bold text-sm">2</div>
-          <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.teamAssignmentTitle') }}</h3>
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-tag-info text-content-inverse flex items-center justify-center font-bold text-sm">2</div>
+            <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.teamAssignmentTitle') }}</h3>
+          </div>
+          <button @click="handleEditTeams"
+            data-testid="summary-edit-teams"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-colors border border-tag-accentBorder text-sm">
+            <ArrowRight :size="16" />
+            {{ t('deployment.summary.editBtn') }}
+          </button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div class="bg-surface-card rounded-lg p-4 border border-card-border">
@@ -657,6 +685,7 @@ const handleBack = () => {
             <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.variablesConfigTitle') }}</h3>
           </div>
           <button @click="handleCustomize"
+            data-testid="summary-edit-variables"
             class="flex items-center gap-2 px-4 py-2 rounded-lg bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-colors border border-tag-accentBorder text-sm">
             <ArrowRight :size="16" />
             {{ t('deployment.summary.editBtn') }}
