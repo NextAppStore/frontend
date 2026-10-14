@@ -43,6 +43,14 @@ export function useDeploymentCredentials(
     visiblePasswords.value[key] = !visiblePasswords.value[key]
   }
 
+  // terraform's fixed_ip_v6 attribute comes back already bracketed
+  // (e.g. "[2001:db8::1]", confirmed via `terraform state show` —
+  // not a CLI formatting artifact). Strip any brackets before use so
+  // callers that add their own (userUrlForV6, teamVmUrlForV6) don't
+  // double them up, and ssh's plain `user@ipv6` doesn't end up as
+  // `user@[ipv6]`.
+  const stripIpv6Brackets = (ipv6: string): string => ipv6.replace(/^\[|\]$/g, '')
+
   // Build a copy-paste SSH command from an account. Skips ``-p`` for the
   // default port 22 so the line stays short for the common case.
   const sshCommandFor = (data: { username?: string; ip?: string; port?: number }): string => {
@@ -59,7 +67,7 @@ export function useDeploymentCredentials(
   const sshCommandForV6 = (ipv6: string, data: { username?: string; port?: number }): string => {
     if (!data.username || !ipv6) return ''
     const portFlag = data.port && data.port !== 22 ? `-p ${data.port} ` : ''
-    return `ssh ${portFlag}${data.username}@${ipv6}`
+    return `ssh ${portFlag}${data.username}@${stripIpv6Brackets(ipv6)}`
   }
 
   // Build a per-user URL from user_accounts (ip + port), preserving any path
@@ -85,7 +93,7 @@ export function useDeploymentCredentials(
         path = new URL(teamVmUrl).pathname.replace(/\/$/, '')
       } catch { /* ignore malformed url */ }
     }
-    return `http://[${ipv6}]:${data.port}${path}`
+    return `http://[${stripIpv6Brackets(ipv6)}]:${data.port}${path}`
   }
 
   // team.vm.url is pre-built by terraform with the v4 address baked in
@@ -96,7 +104,7 @@ export function useDeploymentCredentials(
   const teamVmUrlForV6 = (teamVmUrl: string, ipv6: string): string => {
     try {
       const parsed = new URL(teamVmUrl)
-      parsed.hostname = `[${ipv6}]`
+      parsed.hostname = `[${stripIpv6Brackets(ipv6)}]`
       return parsed.toString()
     } catch {
       return teamVmUrl

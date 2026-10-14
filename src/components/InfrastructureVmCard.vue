@@ -20,11 +20,9 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DeploymentResource } from '@/types'
 import { formatUptime, pillToneClass } from '@/composables/useVmPresentation'
-import { useIpVersionPreference } from '@/composables/useIpVersionPreference'
 import { RefreshCcw, AlertTriangle, Cpu, Network } from 'lucide-vue-next'
 
 const { t } = useI18n()
-const { ipVersion } = useIpVersionPreference()
 
 const props = defineProps<{
   resource: DeploymentResource
@@ -104,18 +102,13 @@ const flavorBrief = computed(() => {
   return parts.length > 0 ? parts.join(' · ') : null
 })
 
-// --- IPv4/IPv6 visual emphasis ---
+// --- IPv4/IPv6 styling ---
 // Both addresses stay visible on this compact card (no room for a
-// per-card toggle without noise across many VMs) — only the preferred
-// version from the shared ``useIpVersionPreference`` is emphasised, so
-// a teacher who picked IPv6 for RDP sees it as the prominent address
-// here too, consistently.
-const v4AddressClass = computed(() =>
-  ipVersion.value === 'v6' ? 'font-mono text-content-disabled' : 'font-mono text-content-primary',
-)
-const v6AddressClass = computed(() =>
-  ipVersion.value === 'v6' ? 'font-mono text-content-primary' : 'font-mono text-content-disabled',
-)
+// per-card toggle without noise across many VMs). Styled identically —
+// no preferred-version emphasis — so neither address reads as more or
+// less important than the other.
+const v4AddressClass = 'font-mono text-content-primary'
+const v6AddressClass = 'font-mono text-content-primary'
 
 const cardBorderClass = computed(() => {
   if (props.resource.drift === 'missing') return 'border-status-error/50 ring-1 ring-status-errorLight'

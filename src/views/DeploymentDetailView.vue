@@ -46,8 +46,19 @@ const rdpCommandForV6 = (ipv6: string): string => `mstsc /v:[${ipv6}]`
 // account's own ``ip_v6`` wins when present (per-member precision, now
 // that the worker output carries it), falling back to the team VM's
 // ``fixed_ip_v6`` for apps that only publish it at the team level.
-const accountIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null =>
-    account.ip_v6 || team.vm?.fixed_ip_v6 || null
+//
+// Normalised here, once, for every caller: terraform's own
+// ``fixed_ip_v6`` instance attribute comes back pre-bracketed (e.g.
+// "[2001:db8::1]", confirmed via `terraform state show` — not a CLI
+// artifact), while apps that instead read a team port's
+// ``all_fixed_ips`` list (e.g. Windows-App) get a bare address. Strip
+// any brackets here so every consumer (rdpCommandForV6,
+// sshCommandForV6, userUrlForV6, teamVmUrlForV6) can add its own
+// without ever doubling up into "[[...]]".
+const accountIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null => {
+    const raw = account.ip_v6 || team.vm?.fixed_ip_v6 || null
+    return raw ? raw.replace(/^\[|\]$/g, '') : null
+}
 
 
 const route = useRoute()
