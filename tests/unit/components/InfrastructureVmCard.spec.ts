@@ -77,3 +77,31 @@ describe('InfrastructureVmCard — IPv4/IPv6 address display', () => {
     expect(v6Line()?.classes()).toContain('text-content-primary')
   })
 })
+
+describe('InfrastructureVmCard — address families on edge cases', () => {
+  const withAddress = (fixed_ip: string | null, fixed_ip_v6: string | null) =>
+    mount(InfrastructureVmCard, {
+      props: {
+        resource: {
+          ...resource,
+          addresses: [{ network: 'DHBWV6', fixed_ip, fixed_ip_v6, floating_ip: null, mac: null }],
+        } as unknown as DeploymentResource,
+      },
+    })
+
+  it('does not show an IPv6 address under the IPv4 label on IPv6-only networks', () => {
+    // Backend fallback: no IPv4 on the network -> fixed_ip carries the v6 address too.
+    const v6 = '2001:7c0:1b20:c913:1::134'
+    const wrapper = withAddress(v6, v6)
+    const text = wrapper.text()
+    expect(text).not.toContain('vm.ipv4Label')
+    expect(text).toContain('vm.ipv6Label')
+    expect(text.split(v6)).toHaveLength(2) // rendered exactly once
+  })
+
+  it('renders only the IPv4 line when the network has no IPv6', () => {
+    const wrapper = withAddress('10.200.3.147', null)
+    expect(wrapper.text()).toContain('vm.ipv4Label')
+    expect(wrapper.text()).not.toContain('vm.ipv6Label')
+  })
+})
