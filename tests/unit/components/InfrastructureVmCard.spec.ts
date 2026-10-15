@@ -61,19 +61,19 @@ describe('InfrastructureVmCard — IPv4/IPv6 address display', () => {
     expect(v6Line?.classes()).not.toContain('text-xs')
   })
 
-  it('emphasises v4 by default and v6 once the preference switches', async () => {
+  it('renders v4 and v6 identically regardless of the shared preference', async () => {
     const wrapper = mountCard()
 
     const v4Line = () => wrapper.findAll('p').find((p) => p.text().includes('10.200.3.147'))
     const v6Line = () => wrapper.findAll('p').find((p) => p.text().includes('2001:7c0:1b20:c913:1::134'))
 
     expect(v4Line()?.classes()).toContain('text-content-primary')
-    expect(v6Line()?.classes()).toContain('text-content-disabled')
+    expect(v6Line()?.classes()).toContain('text-content-primary')
 
     useIpVersionPreference().setIpVersion('v6')
     await wrapper.vm.$nextTick()
 
-    expect(v4Line()?.classes()).toContain('text-content-disabled')
+    expect(v4Line()?.classes()).toContain('text-content-primary')
     expect(v6Line()?.classes()).toContain('text-content-primary')
   })
 })
