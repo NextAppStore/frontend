@@ -326,7 +326,7 @@ export interface HardwareSpec {
 
 export interface NetworkAddress {
   network: string
-  /** First fixed IPv4; falls back to the first fixed address on networks without IPv4. */
+  /** First fixed IPv4 address, or null if there is none. */
   fixed_ip: string | null
   /** First fixed IPv6, or null on IPv4-only networks. */
   fixed_ip_v6: string | null
@@ -339,7 +339,7 @@ export interface NetworkPort {
   network_id: string | null
   status: string | null
   mac: string | null
-  /** First fixed IPv4; falls back to the first fixed address on networks without IPv4. */
+  /** First fixed IPv4 address, or null if there is none. */
   fixed_ip: string | null
   /** First fixed IPv6, or null on IPv4-only networks. */
   fixed_ip_v6: string | null

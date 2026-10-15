@@ -89,10 +89,9 @@ describe('InfrastructureVmCard — address families on edge cases', () => {
       },
     })
 
-  it('does not show an IPv6 address under the IPv4 label on IPv6-only networks', () => {
-    // Backend fallback: no IPv4 on the network -> fixed_ip carries the v6 address too.
+  it('renders only the IPv6 line on IPv6-only networks (fixed_ip is null)', () => {
     const v6 = '2001:7c0:1b20:c913:1::134'
-    const wrapper = withAddress(v6, v6)
+    const wrapper = withAddress(null, v6)
     const text = wrapper.text()
     expect(text).not.toContain('vm.ipv4Label')
     expect(text).toContain('vm.ipv6Label')

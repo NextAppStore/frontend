@@ -20,7 +20,6 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DeploymentResource } from '@/types'
 import { formatUptime, pillToneClass } from '@/composables/useVmPresentation'
-import { splitFixedIps } from '@/utils/ip-addresses'
 import { RefreshCcw, AlertTriangle, Cpu, Network } from 'lucide-vue-next'
 
 const { t } = useI18n()
@@ -102,11 +101,6 @@ const flavorBrief = computed(() => {
   if (hw.disk_gb != null) parts.push(`${hw.disk_gb} ${t('vm.units.gb')}`)
   return parts.length > 0 ? parts.join(' · ') : null
 })
-
-// Never trust ``fixed_ip`` to be IPv4 (see utils/ip-addresses.ts).
-const addressRows = computed(() =>
-  props.resource.addresses.map((addr) => ({ ...addr, ...splitFixedIps(addr) })),
-)
 
 // --- IPv4/IPv6 styling ---
 // Both addresses stay visible on this compact card (no room for a
@@ -204,18 +198,18 @@ const cardBorderClass = computed(() => {
       <Network :size="14" class="mt-0.5 shrink-0 text-content-disabled" />
       <div class="space-y-1.5 flex-1 min-w-0">
         <div
-          v-for="addr in addressRows"
+          v-for="addr in resource.addresses"
           :key="`${resource.address}::${addr.network}`"
           class="space-y-0.5"
         >
           <span class="text-content-disabled">{{ addr.network }}:</span>
-          <p v-if="addr.v4" class="break-all" :class="v4AddressClass">
+          <p v-if="addr.fixed_ip" class="break-all" :class="v4AddressClass">
             <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv4Label') }}</span>
-            {{ addr.v4 }}
+            {{ addr.fixed_ip }}
           </p>
-          <p v-if="addr.v6" class="break-all" :class="v6AddressClass">
+          <p v-if="addr.fixed_ip_v6" class="break-all" :class="v6AddressClass">
             <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv6Label') }}</span>
-            {{ addr.v6 }}
+            {{ addr.fixed_ip_v6 }}
           </p>
           <p v-if="addr.floating_ip" class="font-mono text-status-success break-all">
             → {{ addr.floating_ip }}

@@ -17,7 +17,6 @@ import { useI18n } from 'vue-i18n'
 import type { DeploymentResource } from '@/types'
 import { deploymentApi } from '@/api/deployment.api'
 import { formatUptime, pillToneClass } from '@/composables/useVmPresentation'
-import { splitFixedIps } from '@/utils/ip-addresses'
 import {
   X,
   RefreshCw,
@@ -98,9 +97,9 @@ const uptime = computed(() => formatUptime(detail.value?.hardware?.launched_at))
 // The Stage-2 ``ports`` block only carries the ``network_id`` (UUID).
 // The Stage-1 ``addresses`` block, on the other hand, is keyed by the
 // OpenStack-side network NAME (e.g. ``"NAT"``). The MAC is the stable link
-// between the two (all addresses of a port share it); fixed IPs are the
-// fallback, compared per family so the result never depends on the order
-// in which OpenStack returned the addresses.
+// between the two (all addresses of a port share it). The fixed IPs are the
+// fallback; each field carries one address family, so they are compared
+// field by field.
 const portNetworkName = (port: {
   fixed_ip: string | null
   fixed_ip_v6: string | null
@@ -112,11 +111,11 @@ const portNetworkName = (port: {
     const m = addrs.find((a) => a.mac === port.mac)
     if (m) return m.network
   }
-  const p = splitFixedIps(port)
-  const m = addrs.find((a) => {
-    const n = splitFixedIps(a)
-    return (p.v4 !== null && n.v4 === p.v4) || (p.v6 !== null && n.v6 === p.v6)
-  })
+  const m = addrs.find(
+    (a) =>
+      (port.fixed_ip !== null && a.fixed_ip === port.fixed_ip) ||
+      (port.fixed_ip_v6 !== null && a.fixed_ip_v6 === port.fixed_ip_v6),
+  )
   return m ? m.network : null
 }
 </script>
@@ -334,7 +333,7 @@ const portNetworkName = (port: {
               <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-content-secondary">
                 <div>
                   <span class="text-content-disabled">{{ t('vm.drawer.network.fixedIp') }}</span>
-                  <code class="ml-1 font-mono">{{ splitFixedIps(addr).v4 || '—' }}</code>
+                  <code class="ml-1 font-mono">{{ addr.fixed_ip || '—' }}</code>
                 </div>
                 <div v-if="addr.floating_ip">
                   <span class="text-content-disabled">{{ t('vm.drawer.network.floatingIp') }}</span>
@@ -344,9 +343,9 @@ const portNetworkName = (port: {
                      ("xxxx:xxxx:...:xxxx" / "xx:xx:xx:xx:xx:xx") that
                      cramming them into a half-width cell next to another
                      field pushes them past the panel edge. -->
-                <div v-if="splitFixedIps(addr).v6" class="col-span-2">
+                <div v-if="addr.fixed_ip_v6" class="col-span-2">
                   <span class="text-content-disabled">{{ t('vm.drawer.network.fixedIpV6') }}</span>
-                  <code class="ml-1 font-mono break-all">{{ splitFixedIps(addr).v6 }}</code>
+                  <code class="ml-1 font-mono break-all">{{ addr.fixed_ip_v6 }}</code>
                 </div>
                 <div v-if="addr.mac" class="col-span-2">
                   <span class="text-content-disabled">{{ t('vm.drawer.network.mac') }}</span>
@@ -406,11 +405,11 @@ const portNetworkName = (port: {
               <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-content-secondary">
                 <div>
                   <span class="text-content-disabled">IP</span>
-                  <code class="ml-1 font-mono">{{ splitFixedIps(port).v4 || '—' }}</code>
+                  <code class="ml-1 font-mono">{{ port.fixed_ip || '—' }}</code>
                 </div>
-                <div v-if="splitFixedIps(port).v6" class="col-span-2">
+                <div v-if="port.fixed_ip_v6" class="col-span-2">
                   <span class="text-content-disabled">{{ t('vm.drawer.network.fixedIpV6') }}</span>
-                  <code class="ml-1 font-mono break-all">{{ splitFixedIps(port).v6 }}</code>
+                  <code class="ml-1 font-mono break-all">{{ port.fixed_ip_v6 }}</code>
                 </div>
                 <div class="col-span-2">
                   <span class="text-content-disabled">{{ t('vm.drawer.network.mac') }}</span>
