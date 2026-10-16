@@ -351,9 +351,12 @@ export default {
     ipToggle: {
       ipv4: "IPv4",
       ipv6: "IPv6",
-      ariaLabel: "Select IP version for RDP commands",
+      ariaLabel: "Select IP version for RDP/SSH commands",
     },
     rdp: {
+      unavailableV6: "IPv6 not available for this team",
+    },
+    ssh: {
       unavailableV6: "IPv6 not available for this team",
     },
     rdpHelp: {
