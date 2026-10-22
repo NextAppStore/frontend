@@ -23,7 +23,13 @@ import {
   Globe,
   Lock,
   Send,
+  Network,
+  ListChecks,
+  GraduationCap,
 } from 'lucide-vue-next'
+import type { VmTopology } from '@/types'
+
+const topologyOptions: VmTopology[] = ['shared', 'per_team', 'per_user', 'custom']
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -37,6 +43,9 @@ const form = ref({
   repoUrl: '',
   isPrivate: false,
   submitAllVersions: false,
+  vmTopology: null as VmTopology | null,
+  requirements: '',
+  recommendedFor: '',
 })
 
 const imagePreviewUrl = ref<string | null>(null)
@@ -138,6 +147,10 @@ const handleSubmit = async () => {
       image: imageDataUrl,
       is_private: form.value.isPrivate,
       submit_all_versions: !form.value.isPrivate && form.value.submitAllVersions,
+      // Optional metadata: empty input is sent as null ("not specified").
+      vm_topology: form.value.vmTopology,
+      requirements: form.value.requirements.trim() || null,
+      recommended_for: form.value.recommendedFor.trim() || null,
     })
 
     toast.success(t('AppsCreateView.messages.success'))
@@ -237,6 +250,50 @@ const handleSubmit = async () => {
               v-model="form.repoUrl"
               type="text"
               :placeholder="$t('AppsCreateView.form.repoPlaceholder')"
+              class="flex-1 bg-surface-card rounded py-1.5 px-3 focus:ring-2 focus:ring-primary outline-none text-content-primary shadow-sm mx-2"
+          />
+        </div>
+
+        <!-- Optional app metadata (vm_topology / requirements / recommended_for). -->
+        <div class="bg-surface-input rounded-lg p-3 flex items-center shadow-sm">
+          <div class="p-2">
+            <Network class="text-primary" :size="28" />
+          </div>
+          <div class="font-bold text-content-primary w-48 pl-2">{{ $t('AppsCreateView.form.topologyLabel') }}</div>
+          <select
+              v-model="form.vmTopology"
+              data-testid="app-form-topology"
+              class="flex-1 bg-surface-card rounded py-1.5 px-3 focus:ring-2 focus:ring-primary outline-none text-content-primary shadow-sm mx-2"
+          >
+            <option :value="null">{{ $t('AppsCreateView.form.topologyUnknown') }}</option>
+            <option v-for="opt in topologyOptions" :key="opt" :value="opt">{{ $t(`AppsCreateView.topology.${opt}`) }}</option>
+          </select>
+        </div>
+
+        <div class="bg-surface-input rounded-lg p-3 flex items-center shadow-sm">
+          <div class="p-2">
+            <ListChecks class="text-primary" :size="28" />
+          </div>
+          <div class="font-bold text-content-primary w-48 pl-2">{{ $t('AppsCreateView.form.requirementsLabel') }}</div>
+          <input
+              v-model="form.requirements"
+              type="text"
+              data-testid="app-form-requirements"
+              :placeholder="$t('AppsCreateView.form.requirementsPlaceholder')"
+              class="flex-1 bg-surface-card rounded py-1.5 px-3 focus:ring-2 focus:ring-primary outline-none text-content-primary shadow-sm mx-2"
+          />
+        </div>
+
+        <div class="bg-surface-input rounded-lg p-3 flex items-center shadow-sm">
+          <div class="p-2">
+            <GraduationCap class="text-primary" :size="28" />
+          </div>
+          <div class="font-bold text-content-primary w-48 pl-2">{{ $t('AppsCreateView.form.recommendedForLabel') }}</div>
+          <input
+              v-model="form.recommendedFor"
+              type="text"
+              data-testid="app-form-recommended-for"
+              :placeholder="$t('AppsCreateView.form.recommendedForPlaceholder')"
               class="flex-1 bg-surface-card rounded py-1.5 px-3 focus:ring-2 focus:ring-primary outline-none text-content-primary shadow-sm mx-2"
           />
         </div>
