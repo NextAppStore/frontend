@@ -12,12 +12,10 @@ import {
   ArrowRight,
   ArrowLeft,
   Info,
-  Box,
-  Layers,
+  SlidersHorizontal,
   AlertTriangle,
   ChevronDown,
   Sparkles,
-  // Plus - removed
 } from 'lucide-vue-next'
 import type { AppVariable, DeploymentFile } from '@/types'
 import FileDropZone from '@/components/FileDropZone.vue'
@@ -245,10 +243,6 @@ const packerByTemplate = computed<Record<string, AppVariable[]>>(() => {
 
 const templateKeys = computed(() => Object.keys(packerByTemplate.value).sort())
 
-const packerVariables = computed(() =>
-  Object.values(packerByTemplate.value).flat(),
-)
-
 const terraformVariables = computed(() =>
   variables.value.filter(v => v.source === 'terraform')
 )
@@ -343,57 +337,94 @@ const recomputeAdvancedKeys = (): void => {
 
 const isAdvancedVar = (v: AppVariable): boolean => advancedKeys.value.has(formKeyFor(v))
 
-// Each section keeps its own disclosure state — the two columns are filled by
-// different tools and are usually of very different size.
-const showAdvancedPacker = ref(false)
-const showAdvancedTerraform = ref(false)
+// One disclosure for the whole step. Packer and Terraform used to be two
+// columns with a toggle each; which tool consumes a variable is a property of
+// the blueprint, not a decision the person filling this form makes.
+const showAdvanced = ref(false)
 
-const visiblePackerFor = (tkey: string): AppVariable[] =>
-  (packerByTemplate.value[tkey] || []).filter(
-    (v) => showAdvancedPacker.value || !isAdvancedVar(v),
-  )
+/**
+ * The step renders one list, but the variables keep their origin: a Packer
+ * value is addressed by ``<template_key>.<name>``, a Terraform one by its bare
+ * name, and the submit payload keeps both apart (``userInputVar.packer`` /
+ * ``.terraform``). Grouping therefore survives the merge — it is only no
+ * longer labelled by tool.
+ *
+ * A heading appears solely for apps that build more than one image, where the
+ * same variable name legitimately occurs once per template.
+ */
+interface VariableGroup {
+  key: string
+  /** Image name, or ``null`` for a group that needs no heading. */
+  label: string | null
+  variables: AppVariable[]
+}
 
-// Both sections lay their cards out with flex ``order`` rather than plain
-// document order: the disclosure toggle has to sit BETWEEN the standard and
-// the advanced cards, but all cards come out of one ``v-for`` (the card markup
-// is far too large to duplicate). Buckets: 1 = standard, 2 = the toggle,
+const variableGroups = computed<VariableGroup[]>(() => {
+  const groups: VariableGroup[] = []
+  const labelled = templateKeys.value.length > 1
+  for (const tkey of templateKeys.value) {
+    groups.push({
+      key: `packer:${tkey}`,
+      label: labelled ? tkey : null,
+      variables: packerByTemplate.value[tkey] || [],
+    })
+  }
+  if (terraformVariables.value.length > 0) {
+    groups.push({ key: 'terraform', label: null, variables: terraformVariables.value })
+  }
+  return groups
+})
+
+// The list lays its cards out with flex ``order`` rather than plain document
+// order: the disclosure toggle has to sit BETWEEN the standard and the
+// advanced cards, but all cards come out of one ``v-for`` (the card markup is
+// far too large to duplicate). Buckets: 1 = standard, 2 = the toggle,
 // 3 = advanced. Flexbox keeps document order inside a bucket, so the
 // multi-image group headers stay attached to their own group.
-const standardPackerFor = (tkey: string): AppVariable[] =>
-  (packerByTemplate.value[tkey] || []).filter((v) => !isAdvancedVar(v))
+const standardIn = (g: VariableGroup): AppVariable[] =>
+  g.variables.filter((v) => !isAdvancedVar(v))
 
-const advancedPackerFor = (tkey: string): AppVariable[] =>
-  (packerByTemplate.value[tkey] || []).filter((v) => isAdvancedVar(v))
+const advancedIn = (g: VariableGroup): AppVariable[] =>
+  g.variables.filter((v) => isAdvancedVar(v))
 
-const hiddenPackerCount = computed(
-  () => packerVariables.value.filter((v) => isAdvancedVar(v)).length,
+const visibleIn = (g: VariableGroup): AppVariable[] =>
+  g.variables.filter((v) => showAdvanced.value || !isAdvancedVar(v))
+
+const hiddenCount = computed(
+  () => variables.value.filter((v) => isAdvancedVar(v)).length,
 )
 
-const visibleTerraformVariables = computed(() =>
-  terraformVariables.value.filter((v) => showAdvancedTerraform.value || !isAdvancedVar(v)),
+// "Everything is preconfigured": the step has variables, but every single one
+// of them is an untouched default. Without this hint the collapsed list would
+// just look broken. It deliberately stays visible while the advanced block is
+// open — it is the step's status ("nothing is required of you here"), not a
+// prompt to click, so hiding it on expand would make that reassurance
+// disappear exactly when the user starts changing things.
+const allPreconfigured = computed(
+  () => variables.value.length > 0 && hiddenCount.value === variables.value.length,
 )
 
-const hiddenTerraformCount = computed(
-  () => terraformVariables.value.filter((v) => isAdvancedVar(v)).length,
-)
+/**
+ * Names that occur more than once across the merged list. Packer and Terraform
+ * may legitimately declare the same variable name — while they had a column
+ * each that was unambiguous, in one list the two cards would look identical
+ * although they are stored and submitted separately. Only these few carry an
+ * origin badge; the common case stays free of tool names.
+ */
+const ambiguousNames = computed<Set<string>>(() => {
+  const counts = new Map<string, number>()
+  for (const v of variables.value) counts.set(v.name, (counts.get(v.name) ?? 0) + 1)
+  return new Set(
+    Array.from(counts.entries())
+      .filter(([, n]) => n > 1)
+      .map(([name]) => name),
+  )
+})
 
-// "Everything is preconfigured": the section has variables, but every single
-// one of them is an untouched default. Without this hint the collapsed column
-// would just look broken. It deliberately stays visible while the advanced
-// block is open — it is the section's status ("nothing is required of you
-// here"), not a prompt to click, so hiding it on expand would make that
-// reassurance disappear exactly when the user starts changing things.
-const packerAllPreconfigured = computed(
-  () =>
-    packerVariables.value.length > 0 &&
-    hiddenPackerCount.value === packerVariables.value.length,
-)
-
-const terraformAllPreconfigured = computed(
-  () =>
-    terraformVariables.value.length > 0 &&
-    hiddenTerraformCount.value === terraformVariables.value.length,
-)
+const originLabel = (v: AppVariable): string =>
+  v.source === 'packer'
+    ? t('deployment.variables.originImage')
+    : t('deployment.variables.originInfra')
 
 /**
  * True when the value currently shown is still the author's default, i.e. the
@@ -752,43 +783,36 @@ watch(
         {{ t('deployment.variables.noVariables') }}
       </div>
 
-      <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <div class="bg-surface-input rounded-xl border-2 border-card-border overflow-hidden">
-          <div class="bg-tag-info text-white px-6 py-4 flex items-center gap-3">
-            <Box :size="24" />
-            <div>
-              <h2 class="text-xl font-bold">{{ t('deployment.summary.packerVars') }}</h2>
-              <p class="text-xs text-white/70 mt-0.5">{{ t('deployment.variables.packerDesc') }}</p>
-            </div>
+      <!-- ONE list for every variable. Packer and Terraform used to sit in two
+           columns side by side; that split describes how the blueprint is built,
+           not a decision the lecturer filling this form makes. What stays apart
+           is the submit payload (``userInputVar.packer`` / ``.terraform``) and
+           the form key — both handled by ``formKeyFor``. -->
+      <div v-else class="bg-surface-input rounded-xl border-2 border-card-border overflow-hidden max-w-3xl mx-auto">
+        <div class="bg-tag-info text-white px-6 py-4 flex items-center gap-3">
+          <SlidersHorizontal :size="24" aria-hidden="true" />
+          <div>
+            <h2 class="text-xl font-bold">{{ t('deployment.variables.sectionTitle') }}</h2>
+            <p class="text-xs text-white/70 mt-0.5">{{ t('deployment.variables.sectionDesc') }}</p>
           </div>
-          
-          <div class="p-6 flex flex-col gap-6 max-h-[600px] overflow-y-auto">
-            <div v-if="packerVariables.length === 0" class="order-1 text-center py-8 text-tag-info italic">
-              {{ t('deployment.summary.noPackerVars') }}
+        </div>
+
+        <div class="p-6 flex flex-col gap-6 max-h-[600px] overflow-y-auto">
+          <template v-for="group in variableGroups" :key="group.key">
+            <!-- One header per flex bucket, so an expanded advanced block keeps
+                 its own image heading. -->
+            <div v-if="group.label && standardIn(group).length > 0" class="order-1 -mx-6 px-6 py-2 bg-tag-infoLight/70 border-y border-tag-infoBorder text-sm font-semibold text-content-primary">
+              {{ t('deployment.variables.imageGroup') }}: <code class="font-mono">{{ group.label }}</code>
+            </div>
+            <div v-if="group.label && showAdvanced && advancedIn(group).length > 0" class="order-3 -mx-6 px-6 py-2 bg-tag-infoLight/70 border-y border-tag-infoBorder text-sm font-semibold text-content-primary">
+              {{ t('deployment.variables.imageGroup') }}: <code class="font-mono">{{ group.label }}</code>
             </div>
 
-            <template v-for="tkey in templateKeys" :key="tkey">
-              <!-- One group header per flex bucket, so an expanded advanced
-                   block keeps its own "Image: …" heading. -->
-              <div
-                v-if="templateKeys.length > 1 && standardPackerFor(tkey).length > 0"
-                class="order-1 -mx-6 px-6 py-2 bg-tag-infoLight/70 border-y border-tag-infoBorder text-sm font-semibold text-content-primary"
-              >
-                Image: <code class="font-mono">{{ tkey }}</code>
-              </div>
-              <div
-                v-if="templateKeys.length > 1 && showAdvancedPacker && advancedPackerFor(tkey).length > 0"
-                class="order-3 -mx-6 px-6 py-2 bg-tag-infoLight/70 border-y border-tag-infoBorder text-sm font-semibold text-content-primary"
-              >
-                Image: <code class="font-mono">{{ tkey }}</code>
-              </div>
-
-              <div v-for="variable in visiblePackerFor(tkey)" :key="`${tkey}.${variable.name}`" class="bg-surface-card rounded-lg p-4 border border-card-border shadow-sm" :class="isAdvancedVar(variable) ? 'order-3' : 'order-1'">
+            <div v-for="variable in visibleIn(group)" :key="`${group.key}::${variable.name}`" class="bg-surface-card rounded-lg p-4 border border-card-border shadow-sm" :class="isAdvancedVar(variable) ? 'order-3' : 'order-1'">
               <div class="flex items-start justify-between gap-2 mb-3">
                 <label
-                  :for="packerFormKey(variable)"
-                  @click.prevent="focusInput(packerFormKey(variable))"
+                  :for="formKeyFor(variable)"
+                  @click.prevent="focusInput(formKeyFor(variable))"
                   class="text-base font-bold text-content-primary cursor-pointer hover:text-tag-info transition-colors flex-1"
                 >
                   {{ variable.name }}
@@ -796,9 +820,9 @@ watch(
 
                 <button
                   v-if="variable.description || isList(variable.type)"
-                  @click.stop="toggleTooltip(packerFormKey(variable))"
+                  @click.stop="toggleTooltip(formKeyFor(variable))"
                   class="text-content-disabled hover:text-tag-info transition-colors focus:outline-none"
-                  :class="activeTooltip === packerFormKey(variable) ? 'text-tag-info' : ''"
+                  :class="activeTooltip === formKeyFor(variable) ? 'text-tag-info' : ''"
                   :title="t('deployment.variables.showInfo')"
                 >
                   <Info :size="16" />
@@ -819,7 +843,7 @@ watch(
                 </p>
               </div>
 
-              <div v-if="activeTooltip === packerFormKey(variable)" class="mb-3 bg-tag-infoLight p-3 rounded-lg border border-tag-infoBorder text-sm text-content-secondary">
+              <div v-if="activeTooltip === formKeyFor(variable)" class="mb-3 bg-tag-infoLight p-3 rounded-lg border border-tag-infoBorder text-sm text-content-secondary">
                 <p v-if="variable.description" class="mb-2">{{ variable.description }}</p>
                 <div v-if="isList(variable.type)" class="flex gap-2 items-start text-xs text-tag-info">
                   <Info :size="12" class="mt-0.5 shrink-0" />
@@ -846,255 +870,13 @@ watch(
                   {{ t('deployment.variables.recommended') }}
                 </span>
                 <ScopeBadge :scope="effectiveScope(variable)" />
-              </div>
-
-              <div
-                v-if="isScoped(variable)"
-                class="mb-3 text-xs text-tag-accent bg-tag-accentLight border border-tag-accentBorder rounded px-3 py-2"
-              >
-                <p class="font-semibold mb-0.5">
-                  {{ effectiveScope(variable) === 'team' ? t('deployment.variables.scopeTitleTeam') : t('deployment.variables.scopeTitleUser') }}
-                </p>
-                <p v-html="effectiveScope(variable) === 'team' ? t('deployment.variables.scopeDescTeam') : t('deployment.variables.scopeDescUser')"></p>
-              </div>
-
-              <div v-if="isFileVar(variable)" class="space-y-3">
-                <FileDropZone
-                  v-if="(variable.osScope || 'all') === 'all'"
-                  :model-value="getFileSlot(variable.name, 'all')"
-                  @update:modelValue="(v) => setFileSlot(variable.name, 'all', v)"
-                  :label="variable.name"
-                  :accept="fileAcceptFor(variable)"
-                />
-                <template v-else-if="variable.osScope === 'team'">
-                  <FileDropZone
-                    v-for="team in wizardTeams"
-                    :key="`${variable.name}::${team.name}`"
-                    :model-value="getFileSlot(variable.name, team.name)"
-                    @update:modelValue="(v) => setFileSlot(variable.name, team.name, v)"
-                    :label="team.name"
-                    :accept="fileAcceptFor(variable)"
-                  />
-                  <div v-if="wizardTeams.length === 0" class="text-xs text-status-warning bg-status-warningLight border border-status-warning/40 rounded p-2">
-                    {{ t('deployment.variables.noTeamsConfigured') }}
-                  </div>
-                </template>
-                <template v-else-if="variable.osScope === 'user'">
-                  <div
-                    v-for="team in wizardTeams"
-                    :key="`${variable.name}::${team.name}`"
-                    class="border-l-2 border-card-border pl-3 space-y-2"
-                  >
-                    <div class="text-xs font-semibold text-content-secondary uppercase tracking-wide">
-                      {{ team.name }}
-                    </div>
-                    <FileDropZone
-                      v-for="member in team.members"
-                      :key="`${variable.name}::${team.name}::${member.userId}`"
-                      :model-value="getFileSlot(variable.name, userSlotKey(team.name, member.username))"
-                      @update:modelValue="(v) => setFileSlot(variable.name, userSlotKey(team.name, member.username), v)"
-                      :label="member.username"
-                      :accept="fileAcceptFor(variable)"
-                    />
-                    <div v-if="team.members.length === 0" class="text-xs text-content-disabled italic">
-                      {{ t('deployment.variables.noMembers') }}
-                    </div>
-                  </div>
-                  <div v-if="wizardTeams.length === 0" class="text-xs text-status-warning bg-status-warningLight border border-status-warning/40 rounded p-2">
-                    {{ t('deployment.variables.noTeamsConfigured') }}
-                  </div>
-                </template>
-              </div>
-
-              <template v-else>
-                <VariableInput
-                  v-if="!isScoped(variable)"
-                  :variable="variable"
-                  :model-value="formValues[packerFormKey(variable)]"
-                  @update:modelValue="(v) => (formValues[packerFormKey(variable)] = v)"
-                  :filter-network-id="variable.osType === 'subnet' ? findNetworkValueForSubnet(variable) : null"
-                  accent="blue"
-                  :input-id="packerFormKey(variable)"
-                />
-                <div v-else class="space-y-3">
-                  <div
-                    v-if="slotKeysFor(variable).length === 0 && effectiveScope(variable) === 'team'"
-                    class="text-xs text-status-warning bg-status-warningLight border border-status-warning/40 rounded p-2"
-                  >
-                    {{ t('deployment.variables.noTeamsConfigured') }}
-                  </div>
-                  <template v-if="effectiveScope(variable) === 'user'">
-                    <div v-if="wizardTeams.length === 0" class="text-xs text-status-warning bg-status-warningLight border border-status-warning/40 rounded p-2">
-                      {{ t('deployment.variables.noTeamsConfigured') }}
-                    </div>
-                    <div
-                      v-for="team in wizardTeams"
-                      :key="`${variable.name}::team::${team.name}`"
-                      class="border-l-2 border-card-border pl-3 space-y-2"
-                    >
-                      <div class="text-xs font-semibold text-content-secondary uppercase tracking-wide">
-                        {{ team.name }}
-                      </div>
-                      <div
-                        v-for="member in team.members"
-                        :key="`${variable.name}::${team.name}::${member.userId}`"
-                        class="flex flex-col gap-1"
-                      >
-                        <label
-                          :for="`${packerFormKey(variable)}__${userSlotKey(team.name, member.username)}`"
-                          class="text-xs font-semibold text-content-secondary"
-                        >
-                          {{ member.username }}
-                        </label>
-                        <VariableInput
-                          :variable="variable"
-                          :model-value="getScopedValue(packerFormKey(variable), userSlotKey(team.name, member.username))"
-                          @update:modelValue="(v) => setScopedValue(packerFormKey(variable), userSlotKey(team.name, member.username), v)"
-                          :filter-network-id="variable.osType === 'subnet' ? findNetworkValueForSubnet(variable) : null"
-                          accent="blue"
-                          :input-id="`${packerFormKey(variable)}__${userSlotKey(team.name, member.username)}`"
-                        />
-                      </div>
-                      <div v-if="team.members.length === 0" class="text-xs text-content-disabled italic">
-                        {{ t('deployment.variables.noMembers') }}
-                      </div>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div
-                      v-for="slotKey in slotKeysFor(variable)"
-                      :key="`${variable.name}::${slotKey}`"
-                      class="flex flex-col gap-1"
-                    >
-                      <label
-                        :for="`${packerFormKey(variable)}__${slotKey}`"
-                        class="text-xs font-semibold text-content-secondary"
-                      >
-                        {{ formatSlotLabel(variable, slotKey) }}
-                      </label>
-                      <VariableInput
-                        :variable="variable"
-                        :model-value="getScopedValue(packerFormKey(variable), slotKey)"
-                        @update:modelValue="(v) => setScopedValue(packerFormKey(variable), slotKey, v)"
-                        :filter-network-id="variable.osType === 'subnet' ? findNetworkValueForSubnet(variable) : null"
-                        accent="blue"
-                        :input-id="`${packerFormKey(variable)}__${slotKey}`"
-                      />
-                    </div>
-                  </template>
-                </div>
-              </template>
-            </div>
-            </template>
-
-            <!-- Advanced disclosure. Everything the app author already
-                 answered lives behind this toggle, so the collapsed column
-                 asks only for what is genuinely missing. -->
-            <div
-              v-if="packerAllPreconfigured"
-              data-testid="packer-all-preconfigured"
-              class="order-2 text-center py-6 px-4 text-sm text-tag-info bg-tag-infoLight/70 rounded-lg border border-dashed border-tag-infoBorder"
-            >
-              {{ t('deployment.variables.allPreconfigured') }}
-            </div>
-
-            <button
-              v-if="hiddenPackerCount > 0"
-              type="button"
-              data-testid="packer-advanced-toggle"
-              :aria-expanded="showAdvancedPacker"
-              @click="showAdvancedPacker = !showAdvancedPacker"
-              class="order-2 w-full flex items-center gap-2 text-sm font-semibold text-tag-info bg-tag-infoLight hover:bg-tag-infoLight/70 border border-tag-infoBorder rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-tag-infoBorder"
-            >
-              <ChevronDown
-                :size="16"
-                aria-hidden="true"
-                class="shrink-0 transition-transform"
-                :class="showAdvancedPacker ? '' : '-rotate-90'"
-              />
-              <span>{{ t('deployment.variables.advancedSettings') }}</span>
-              <span class="ml-auto text-xs font-bold bg-tag-infoLight text-tag-info px-2 py-0.5 rounded-full">
-                {{ hiddenPackerCount }}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div class="bg-surface-input rounded-xl border-2 border-card-border overflow-hidden">
-          <div class="bg-tag-accent text-white px-6 py-4 flex items-center gap-3">
-            <Layers :size="24" />
-            <div>
-              <h2 class="text-xl font-bold">{{ t('deployment.summary.terraformVars') }}</h2>
-              <p class="text-xs text-white/70 mt-0.5">{{ t('deployment.variables.terraformDesc') }}</p>
-            </div>
-          </div>
-
-          <div class="p-6 flex flex-col gap-6 max-h-[600px] overflow-y-auto">
-            <div v-if="terraformVariables.length === 0" class="order-1 text-center py-8 text-tag-accent italic">
-              {{ t('deployment.summary.noTerraformVars') }}
-            </div>
-
-            <div v-for="variable in visibleTerraformVariables" :key="variable.name" class="bg-surface-card rounded-lg p-4 border border-card-border shadow-sm" :class="isAdvancedVar(variable) ? 'order-3' : 'order-1'">
-              <div class="flex items-start justify-between gap-2 mb-3">
-                <label
-                  :for="variable.name"
-                  @click.prevent="focusInput(variable.name)"
-                  class="text-base font-bold text-content-primary cursor-pointer hover:text-tag-accent transition-colors flex-1"
-                >
-                  {{ variable.name }}
-                </label>
-
-                <button
-                  v-if="variable.description || isList(variable.type)"
-                  @click.stop="toggleTooltip(variable.name)"
-                  class="text-content-disabled hover:text-tag-accent transition-colors focus:outline-none"
-                  :class="activeTooltip === variable.name ? 'text-tag-accent' : ''"
-                  :title="t('deployment.variables.showInfo')"
-                >
-                  <Info :size="16" />
-                </button>
-              </div>
-
-              <div
-                v-if="variable.markerError"
-                class="mb-3 bg-status-warningLight p-3 rounded-lg border border-status-warning/40 text-xs text-status-warning"
-              >
-                <p class="font-semibold mb-1 flex items-center gap-1.5">
-                  <AlertTriangle :size="14" class="shrink-0" />
-                  {{ t('deployment.variables.markerErrorTitle') }}
-                </p>
-                <p>{{ variable.markerError.message }}</p>
-                <p v-if="variable.markerError.location" class="mt-1 font-mono text-status-warning/80">
-                  {{ variable.markerError.location }}
-                </p>
-              </div>
-
-              <div v-if="activeTooltip === variable.name" class="mb-3 bg-tag-accentLight p-3 rounded-lg border border-tag-accentBorder text-sm text-content-secondary">
-                <p v-if="variable.description" class="mb-2">{{ variable.description }}</p>
-                <div v-if="isList(variable.type)" class="flex gap-2 items-start text-xs text-tag-accent">
-                  <Info :size="12" class="mt-0.5 shrink-0" />
-                  <span>{{ t('deployment.variables.commaSeparated') }}</span>
-                </div>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2 mb-3">
-                <span class="text-[10px] font-bold uppercase tracking-wider bg-tag-accentLight text-tag-accent px-2 py-0.5 rounded border border-tag-accentBorder">
-                  {{ variable.type }}
-                </span>
-                <span v-if="variable.required" class="text-[10px] font-bold uppercase tracking-wider bg-status-errorLight text-status-error px-2 py-0.5 rounded border border-status-error/30">
-                  {{ t('deployment.variables.required') }}
-                </span>
-                <!-- See the Packer column for why the default counts as a recommendation. -->
                 <span
-                  v-if="isAtDefault(variable)"
-                  data-testid="recommended-badge"
-                  :title="t('deployment.variables.recommendedHint')"
-                  class="text-[10px] font-bold uppercase tracking-wider bg-status-successLight text-status-success px-2 py-0.5 rounded border border-status-success/30 flex items-center gap-1"
+                  v-if="ambiguousNames.has(variable.name)"
+                  data-testid="variable-origin-badge"
+                  class="text-[10px] font-bold uppercase tracking-wider bg-tag-neutralLight text-tag-neutral px-2 py-0.5 rounded border border-tag-neutralBorder"
                 >
-                  <Sparkles :size="10" aria-hidden="true" />
-                  {{ t('deployment.variables.recommended') }}
+                  {{ originLabel(variable) }}
                 </span>
-                <ScopeBadge :scope="effectiveScope(variable)" />
               </div>
 
               <div
@@ -1159,11 +941,10 @@ watch(
                 <VariableInput
                   v-if="!isScoped(variable)"
                   :variable="variable"
-                  :model-value="formValues[variable.name]"
-                  @update:modelValue="(v) => (formValues[variable.name] = v)"
+                  :model-value="formValues[formKeyFor(variable)]"
+                  @update:modelValue="(v) => (formValues[formKeyFor(variable)] = v)"
                   :filter-network-id="variable.osType === 'subnet' ? findNetworkValueForSubnet(variable) : null"
-                  accent="purple"
-                  :input-id="variable.name"
+                  :input-id="formKeyFor(variable)"
                 />
                 <div v-else class="space-y-3">
                   <div
@@ -1190,18 +971,17 @@ watch(
                         class="flex flex-col gap-1"
                       >
                         <label
-                          :for="`${variable.name}__${userSlotKey(team.name, member.username)}`"
+                          :for="`${formKeyFor(variable)}__${userSlotKey(team.name, member.username)}`"
                           class="text-xs font-semibold text-content-secondary"
                         >
                           {{ member.username }}
                         </label>
                         <VariableInput
                           :variable="variable"
-                          :model-value="getScopedValue(variable.name, userSlotKey(team.name, member.username))"
-                          @update:modelValue="(v) => setScopedValue(variable.name, userSlotKey(team.name, member.username), v)"
+                          :model-value="getScopedValue(formKeyFor(variable), userSlotKey(team.name, member.username))"
+                          @update:modelValue="(v) => setScopedValue(formKeyFor(variable), userSlotKey(team.name, member.username), v)"
                           :filter-network-id="variable.osType === 'subnet' ? findNetworkValueForSubnet(variable) : null"
-                          accent="purple"
-                          :input-id="`${variable.name}__${userSlotKey(team.name, member.username)}`"
+                          :input-id="`${formKeyFor(variable)}__${userSlotKey(team.name, member.username)}`"
                         />
                       </div>
                       <div v-if="team.members.length === 0" class="text-xs text-content-disabled italic">
@@ -1216,56 +996,56 @@ watch(
                       class="flex flex-col gap-1"
                     >
                       <label
-                        :for="`${variable.name}__${slotKey}`"
+                        :for="`${formKeyFor(variable)}__${slotKey}`"
                         class="text-xs font-semibold text-content-secondary"
                       >
                         {{ formatSlotLabel(variable, slotKey) }}
                       </label>
                       <VariableInput
                         :variable="variable"
-                        :model-value="getScopedValue(variable.name, slotKey)"
-                        @update:modelValue="(v) => setScopedValue(variable.name, slotKey, v)"
+                        :model-value="getScopedValue(formKeyFor(variable), slotKey)"
+                        @update:modelValue="(v) => setScopedValue(formKeyFor(variable), slotKey, v)"
                         :filter-network-id="variable.osType === 'subnet' ? findNetworkValueForSubnet(variable) : null"
-                        accent="purple"
-                        :input-id="`${variable.name}__${slotKey}`"
+                        :input-id="`${formKeyFor(variable)}__${slotKey}`"
                       />
                     </div>
                   </template>
                 </div>
               </template>
             </div>
+          </template>
 
-            <!-- Advanced disclosure — see the Packer column for the rationale. -->
-            <div
-              v-if="terraformAllPreconfigured"
-              data-testid="terraform-all-preconfigured"
-              class="order-2 text-center py-6 px-4 text-sm text-tag-accent bg-tag-accentLight/70 rounded-lg border border-dashed border-tag-accentBorder"
-            >
-              {{ t('deployment.variables.allPreconfigured') }}
-            </div>
-
-            <button
-              v-if="hiddenTerraformCount > 0"
-              type="button"
-              data-testid="terraform-advanced-toggle"
-              :aria-expanded="showAdvancedTerraform"
-              @click="showAdvancedTerraform = !showAdvancedTerraform"
-              class="order-2 w-full flex items-center gap-2 text-sm font-semibold text-tag-accent bg-tag-accentLight hover:bg-tag-accentLight/70 border border-tag-accentBorder rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-tag-accentBorder"
-            >
-              <ChevronDown
-                :size="16"
-                aria-hidden="true"
-                class="shrink-0 transition-transform"
-                :class="showAdvancedTerraform ? '' : '-rotate-90'"
-              />
-              <span>{{ t('deployment.variables.advancedSettings') }}</span>
-              <span class="ml-auto text-xs font-bold bg-tag-accentLight text-tag-accent px-2 py-0.5 rounded-full">
-                {{ hiddenTerraformCount }}
-              </span>
-            </button>
+          <!-- Advanced disclosure. Everything the app author already answered
+               lives behind this toggle, so the collapsed step asks only for what
+               is genuinely missing. -->
+          <div
+            v-if="allPreconfigured"
+            data-testid="variables-all-preconfigured"
+            class="order-2 text-center py-6 px-4 text-sm text-tag-info bg-tag-infoLight/70 rounded-lg border border-dashed border-tag-infoBorder"
+          >
+            {{ t('deployment.variables.allPreconfigured') }}
           </div>
-        </div>
 
+          <button
+            v-if="hiddenCount > 0"
+            type="button"
+            data-testid="variables-advanced-toggle"
+            :aria-expanded="showAdvanced"
+            @click="showAdvanced = !showAdvanced"
+            class="order-2 w-full flex items-center gap-2 text-sm font-semibold text-tag-info bg-tag-infoLight hover:bg-tag-infoLight/70 border border-tag-infoBorder rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-tag-infoBorder"
+          >
+            <ChevronDown
+              :size="16"
+              aria-hidden="true"
+              class="shrink-0 transition-transform"
+              :class="showAdvanced ? '' : '-rotate-90'"
+            />
+            <span>{{ t('deployment.variables.advancedSettings') }}</span>
+            <span class="ml-auto text-xs font-bold bg-tag-infoLight text-tag-info px-2 py-0.5 rounded-full">
+              {{ hiddenCount }}
+            </span>
+          </button>
+        </div>
       </div>
     </div>
 
