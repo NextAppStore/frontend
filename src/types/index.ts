@@ -613,3 +613,23 @@ export type AppVariableOsType =
   // produces a base64 payload shipped to the backend in ``DeploymentCreate.files``.
   // ``osScope`` tells the wizard whether to render one zone, one per team, or one per user.
   | 'file'
+
+// ----------------------------------------------------------------
+// ADMIN SETTINGS TYPES
+// ----------------------------------------------------------------
+/** Mirrors ``backend/app/schemas.py::DefaultNetworkResponse``. */
+export interface DefaultNetworkSetting {
+  configured: boolean
+  id?: string | null
+  name?: string | null
+  mode?: 'id' | 'name' | null
+  updated_at?: string | null
+  updated_by?: string | null
+}
+
+/** Mirrors ``backend/app/schemas.py::DefaultNetworkUpsert``. */
+export interface DefaultNetworkUpsert {
+  id: string
+  name: string
+  mode: 'id' | 'name'
+}

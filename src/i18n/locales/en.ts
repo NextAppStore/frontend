@@ -27,6 +27,7 @@ export default {
     help: "Help",
     config: "Configuration",
     approvals: "Approvals",
+    adminSettings: "Settings",
     profile: "Profile",
     logout: "Log out",
     openSidebar: "Open sidebar",
@@ -645,6 +646,35 @@ export default {
     emptyNoSubmissionsTitle: "No pending approvals",
     emptyNoSubmissionsDesc: "No app versions are waiting for approval right now. When someone submits a new version, it will show up here.",
     emptyShowAll: "Show all apps",
+  },
+
+  AdminSettingsView: {
+    title: "Platform Settings",
+    subtitle: "Global defaults for all deployments.",
+    status: {
+      loading: "Loading …",
+      noneTitle: "No default network configured",
+      noneHint: "Deployments without their own network selection will keep failing until a default is set.",
+      configured: "Default network: {name}",
+      mode: "Mode: {mode}",
+      lastUpdated: "last changed on {time}",
+    },
+    fields: {
+      networkLabel: "Default network",
+      networkHint: "Used for any @openstack:network variable a user leaves empty when deploying.",
+      modeLabel: "Value format",
+      modeHint: "Controls whether deployments receive the network ID or the name — depending on what the given app variable expects.",
+      modeId: "UUID",
+      modeName: "Name",
+    },
+    save: "Save",
+    saving: "Saving …",
+    errors: {
+      missingSelection: "Please select a network.",
+    },
+    toasts: {
+      saveSuccess: "Default network saved.",
+    },
   },
 
   deployment: {
