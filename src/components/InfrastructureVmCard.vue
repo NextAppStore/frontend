@@ -180,10 +180,10 @@ const cardBorderClass = computed(() => {
       <div class="space-y-0.5">
         <p v-if="flavorBrief">{{ flavorBrief }}</p>
         <p v-if="resource.hardware?.image_name" class="text-content-disabled">
-          Image: {{ resource.hardware.image_name }}
+          {{ t('vm.imageLabel', { name: resource.hardware.image_name }) }}
         </p>
         <p v-else-if="resource.hardware?.image_id" class="text-content-disabled font-mono">
-          Image-ID: {{ resource.hardware.image_id.slice(0, 8) }}…
+          {{ t('vm.imageIdLabel', { id: resource.hardware.image_id.slice(0, 8) }) }}
         </p>
         <p v-if="resource.hardware?.availability_zone" class="text-content-disabled">
           AZ: {{ resource.hardware.availability_zone }}

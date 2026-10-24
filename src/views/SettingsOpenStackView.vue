@@ -16,6 +16,7 @@ import { useOpenStackCredentialsStore } from '@/stores/openstack-credentials.sto
 import { useToastStore } from '@/stores/toast.store'
 import CredentialMissingBanner from '@/components/CredentialMissingBanner.vue'
 import { parseCloudsYaml, CloudsYamlError } from '@/utils/clouds-yaml'
+import { formatDateTime } from '@/utils/format'
 import type {
   OpenStackAuthType,
   OpenStackCredentialUpsert,
@@ -53,7 +54,7 @@ const yamlInputRef = ref<HTMLInputElement | null>(null)
 
 const lastValidated = computed(() => {
   if (!credStore.status?.last_validated_at) return null
-  return new Date(credStore.status.last_validated_at).toLocaleString('de-DE')
+  return formatDateTime(credStore.status.last_validated_at)
 })
 
 onMounted(async () => {

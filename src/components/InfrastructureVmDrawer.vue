@@ -399,7 +399,7 @@ const portNetworkName = (port: {
                     ? 'bg-status-successLight text-status-success border-status-success/30'
                     : 'bg-surface-input text-content-secondary border-card-border'"
                 >
-                  {{ port.status || 'unknown' }}
+                  {{ port.status || t('vm.statusUnknown') }}
                 </span>
               </div>
               <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-content-secondary">
