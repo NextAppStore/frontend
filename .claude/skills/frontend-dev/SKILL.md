@@ -198,22 +198,45 @@ Vorbilder: `EntityListState.vue`, `PageHeader.vue`.
 
 ## 6. Styling
 
-Farb-Tokens aus `tailwind.config.js` — die einzige Quelle für Markenfarben:
+Farben leben an **einer** Stelle: als CSS-Variablen in `src/style.css` — `:root` für
+Light-, `.dark` für Darkmode. `tailwind.config.js` enthält keine Werte, sondern bildet die
+Variablen nur auf Utility-Klassen ab.
 
-| Token | Wert | Rolle |
+| Gruppe | Klassen (Beispiele) | Rolle |
 |---|---|---|
-| `primary` / `primaryDark` / `primaryLight` | `#317153` / `#336A4A` / `#4e7d67` | Marke, Grün |
-| `lightGreen` / `ultraLightGreen` | `#b9d4c0ff` / `#dbe5de` | ruhige Flächen |
-| `accentYellow` / `lightYellow` | `#E48C2A` / `#fbe6cf` | Primäraktion |
-| `accentRed` / `lightRed` | `#e73501` / `#f8d6ccff` | destruktiv |
-| `bgSoft` | `#F4F7F5` | Seitenhintergrund |
+| `primary` / `secondary` / `highlight` | `bg-primary`, `text-primary`, `from-primary to-primary-dark` | Markenrot |
+| `surface` | `bg-surface-page`, `-card`, `-input`, `-overlay`, `-hover` | Flächen |
+| `content` | `text-content-primary`, `-secondary`, `-disabled`, `-link`, `-onColor`, `-inverse` | Text |
+| `btn` | `bg-btn-primary`, `text-btn-primaryText`, `hover:bg-btn-primaryHover` | Buttons |
+| `card` / `border` | `border-card-border`, `border-border`, `border-border-strong` | Rahmen |
+| `status` / `tag` / `resource` | `bg-status-errorLight`, `text-tag-info`, `bg-resource-high` | Status, Badges, Quota |
 
+**Farbe ändern = Wert in `style.css` ändern.** Nie Klassen tauschen, um einen Farbton zu
+korrigieren — der Wert wirkt sofort überall.
+
+- **Klassennamen sind camelCase** wie die Config-Keys: `text-btn-primaryText`, nicht
+  `text-btn-primary-text`. Eine falsch geschriebene Klasse erzeugt Tailwind **still nicht** —
+  das Element erbt dann einfach eine fremde Farbe.
+- **Neue Tokens in der Config immer über `token('…')`** eintragen, nie als `'var(--…)'`.
+  Nur so funktionieren Opacity-Modifier (`bg-primary/10`, `border-status-error/30`); bei
+  reinem `var()` lässt Tailwind sie ohne Warnung weg.
+- **`content-onColor` vs. `content-inverse`:** Text auf farbiger Fläche (`bg-primary`,
+  `bg-status-*`, `bg-tag-*`) → `text-content-onColor` (in beiden Modi weiß).
+  `text-content-inverse` dreht mit dem Modus um und gehört nur auf `bg-content-primary`.
+- **Seitenspezifische Variablen** (`--color-dash-*` fürs Dashboard) verweisen per
+  `var(--color-…)` auf die allgemeinen, statt Werte zu kopieren. Eigene Werte nur für
+  Verläufe, Schatten und Deko, die es allgemein nicht gibt.
+- Gerendertes Markdown (`prose`) bekommt seine Farben über `theme.extend.typography` in
+  der Config — dort ebenfalls nur auf Variablen verweisen.
 - Tailwind-Utilities. **Kein** `#hex` im Template, **kein** `bg-[#2E5C46]`, **kein**
-  `style="…"`, **kein neuer** `<style>`-Block.
+  `style="…"`, **kein neuer** `<style>`-Block. Keine Tailwind-Standardfarben
+  (`bg-gray-400`, `text-white`) — sie ignorieren den Darkmode.
 - Spacing, Typo, Radius, Shadow: Tailwind-Defaults. Es gibt dafür bewusst keine eigenen Tokens.
-- Statusfarben (`success`/`failed`/`paused`/…) kommen aus der Tailwind-Standardpalette —
-  siehe `getStatusColor` in `DeploymentsListView.vue`. Diese Map ist die Referenz; neue
-  Statusfarben dort abgleichen, nicht frei erfinden.
+- Statusfarben (`success`/`failed`/`paused`/…): Referenz ist `getStatusColor` in
+  `DeploymentsListView.vue` (`status-*`/`tag-*`-Tokens). Neue Statusfarben dort abgleichen,
+  nicht frei erfinden.
+- Klassen nie zur Laufzeit zusammensetzen (`` `bg-${farbe}` ``) — Tailwind findet nur
+  ausgeschriebene Namen. Varianten als Objekt mit vollen Klassen ablegen.
 
 ---
 
@@ -333,11 +356,10 @@ Diese Stellen existieren, sind aber **kein** Muster für neuen Code:
 | Stelle | Problem | Stattdessen |
 |---|---|---|
 | ~104 rohe `<button class="…">` gegen 42 `<BaseButton>` | u.a. `DeploymentDetailView`, `MarkdownEditor`, `OpenStackResourcePicker` | `BaseButton` |
-| 33 hartkodierte Hex-Werte in 5 Dateien | `Toast` (11), `DashboardView` (8), `AppLayout` (7), `AppsDetailView` (4), `AddAppsView` (3) | Tokens |
+| ~21 Tailwind-Standardfarben (`bg-green-500`, `text-white` …) | `DashboardView` (13, `statusDot`), `DeploymentDetailView` (4), `NewDeploymentVariableView` (2), `NewDeploymentSummaryView`, `Modal` | `status-*`/`tag-*`/`content-*`-Tokens |
 | 5 `<style scoped>`-Blöcke | `AppLayout`, `DashboardView`, `Toast`, `Modal`, `DeploymentProgressBar` | Tailwind-Utilities |
 | `deployment.store.ts` mit manuellem `try/catch` | älter als `runRequest` | `runRequest` wie in `app.store.ts` |
 | `import { useAuthStore }` am **Dateiende** von `app.store.ts` | Workaround gegen Zirkelimport | Imports oben; Zirkel anders auflösen |
-| `BaseInput` mit `focus:ring-blue-500` | Blau ist nicht in der Palette | `primary` |
 | `ScopeBadge` mit „Pro Team"/„Pro User" im Template | kein `t()` | i18n-Key |
 | `CoursesView.spec.ts` mockt `@/composables/usePermissions` | existiert nicht mehr, ersetzt durch `useRole` | `useRole` mocken |
 | `Modal` akzeptiert `#header` **und** `#title` | historisch doppelt | in neuem Code `#title` |
