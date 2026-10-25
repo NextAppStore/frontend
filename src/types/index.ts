@@ -88,6 +88,9 @@ export interface CourseUpdate {
 // ----------------------------------------------------------------
 // APP TYPES
 // ----------------------------------------------------------------
+// Mirrors backend ``VmTopology``. ``null`` = not declared by the app owner.
+export type VmTopology = 'shared' | 'per_team' | 'per_user' | 'custom'
+
 export interface App {
   appId: string
   name: string
@@ -100,6 +103,9 @@ export interface App {
   // Data-URL ("data:image/png;base64,...") or null when the app
   // has no logo. Goes straight into ``<img :src=...>``.
   image?: string | null
+  vm_topology?: VmTopology | null
+  requirements?: string | null
+  recommended_for?: string | null
 }
 
 export interface AppWithUser extends App {
@@ -127,6 +133,9 @@ export interface AppCreate {
   // Data-URL of the logo. Use the FileReader.readAsDataURL output.
   // Omit / null = no logo.
   image?: string | null
+  vm_topology?: VmTopology | null
+  requirements?: string | null
+  recommended_for?: string | null
 }
 
 export interface AppUpdate {
@@ -136,6 +145,10 @@ export interface AppUpdate {
   // Data-URL ("data:image/...;base64,..."), empty string to clear
   // the existing image, or undefined to leave unchanged.
   image?: string | null
+  // Omitted = unchanged, ``null`` = cleared (backend uses exclude_unset).
+  vm_topology?: VmTopology | null
+  requirements?: string | null
+  recommended_for?: string | null
 }
 
 // ----------------------------------------------------------------
@@ -220,7 +233,7 @@ export interface DeploymentUserAccount {
   port?: number;
   auth?: string;
   type?: 'password' | 'ssh_key' | 'oauth' | 'none' | string;
-  authtype?: 'ssh' | 'url' | string;
+  authtype?: 'ssh' | 'rdp' | 'url' | string;
   url?: string;
 }
 
@@ -231,7 +244,7 @@ export interface DeploymentUserAccount {
 // mean "no credentials yet".
 export interface MyAccessResponse {
   user_accounts: Record<string, DeploymentUserAccount>;
-  team_vms: Record<string, { url?: string; floating_ip?: string; fixed_ip?: string }>;
+  team_vms: Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }>;
 }
 
 export interface DeploymentCreate {
@@ -326,7 +339,10 @@ export interface HardwareSpec {
 
 export interface NetworkAddress {
   network: string
+  /** First fixed IPv4 address, or null if there is none. */
   fixed_ip: string | null
+  /** First fixed IPv6, or null on IPv4-only networks. */
+  fixed_ip_v6: string | null
   floating_ip: string | null
   mac: string | null
 }
@@ -336,7 +352,10 @@ export interface NetworkPort {
   network_id: string | null
   status: string | null
   mac: string | null
+  /** First fixed IPv4 address, or null if there is none. */
   fixed_ip: string | null
+  /** First fixed IPv6, or null on IPv4-only networks. */
+  fixed_ip_v6: string | null
   security_group_ids: string[]
 }
 

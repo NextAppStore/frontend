@@ -194,10 +194,34 @@ describe('AddAppsView.vue', () => {
             image: null,
             is_private: false,
             submit_all_versions: false,
+            vm_topology: null,
+            requirements: null,
+            recommended_for: null,
         })
 
         expect(mockToastSuccess).toHaveBeenCalledWith('AppsCreateView.messages.success')
         expect(mockPush).toHaveBeenCalledWith({ name: 'apps' })
+    })
+
+    it('sendet Topologie, Anforderungen und Empfehlung mit', async () => {
+        ;(appApi.create as any).mockResolvedValue({ data: {} })
+        const wrapper = mountComponent()
+
+        await wrapper.find('input[placeholder="AppsCreateView.form.namePlaceholder"]').setValue('Super App')
+        await wrapper.find('input[placeholder="AppsCreateView.form.repoPlaceholder"]').setValue('https://github.com/user/repo')
+        await wrapper.find('[data-testid="app-form-topology"]').setValue('shared')
+        await wrapper.find('[data-testid="app-form-requirements"]').setValue('  4 GB RAM  ')
+        await wrapper.find('[data-testid="app-form-recommended-for"]').setValue('Python-Kurse')
+
+        const submit = wrapper.findAll('button').find(b => b.text() === 'AppsCreateView.buttons.add')!
+        await submit.trigger('click')
+        await flushPromises()
+
+        expect(appApi.create).toHaveBeenCalledWith(expect.objectContaining({
+            vm_topology: 'shared',
+            requirements: '4 GB RAM',
+            recommended_for: 'Python-Kurse',
+        }))
     })
 
     // --- 5. Fehler beim Speichern ---

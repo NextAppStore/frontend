@@ -23,10 +23,13 @@ vi.mock('vue-router', () => ({
 // Partieller Mock: Nur ``useI18n`` wird gestubbt, ``createI18n`` bleibt echt.
 // Sonst bricht jeder Import, der transitiv die i18n-Instanz zieht — etwa
 // Stores, die Fallback-Fehlertexte über ``i18n.global.t`` übersetzen.
+// Parameter werden mit ausgegeben — sonst lässt sich nicht prüfen, ob ein
+// interpolierter Wert überhaupt ankommt.
 vi.mock('vue-i18n', async (importOriginal) => ({
   ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({
-    t: (key: string) => key
+    t: (key: string, params?: Record<string, unknown>) =>
+      params ? `${key} ${JSON.stringify(params)}` : key
   })
 }))
 
@@ -102,8 +105,7 @@ describe('NewDeploymentVariableView.vue', () => {
           VariableInput: true, // FIX: Nutzt jetzt den automatischen Stub von Vue Test Utils
           FileDropZone: true,
           ScopeBadge: true,
-          Box: true,
-          Layers: true,
+          SlidersHorizontal: true,
           Info: true,
           AlertTriangle: true,
           ArrowRight: true,
@@ -115,12 +117,10 @@ describe('NewDeploymentVariableView.vue', () => {
     })
   }
 
-  /** Opens both "Advanced settings" disclosures so every variable is rendered. */
+  /** Opens the "Advanced settings" disclosure so every variable is rendered. */
   async function expandAdvanced(wrapper: any) {
-    for (const id of ['packer-advanced-toggle', 'terraform-advanced-toggle']) {
-      const toggle = wrapper.find(`[data-testid="${id}"]`)
-      if (toggle.exists()) await toggle.trigger('click')
-    }
+    const toggle = wrapper.find('[data-testid="variables-advanced-toggle"]')
+    if (toggle.exists()) await toggle.trigger('click')
   }
 
   it('redirects to /apps if no appId is present in draft', async () => {
@@ -130,12 +130,12 @@ describe('NewDeploymentVariableView.vue', () => {
     expect(routerReplaceMock).toHaveBeenCalledWith('/apps')
   })
 
-  it('fetches variables and groups them into packer and terraform sections', async () => {
+  it('fetches variables and renders packer and terraform in one list', async () => {
     const mockVars = [
       { name: 'packer_var', source: 'packer', type: 'string', required: false, default: 'val1' },
       { name: 'tf_var', source: 'terraform', type: 'string', required: false, default: 'val2' }
     ]
-    
+
     const wrapper = createWrapper({}, mockVars)
     await flushPromises() // Warten auf Loading und API-Call
 
@@ -143,7 +143,7 @@ describe('NewDeploymentVariableView.vue', () => {
     expect(appStore.fetchAppVariables).toHaveBeenCalledWith('app-1', '1.0.0')
 
     // Beide Variablen haben einen Default und liegen daher hinter "Erweiterte
-    // Einstellungen". Aufklappen, dann müssen beide Sektionen ihre Variable zeigen.
+    // Einstellungen". Aufklappen, dann zeigt die eine Liste beide.
     await expandAdvanced(wrapper)
 
     expect(wrapper.text()).toContain('packer_var')
@@ -225,7 +225,7 @@ describe('NewDeploymentVariableView.vue', () => {
     mount(DeploymentVariables, {
       global: {
         plugins: [pinia],
-        stubs: { DeploymentProgressBar: true, Box: true, Layers: true, ArrowLeft: true, ArrowRight: true }
+        stubs: { DeploymentProgressBar: true, SlidersHorizontal: true, ArrowLeft: true, ArrowRight: true }
       }
     })
 
@@ -264,7 +264,7 @@ describe('NewDeploymentVariableView.vue', () => {
       const wrapper = createWrapper({}, mockVars)
       await flushPromises()
 
-      const toggle = wrapper.find('[data-testid="terraform-advanced-toggle"]')
+      const toggle = wrapper.find('[data-testid="variables-advanced-toggle"]')
       expect(toggle.exists()).toBe(true)
       expect(toggle.text()).toContain('deployment.variables.advancedSettings')
       expect(toggle.text()).toContain('2')
@@ -280,7 +280,7 @@ describe('NewDeploymentVariableView.vue', () => {
       const wrapper = createWrapper({}, mockVars)
       await flushPromises()
 
-      const toggle = wrapper.find('[data-testid="terraform-advanced-toggle"]')
+      const toggle = wrapper.find('[data-testid="variables-advanced-toggle"]')
       await toggle.trigger('click')
 
       expect(wrapper.text()).toContain('vm_flavor')
@@ -295,8 +295,8 @@ describe('NewDeploymentVariableView.vue', () => {
       const wrapper = createWrapper({}, mockVars)
       await flushPromises()
 
-      expect(wrapper.find('[data-testid="terraform-advanced-toggle"]').exists()).toBe(false)
-      expect(wrapper.find('[data-testid="terraform-all-preconfigured"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="variables-advanced-toggle"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="variables-all-preconfigured"]').exists()).toBe(false)
     })
 
     it('shows the "all preconfigured" hint when nothing is left to fill in', async () => {
@@ -307,7 +307,7 @@ describe('NewDeploymentVariableView.vue', () => {
       const wrapper = createWrapper({}, mockVars)
       await flushPromises()
 
-      expect(wrapper.find('[data-testid="terraform-all-preconfigured"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="variables-all-preconfigured"]').exists()).toBe(true)
       expect(wrapper.text()).toContain('deployment.variables.allPreconfigured')
     })
 
@@ -318,9 +318,9 @@ describe('NewDeploymentVariableView.vue', () => {
 
       const wrapper = createWrapper({}, mockVars)
       await flushPromises()
-      await wrapper.find('[data-testid="terraform-advanced-toggle"]').trigger('click')
+      await wrapper.find('[data-testid="variables-advanced-toggle"]').trigger('click')
 
-      expect(wrapper.find('[data-testid="terraform-all-preconfigured"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="variables-all-preconfigured"]').exists()).toBe(true)
       expect(wrapper.text()).toContain('vm_flavor')
     })
 
@@ -338,7 +338,7 @@ describe('NewDeploymentVariableView.vue', () => {
       await flushPromises()
 
       expect(wrapper.text()).toContain('vm_flavor')
-      expect(wrapper.find('[data-testid="terraform-advanced-toggle"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="variables-advanced-toggle"]').exists()).toBe(false)
     })
   })
 
@@ -387,6 +387,142 @@ describe('NewDeploymentVariableView.vue', () => {
       await wrapper.vm.$nextTick()
 
       expect(wrapper.findAll('[data-testid="recommended-badge"]')).toHaveLength(0)
+    })
+  })
+
+  // ----------------------------------------------------------------
+  // ONE MERGED LIST (Issue #29)
+  // ----------------------------------------------------------------
+  // Packer and Terraform used to be two columns, each with its own heading and
+  // its own disclosure. Which tool consumes a variable is a property of the
+  // blueprint, not something the person filling the form decides — so the step
+  // shows one list. What stays apart is the submit payload and the form key.
+  describe('Merged variable list', () => {
+    it('renders a single disclosure counting variables from both sources', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true },
+        { name: 'image_name', source: 'packer', type: 'string', required: false, default: 'ubuntu' },
+        { name: 'vm_flavor', source: 'terraform', type: 'string', required: false, default: 'm1.small' }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      const toggles = wrapper.findAll('[data-testid="variables-advanced-toggle"]')
+      expect(toggles).toHaveLength(1)
+      // One Packer plus one Terraform default, counted together.
+      expect(toggles[0]?.text()).toContain('2')
+    })
+
+    it('no longer labels the list by tool', async () => {
+      const mockVars = [
+        { name: 'image_name', source: 'packer', type: 'string', required: true },
+        { name: 'db_password', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('deployment.variables.sectionTitle')
+      expect(wrapper.text()).not.toContain('deployment.summary.packerVars')
+      expect(wrapper.text()).not.toContain('deployment.summary.terraformVars')
+    })
+
+    it('marks the origin when both sources declare the same variable name', async () => {
+      // Merging the lists made this collision visible: the two cards would be
+      // indistinguishable although they are stored and submitted separately.
+      const mockVars = [
+        { name: 'region', source: 'packer', type: 'string', required: true },
+        { name: 'region', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      const badges = wrapper.findAll('[data-testid="variable-origin-badge"]')
+      expect(badges).toHaveLength(2)
+      expect(badges[0]?.text()).toContain('deployment.sourceLabels.packer')
+      expect(badges[1]?.text()).toContain('deployment.sourceLabels.terraform')
+    })
+
+    it('leaves unambiguous names free of an origin badge', async () => {
+      const mockVars = [
+        { name: 'image_name', source: 'packer', type: 'string', required: true },
+        { name: 'db_password', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.findAll('[data-testid="variable-origin-badge"]')).toHaveLength(0)
+    })
+
+    it('names the consuming tool in the info popover', async () => {
+      const mockVars = [
+        { name: 'image_name', source: 'packer', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('deployment.sourceLabels.packer')
+
+      await wrapper.find('[data-testid="variable-info-toggle"]').trigger('click')
+
+      expect(wrapper.text()).toContain('deployment.sourceLabels.packer')
+    })
+
+    it('offers the popover even without a description', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      await wrapper.find('[data-testid="variable-info-toggle"]').trigger('click')
+
+      expect(wrapper.text()).toContain('deployment.sourceLabels.terraform')
+    })
+
+    it('keeps the per-image heading for apps building more than one image', async () => {
+      const mockVars = [
+        { name: 'size', source: 'packer', template_key: 'web', type: 'string', required: true },
+        { name: 'size', source: 'packer', template_key: 'db', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('deployment.variables.imageGroup')
+      expect(wrapper.text()).toContain('web')
+      expect(wrapper.text()).toContain('db')
+    })
+
+    it('still submits packer and terraform values apart', async () => {
+      // The merge is presentational only — the payload keeps a Packer value
+      // addressed by its template and a Terraform one by its bare name.
+      const mockVars = [
+        { name: 'image_name', source: 'packer', template_key: 'web', type: 'string', required: true },
+        { name: 'db_password', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      const inputs = wrapper.findAllComponents(VariableInput)
+      await inputs[0]?.vm.$emit('update:modelValue', 'ubuntu-24')
+      await inputs[1]?.vm.$emit('update:modelValue', 'secret123')
+      await wrapper.vm.$nextTick()
+
+      const nextBtn = wrapper.findAll('button').find(b => b.text().includes('deployment.actions.next'))
+      await nextBtn?.trigger('click')
+
+      const deploymentStore = useDeploymentStore()
+      expect(JSON.parse(deploymentStore.draft.userInputVar as unknown as string)).toEqual({
+        packer: { web: { image_name: 'ubuntu-24' } },
+        db_password: 'secret123'
+      })
     })
   })
 })

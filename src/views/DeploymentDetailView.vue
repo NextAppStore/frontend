@@ -17,11 +17,50 @@ import InfrastructureVmCard from '@/components/InfrastructureVmCard.vue'
 import InfrastructureVmDrawer from '@/components/InfrastructureVmDrawer.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { formatDateTime } from '@/utils/format'
+import { deploymentStatusLabelKey } from '@/i18n/deployment-status-labels'
+import { currentLocale } from '@/i18n/locale'
 import { Eye, EyeOff } from 'lucide-vue-next'
 import { useDeploymentLifecycle } from '@/composables/deployment/useDeploymentLifecycle'
 import { useDeploymentCredentials } from '@/composables/deployment/useDeploymentCredentials'
+import type { UserAccount } from '@/composables/deployment/useDeploymentCredentials'
 import { useDeploymentInfrastructure } from '@/composables/deployment/useDeploymentInfrastructure'
 import { useDeploymentTasks } from '@/composables/deployment/useDeploymentTasks'
+import { useIpVersionPreference } from '@/composables/useIpVersionPreference'
+import RdpClientHelpPopover from '@/components/RdpClientHelpPopover.vue'
+
+const { ipVersion, setIpVersion } = useIpVersionPreference()
+
+// Build a copy-paste RDP command from an account. Skips the port suffix
+// for the default 3389 so the line stays short, mirroring sshCommandFor's
+// port-22 omission.
+const rdpCommandFor = (data: { ip?: string; port?: number }): string => {
+    if (!data.ip) return ''
+    const target = data.port && data.port !== 3389 ? `${data.ip}:${data.port}` : data.ip
+    return `mstsc /v:${target}`
+}
+
+// Same as rdpCommandFor, but for an IPv6 target. IPv6 literals need
+// brackets in an mstsc target.
+const rdpCommandForV6 = (ipv6: string): string => `mstsc /v:[${ipv6}]`
+
+// Resolve the IPv6 address to use for a member's pill (RDP, SSH, or
+// URL — the resolution is the same regardless of authtype): the
+// account's own ``ip_v6`` wins when present (per-member precision, now
+// that the worker output carries it), falling back to the team VM's
+// ``fixed_ip_v6`` for apps that only publish it at the team level.
+//
+// Normalised here, once, for every caller: terraform's own
+// ``fixed_ip_v6`` instance attribute comes back pre-bracketed (e.g.
+// "[2001:db8::1]", confirmed via `terraform state show` — not a CLI
+// artifact), while apps that instead read a team port's
+// ``all_fixed_ips`` list (e.g. Windows-App) get a bare address. Strip
+// any brackets here so every consumer (rdpCommandForV6,
+// sshCommandForV6, userUrlForV6, teamVmUrlForV6) can add its own
+// without ever doubling up into "[[...]]".
+const accountIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null => {
+    const raw = account.ip_v6 || team.vm?.fixed_ip_v6 || null
+    return raw ? raw.replace(/^\[|\]$/g, '') : null
+}
 
 
 const route = useRoute()
@@ -118,8 +157,12 @@ const {
     visiblePasswords,
     togglePasswordVisibility,
     sshCommandFor,
+    sshCommandForV6,
     userUrlFor,
+    userUrlForV6,
+    teamVmUrlForV6,
     enrichedTeams,
+    hasAnyIpv6Account,
     copiedKey,
     copyToClipboard,
     resendState,
@@ -584,7 +627,6 @@ const getStatusStyles = (status?: string) => {
     switch (status) {
         case 'success':
             return {
-                label: 'DeploymentsView.deploymentSuccessful',
                 dotClass: 'bg-status-success shadow-[0_0_10px_rgba(34,197,94,0.4)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-status-successLight text-status-success border-status-success/30',
@@ -592,7 +634,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'running':
             return {
-                label: 'DeploymentsView.deploymentRunning',
                 dotClass: 'bg-tag-info animate-pulse shadow-[0_0_12px_rgba(59,130,246,0.6)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-tag-infoLight text-tag-info border-tag-infoBorder',
@@ -600,7 +641,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'pending':
             return {
-                label: 'DeploymentsView.deploymentPending',
                 dotClass: 'bg-status-warning shadow-[0_0_10px_rgba(234,179,8,0.4)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-status-warningLight text-status-warning border-status-warning/30',
@@ -608,7 +648,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'failed':
             return {
-                label: 'DeploymentsView.deploymentFailed',
                 dotClass: 'bg-status-error shadow-[0_0_10px_rgba(239,68,68,0.4)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-status-errorLight text-status-error border-status-error/30',
@@ -616,7 +655,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'destroying':
             return {
-                label: 'DeploymentsView.deploymentDestroying',
                 dotClass: 'bg-tag-destroy animate-pulse shadow-[0_0_12px_rgba(249,115,22,0.6)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-tag-destroyLight text-tag-destroy border-tag-destroyBorder',
@@ -624,7 +662,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'cancelled':
             return {
-                label: 'DeploymentsView.deploymentCancelled',
                 dotClass: 'bg-content-disabled',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-surface-input text-content-secondary border-card-border',
@@ -632,7 +669,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'destroyed':
             return {
-                label: 'DeploymentsView.deploymentDestroyed',
                 dotClass: 'bg-tag-destroy shadow-[0_0_10px_rgba(249,115,22,0.4)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-tag-destroyLight text-tag-destroy border-tag-destroyBorder',
@@ -644,7 +680,6 @@ const getStatusStyles = (status?: string) => {
                 // palette from destroying — the user reads "something
                 // active is happening" at a glance, distinct from the
                 // calm green of success.
-                label: 'DeploymentsView.deploymentPausing',
                 dotClass: 'bg-status-warning animate-pulse shadow-[0_0_12px_rgba(245,158,11,0.6)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-status-warningLight text-status-warning border-status-warning/30',
@@ -652,7 +687,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'paused':
             return {
-                label: 'DeploymentsView.deploymentPaused',
                 dotClass: 'bg-border-strong shadow-[0_0_10px_rgba(148,163,184,0.4)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-surface-input text-content-secondary border-border',
@@ -660,7 +694,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'resuming':
             return {
-                label: 'DeploymentsView.deploymentResuming',
                 dotClass: 'bg-status-success animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.6)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-status-successLight text-status-success border-status-success/30',
@@ -672,7 +705,6 @@ const getStatusStyles = (status?: string) => {
             // user reads "needs attention" rather than the harsher
             // red of a deploy-failed.
             return {
-                label: 'DeploymentsView.deploymentPauseFailed',
                 dotClass: 'bg-status-warning shadow-[0_0_10px_rgba(245,158,11,0.4)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-status-warningLight text-status-warning border-status-warning/30',
@@ -680,7 +712,6 @@ const getStatusStyles = (status?: string) => {
             }
         case 'resume_failed':
             return {
-                label: 'DeploymentsView.deploymentResumeFailed',
                 dotClass: 'bg-status-warning shadow-[0_0_10px_rgba(245,158,11,0.4)]',
                 textClass: 'text-content-primary',
                 badgeClass: 'bg-status-warningLight text-status-warning border-status-warning/30',
@@ -688,7 +719,6 @@ const getStatusStyles = (status?: string) => {
             }
         default:
             return {
-                label: 'DeploymentsView.noStatus',
                 dotClass: 'bg-surface-hover',
                 textClass: 'text-content-disabled',
                 badgeClass: 'bg-surface-input text-content-primary border-card-border',
@@ -780,7 +810,7 @@ const formatDate = formatDateTime
 
                 <div>
                     <h1 class="text-3xl font-bold text-content-primary">{{ deployment.name }}</h1>
-                    <p class="text-sm text-content-disabled mt-1">Deployment Details</p>
+                    <p class="text-sm text-content-disabled mt-1">{{ $t('DeploymentDetailView.detailsSubtitle') }}</p>
                 </div>
             </div>
 
@@ -792,7 +822,7 @@ const formatDate = formatDateTime
                     <span
                         class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold border capitalize"
                         :class="getStatusStyles(deployment.status).badgeClass">
-                        {{ $t(getStatusStyles(deployment.status).label) }}
+                        {{ $t(deploymentStatusLabelKey(deployment.status)) }}
                     </span>
                 </div>
 
@@ -844,7 +874,7 @@ const formatDate = formatDateTime
                         <div class="text-sm font-medium text-content-primary">{{ deployment.name }}</div>
                     </div>
                     <div>
-                        <div class="text-xs text-content-disabled uppercase tracking-wide mb-1">Release Tag</div>
+                        <div class="text-xs text-content-disabled uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.releaseTag') }}</div>
                         <div class="text-sm">
                             <span
                                 class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-tag-neutralLight text-tag-neutral border border-tag-neutralBorder">
@@ -873,7 +903,7 @@ const formatDate = formatDateTime
                 </h2>
                 <div class="space-y-4" v-if="deployment.app">
                     <div>
-                        <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">App Name</div>
+                        <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.appName') }}</div>
                         <div class="text-sm font-medium text-content-primary">{{ deployment.app.name }}</div>
                     </div>
                     <div>
@@ -887,17 +917,17 @@ const formatDate = formatDateTime
                             :expandable="true"
                             class="text-sm"
                         />
-                        <div v-else class="text-sm text-content-secondary italic">No description</div>
+                        <div v-else class="text-sm text-content-secondary italic">{{ $t('DeploymentDetailView.appNoDescription') }}</div>
                     </div>
                     <div>
-                        <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Git Repository</div>
+                        <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.gitRepository') }}</div>
                         <a :href="deployment.app.git_link ?? undefined" target="_blank"
                             class="text-sm text-tag-info hover:opacity-80 underline break-all">
                             {{ deployment.app.git_link }}
                         </a>
                     </div>
                 </div>
-                <div v-else class="text-sm text-content-secondary">No app information available</div>
+                <div v-else class="text-sm text-content-secondary">{{ $t('DeploymentDetailView.noAppInfo') }}</div>
             </div>
 
             <!-- User info card -->
@@ -919,7 +949,7 @@ const formatDate = formatDateTime
                         </div>
                     </div>
                     <div>
-                        <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Email</div>
+                        <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.email') }}</div>
                         <div class="text-sm text-content-secondary">{{ deployment.user.email }}</div>
                     </div>
                     <div>
@@ -933,7 +963,7 @@ const formatDate = formatDateTime
                         </div>
                     </div>
                 </div>
-                <div v-else class="text-sm text-content-secondary">No user information available</div>
+                <div v-else class="text-sm text-content-secondary">{{ $t('DeploymentDetailView.noUserInfo') }}</div>
             </div>
         </div>
 
@@ -1041,8 +1071,7 @@ const formatDate = formatDateTime
                                 <span class="text-sm font-semibold text-content-primary capitalize">{{ activeTask.type
                                 }}</span>
                                 <span class="text-xs font-medium text-content-secondary">·</span>
-                                <span class="text-xs text-content-secondary">running since {{ formatDate(activeTask.started_at ||
-                                    activeTask.created_at) }}</span>
+                                <span class="text-xs text-content-secondary">{{ $t('DeploymentDetailView.runningSince', { date: formatDate(activeTask.started_at || activeTask.created_at) }) }}</span>
                             </div>
                             <div class="text-xs text-content-secondary font-mono mt-0.5">{{ activeTask.taskId }}</div>
                         </div>
@@ -1052,7 +1081,7 @@ const formatDate = formatDateTime
                         : streamConnectionState === 'reconnecting'
                             ? 'bg-status-warningLight text-status-warning border border-status-warning/30'
                             : 'bg-surface-input text-content-secondary border border-card-border'">
-                        {{ streamConnectionState === 'live' ? 'Stream live' : streamConnectionState }}
+                        {{ streamConnectionState === 'live' ? $t('DeploymentDetailView.streamLive') : streamConnectionState }}
                     </span>
                 </div>
             </div>
@@ -1070,7 +1099,7 @@ const formatDate = formatDateTime
                 <template v-if="streamCurrentPhaseIndex === null && !streamCurrentPhase">
                     <div class="flex items-center gap-3 py-6 justify-center text-content-secondary">
                         <Loader2 class="animate-spin" :size="20" />
-                        <span class="text-sm">Worker is starting up…</span>
+                        <span class="text-sm">{{ $t('DeploymentDetailView.workerStarting') }}</span>
                     </div>
                 </template>
                 <template v-else>
@@ -1078,7 +1107,7 @@ const formatDate = formatDateTime
                     <div>
                         <div class="flex items-baseline justify-between mb-2">
                             <span class="text-base font-semibold text-content-primary">
-                                {{ phaseLabel(streamCurrentPhase) || 'Starting…' }}
+                                {{ phaseLabel(streamCurrentPhase) || $t('DeploymentDetailView.phaseStarting') }}
                             </span>
                             <span class="text-2xl font-bold text-content-primary tabular-nums">
                                 {{ streamProgress ?? 0 }}<span class="text-sm text-content-secondary font-medium">%</span>
@@ -1123,12 +1152,11 @@ const formatDate = formatDateTime
                      producing output even after the box is full. -->
                 <div v-if="streamLiveLogs.length > 0" class="space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs uppercase tracking-wide font-semibold text-content-secondary">Live output</span>
+                        <span class="text-xs uppercase tracking-wide font-semibold text-content-secondary">{{ $t('DeploymentDetailView.liveOutput') }}</span>
                         <span class="text-xs text-content-secondary">
-                            {{ streamTotalLogCount.toLocaleString() }} {{ streamTotalLogCount === 1 ? 'line' : 'lines'
-                            }}
+                            {{ $t('DeploymentDetailView.logLineCount', { n: streamTotalLogCount.toLocaleString(currentLocale()) }, streamTotalLogCount) }}
                             <span v-if="streamLiveLogs.length < streamTotalLogCount" class="text-content-disabled">
-                                · last {{ streamLiveLogs.length }} shown
+                                · {{ $t('DeploymentDetailView.logLastShown', { n: streamLiveLogs.length }) }}
                             </span>
                         </span>
                     </div>
@@ -1146,7 +1174,7 @@ const formatDate = formatDateTime
                     </div>
                 </div>
                 <div v-else class="bg-surface-input border border-card-border rounded-md p-4 text-center text-xs text-content-secondary">
-                    Waiting for first log line…
+                    {{ $t('DeploymentDetailView.waitingFirstLogLine') }}
                 </div>
             </div>
         </div>
@@ -1166,6 +1194,24 @@ const formatDate = formatDateTime
                 <span class="px-2 py-0.5 bg-surface-input text-content-secondary text-xs font-bold rounded">
                     {{ deployment.teams.length }}
                 </span>
+
+                <!-- One global IPv4/IPv6 preference for all RDP/SSH pills
+                     below — not per-team or per-row, since network
+                     reachability (VPN vs. no VPN) is typically the same
+                     for everyone. -->
+                <div v-if="hasAnyIpv6Account" class="ml-auto inline-flex rounded-lg border border-card-border bg-surface-input p-0.5"
+                    role="group" :aria-label="$t('DeploymentDetailView.ipToggle.ariaLabel')">
+                    <button type="button" @click="setIpVersion('v4')"
+                        class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
+                        :class="ipVersion === 'v4' ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-disabled hover:text-content-secondary'">
+                        {{ $t('DeploymentDetailView.ipToggle.ipv4') }}
+                    </button>
+                    <button type="button" @click="setIpVersion('v6')"
+                        class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
+                        :class="ipVersion === 'v6' ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-disabled hover:text-content-secondary'">
+                        {{ $t('DeploymentDetailView.ipToggle.ipv6') }}
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-4">
@@ -1176,14 +1222,13 @@ const formatDate = formatDateTime
                             <span class="font-semibold text-content-primary">{{ team.name }}</span>
                             <span class="text-xs text-content-secondary">·</span>
                             <span class="text-xs text-content-secondary">
-                                {{ team.members.length }}
-                                {{ team.members.length === 1 ? 'member' : 'members' }}
+                                {{ $t('DeploymentDetailView.memberCount', { n: team.members.length }, team.members.length) }}
                             </span>
                         </div>
                     </div>
 
                     <div v-if="team.members.length === 0" class="px-4 py-6 text-center text-sm text-content-secondary">
-                        No members assigned to this team.
+                        {{ $t('DeploymentDetailView.noTeamMembers') }}
                     </div>
 
                     <div v-else>
@@ -1206,63 +1251,129 @@ const formatDate = formatDateTime
 
                                 <!-- Web-app URL from ``team_vms.<team>.url``,
                                      shared by every team member. When set, the
-                                     SSH pill is dropped and the username shows next to it. -->
-                                <div v-if="team.vm?.url"
+                                     SSH pill is dropped and the username shows next to it.
+                                     Also shown for RDP accounts — mstsc doesn't embed the
+                                     username the way the SSH command line does. -->
+                                <div v-if="team.vm?.url || member.account.data.authtype === 'rdp'"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">User:</span>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">{{ $t('DeploymentDetailView.userPrefix') }}</span>
                                     <span>{{ member.account.data.username }}</span>
                                     <button
                                         @click="copyToClipboard(member.account.data.username, 'user-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
-                                        :title="copiedKey === 'user-' + member.account.key ? 'Kopiert!' : 'Username kopieren'">
+                                        :title="copiedKey === 'user-' + member.account.key ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.username')">
                                         <component :is="copiedKey === 'user-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
                                 </div>
 
-                                <div v-if="member.account.data.ip && member.account.data.port && member.account.data.type !== 'ssh_key' && member.account.data.authtype !== 'ssh' && member.account.data.port !== 22"
+                                <!-- URL pill — shows IPv4 or IPv6 depending on the
+                                     shared toggle above, same pattern as SSH/RDP. -->
+                                <div v-if="member.account.data.ip && member.account.data.port && member.account.data.type !== 'ssh_key' && member.account.data.authtype !== 'ssh' && member.account.data.authtype !== 'rdp' && member.account.data.port !== 22 && member.account.data.port !== 3389"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-[280px]">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">URL:</span>
-                                    <a :href="userUrlFor(member.account.data, team.vm?.url) ?? ''" target="_blank" rel="noopener noreferrer"
-                                        class="text-tag-info hover:underline truncate">{{ userUrlFor(member.account.data, team.vm?.url)?.replace(/^https?:\/\//, '') }}</a>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.urlLabelV6') : $t('DeploymentDetailView.urlLabel') }}
+                                    </span>
+                                    <a :href="(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? userUrlForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data, team.vm?.url)
+                                            : userUrlFor(member.account.data, team.vm?.url)) ?? ''"
+                                        target="_blank" rel="noopener noreferrer"
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.ssh.unavailableV6') : undefined"
+                                        class="text-tag-info hover:underline truncate">{{ (ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? userUrlForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data, team.vm?.url)
+                                            : userUrlFor(member.account.data, team.vm?.url))?.replace(/^https?:\/\//, '') }}</a>
                                     <button
-                                        @click="copyToClipboard(userUrlFor(member.account.data, team.vm?.url) ?? '', 'vmurl-' + member.account.key)"
+                                        @click="copyToClipboard((ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? userUrlForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data, team.vm?.url)
+                                            : userUrlFor(member.account.data, team.vm?.url)) ?? '', 'vmurl-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
-                                        :title="copiedKey === 'vmurl-' + member.account.key ? 'Kopiert!' : 'URL kopieren'">
+                                        :title="copiedKey === 'vmurl-' + member.account.key ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.url')">
                                         <component :is="copiedKey === 'vmurl-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
                                 </div>
                                 <div v-else-if="team.vm?.url"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-[280px]">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">URL:</span>
-                                    <a :href="team.vm.url" target="_blank" rel="noopener noreferrer"
-                                        class="text-tag-info hover:underline truncate">{{ team.vm.url.replace(/^https?:\/\//, '') }}</a>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.urlLabelV6') : $t('DeploymentDetailView.urlLabel') }}
+                                    </span>
+                                    <a :href="ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? teamVmUrlForV6(team.vm.url, accountIpv6For(member.account.data, team) ?? '')
+                                            : team.vm.url"
+                                        target="_blank" rel="noopener noreferrer"
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.ssh.unavailableV6') : undefined"
+                                        class="text-tag-info hover:underline truncate">{{ (ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? teamVmUrlForV6(team.vm.url, accountIpv6For(member.account.data, team) ?? '')
+                                            : team.vm.url).replace(/^https?:\/\//, '') }}</a>
                                     <button
-                                        @click="copyToClipboard(team.vm.url, 'vmurl-' + member.account.key)"
+                                        @click="copyToClipboard(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? teamVmUrlForV6(team.vm.url, accountIpv6For(member.account.data, team) ?? '')
+                                            : team.vm.url, 'vmurl-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
-                                        :title="copiedKey === 'vmurl-' + member.account.key ? 'Kopiert!' : 'URL kopieren'">
+                                        :title="copiedKey === 'vmurl-' + member.account.key ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.url')">
                                         <component :is="copiedKey === 'vmurl-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
                                 </div>
 
                                 <!-- Ready-to-use SSH command line — already
-                                     includes username, IP and (for non-22) the port. -->
+                                     includes username, IP and (for non-22) the port.
+                                     Shows IPv4 or IPv6 depending on the shared toggle
+                                     above — never both at once — falling back to IPv4
+                                     when no IPv6 target is available so the pill is
+                                     never empty. -->
                                 <div v-if="!team.vm?.url && member.account.data.ip && member.account.data.username && (!member.account.data.authtype || member.account.data.authtype === 'ssh')"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-full">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">SSH:</span>
-                                    <span class="truncate">{{ sshCommandFor(member.account.data) }}</span>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.sshLabelV6') : $t('DeploymentDetailView.sshLabel') }}
+                                    </span>
+                                    <span class="truncate"
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.ssh.unavailableV6') : undefined">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? sshCommandForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data)
+                                            : sshCommandFor(member.account.data) }}
+                                    </span>
                                     <button
-                                        @click="copyToClipboard(sshCommandFor(member.account.data), 'ssh-' + member.account.key)"
+                                        @click="copyToClipboard(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? sshCommandForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data)
+                                            : sshCommandFor(member.account.data), 'ssh-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
-                                        :title="copiedKey === 'ssh-' + member.account.key ? 'Kopiert!' : 'SSH-Befehl kopieren'">
+                                        :title="copiedKey === 'ssh-' + member.account.key ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.ssh')">
                                         <component :is="copiedKey === 'ssh-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
+                                </div>
+
+                                <!-- Ready-to-use RDP command line (mstsc), for Windows-style
+                                     apps that set authtype: "rdp" on their user_accounts.
+                                     Shows IPv4 or IPv6 depending on the shared toggle above —
+                                     never both at once — falling back to IPv4 when a team has
+                                     no IPv6 target so the pill is never empty. -->
+                                <div v-if="member.account.data.authtype === 'rdp'"
+                                    class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-full">
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.rdpLabelV6') : $t('DeploymentDetailView.rdpLabel') }}
+                                    </span>
+                                    <span class="truncate"
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.rdp.unavailableV6') : undefined">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(accountIpv6For(member.account.data, team) ?? '')
+                                            : rdpCommandFor(member.account.data) }}
+                                    </span>
+                                    <button
+                                        @click="copyToClipboard(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(accountIpv6For(member.account.data, team) ?? '')
+                                            : rdpCommandFor(member.account.data), 'rdp-' + member.account.key)"
+                                        class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
+                                        :title="copiedKey === 'rdp-' + member.account.key ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.rdp')">
+                                        <component :is="copiedKey === 'rdp-' + member.account.key ? Check : Copy" :size="12" />
+                                    </button>
+                                    <RdpClientHelpPopover
+                                        :ip="ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? (accountIpv6For(member.account.data, team) ?? '') : (member.account.data.ip ?? '')"
+                                        :port="member.account.data.port" />
                                 </div>
 
                                 <div v-if="member.account.data.auth"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border min-w-[150px] justify-between">
                                     <div class="truncate mr-1">
                                         <span
-                                            class="text-content-disabled font-sans text-[10px] uppercase tracking-wider mr-1">PW:</span>
+                                            class="text-content-disabled font-sans text-[10px] uppercase tracking-wider mr-1">{{ $t('DeploymentDetailView.passwordPrefix') }}</span>
                                         <template v-if="visiblePasswords[member.account.key]">{{
                                             member.account.data.auth }}</template>
                                         <span v-else class="tracking-widest text-content-disabled select-none">••••••••</span>
@@ -1277,7 +1388,7 @@ const formatDate = formatDateTime
                                         <button
                                             @click="copyToClipboard(member.account.data.auth, 'auth-' + member.account.key)"
                                             class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors"
-                                            :title="copiedKey === 'auth-' + member.account.key ? 'Kopiert!' : 'Passwort kopieren'">
+                                            :title="copiedKey === 'auth-' + member.account.key ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.password')">
                                             <component :is="copiedKey === 'auth-' + member.account.key ? Check : Copy"
                                                 :size="12" />
                                         </button>
@@ -1336,16 +1447,16 @@ const formatDate = formatDateTime
                     <div class="p-2 bg-surface-input rounded-lg">
                         <Server :size="20" class="text-content-secondary" />
                     </div>
-                    <span class="text-lg font-semibold text-content-primary">Infrastruktur</span>
+                    <span class="text-lg font-semibold text-content-primary">{{ $t('DeploymentDetailView.infrastructure') }}</span>
                 </div>
                 <button
                     @click="loadResources()"
                     :disabled="resourcesLoading"
                     class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:bg-surface-input disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5 transition-colors"
-                    title="Live-Status neu abfragen"
+                    :title="$t('DeploymentDetailView.refreshResourcesTitle')"
                 >
                     <RefreshCw :size="13" :class="resourcesLoading ? 'animate-spin' : ''" />
-                    Aktualisieren
+                    {{ $t('DeploymentDetailView.refreshResources') }}
                 </button>
             </div>
 
@@ -1363,7 +1474,7 @@ const formatDate = formatDateTime
                 <div class="flex items-center gap-2 mb-3">
                     <Server :size="14" class="text-content-disabled" />
                     <h3 class="text-sm font-bold uppercase tracking-wider text-content-secondary">
-                        Virtuelle Maschinen
+                        {{ $t('DeploymentDetailView.virtualMachines') }}
                     </h3>
                     <span
                         v-if="vmResources.length > 0"
@@ -1376,13 +1487,13 @@ const formatDate = formatDateTime
                     v-if="resourcesLoading && vmResources.length === 0"
                     class="text-sm text-content-secondary italic px-4 py-6 bg-surface-input rounded-lg border border-card-border text-center"
                 >
-                    Lade VMs…
+                    {{ $t('DeploymentDetailView.loadingVms') }}
                 </div>
                 <div
                     v-else-if="vmResources.length === 0"
                     class="text-sm text-content-secondary italic px-4 py-6 bg-surface-input rounded-lg border border-card-border text-center"
                 >
-                    Keine VMs im aktuellen Terraform-State.
+                    {{ $t('DeploymentDetailView.noVms') }}
                 </div>
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <InfrastructureVmCard
@@ -1402,7 +1513,7 @@ const formatDate = formatDateTime
                 <div class="flex items-center gap-2 mb-3">
                     <Network :size="14" class="text-content-disabled" />
                     <h3 class="text-sm font-bold uppercase tracking-wider text-content-secondary">
-                        Netzwerk
+                        {{ $t('DeploymentDetailView.network') }}
                     </h3>
                     <span class="px-2 py-0.5 bg-surface-input text-content-secondary text-xs font-bold rounded">
                         {{ networkResources.length }}
@@ -1434,7 +1545,7 @@ const formatDate = formatDateTime
                 <div class="flex items-center gap-2 mb-3">
                     <Shield :size="14" class="text-content-disabled" />
                     <h3 class="text-sm font-bold uppercase tracking-wider text-content-secondary">
-                        Sicherheit
+                        {{ $t('DeploymentDetailView.security') }}
                     </h3>
                     <span class="px-2 py-0.5 bg-surface-input text-content-secondary text-xs font-bold rounded">
                         {{ securityResources.length }}
@@ -1478,7 +1589,7 @@ const formatDate = formatDateTime
                         <Terminal :size="20" class="text-content-secondary" />
                     </div>
                     <span class="text-lg font-semibold text-content-primary">
-                        {{ isStreamRelevant ? 'Task History' : 'Tasks & Logs' }}
+                        {{ isStreamRelevant ? $t('DeploymentDetailView.taskHistory') : $t('DeploymentDetailView.tasksAndLogs') }}
                     </span>
                     <span v-if="historyTasks.length > 0"
                         class="px-2 py-0.5 bg-surface-input text-content-secondary text-xs font-bold rounded">
@@ -1488,7 +1599,7 @@ const formatDate = formatDateTime
                 <button v-if="selectedTask" @click="deselectTask"
                     class="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-sm">
                     <CircleArrowLeft :size="16" />
-                    <span>Back to list</span>
+                    <span>{{ $t('DeploymentDetailView.backToList') }}</span>
                 </button>
             </div>
 
@@ -1499,7 +1610,7 @@ const formatDate = formatDateTime
                 </div>
 
                 <div v-else-if="historyTasks.length === 0" class="text-center py-10 text-content-secondary">
-                    {{ isStreamRelevant ? 'No previous tasks for this deployment.' : 'No tasks found' }}
+                    {{ isStreamRelevant ? $t('DeploymentDetailView.noPreviousTasks') : $t('DeploymentDetailView.noTasks') }}
                 </div>
 
                 <div v-else class="space-y-2">
@@ -1515,11 +1626,11 @@ const formatDate = formatDateTime
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border capitalize"
                                         :class="getStatusStyles(task.status).badgeClass">
-                                        {{ task.status }}
+                                        {{ $t(deploymentStatusLabelKey(task.status)) }}
                                     </span>
                                 </div>
                                 <div class="text-xs text-content-secondary">
-                                    Created: {{ formatDate(task.created_at) }}
+                                    {{ $t('DeploymentDetailView.createdAtInline', { date: formatDate(task.created_at) }) }}
                                 </div>
                             </div>
                         </div>
@@ -1538,41 +1649,41 @@ const formatDate = formatDateTime
                     <div class="bg-surface-input rounded-lg p-4 border border-card-border mb-4">
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             <div>
-                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Type</div>
+                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskType') }}</div>
                                 <div class="text-sm font-medium text-content-primary capitalize">{{ selectedTask.type }}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Status</div>
+                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskStatusLabel') }}</div>
                                 <span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border capitalize"
                                     :class="getStatusStyles(selectedTask.status).badgeClass">
-                                    {{ selectedTask.status }}
+                                    {{ $t(deploymentStatusLabelKey(selectedTask.status)) }}
                                 </span>
                             </div>
                             <div>
-                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Started</div>
+                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskStarted') }}</div>
                                 <div class="text-sm text-content-secondary">{{ formatDate(selectedTask.started_at) }}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Finished</div>
+                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskFinished') }}</div>
                                 <div class="text-sm text-content-secondary">{{ formatDate(selectedTask.finished_at) }}</div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 gap-3">
                             <div>
-                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Task ID</div>
+                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskId') }}</div>
                                 <div class="text-xs font-mono text-content-secondary bg-surface-card px-2 py-1 rounded">{{
                                     selectedTask.taskId
                                 }}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Celery Task ID</div>
+                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.celeryTaskId') }}</div>
                                 <div class="text-xs font-mono text-content-secondary bg-surface-card px-2 py-1 rounded">{{
                                     selectedTask.celeryTaskId }}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">Created At</div>
+                                <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskCreatedAt') }}</div>
                                 <div class="text-sm text-content-secondary">{{ formatDate(selectedTask.created_at) }}</div>
                             </div>
                         </div>
@@ -1593,20 +1704,20 @@ const formatDate = formatDateTime
                                     <div class="p-1.5 bg-surface-card rounded-md border border-status-success/30">
                                         <Terminal :size="16" class="text-status-success" />
                                     </div>
-                                    <span class="font-semibold text-content-primary">Logs</span>
+                                    <span class="font-semibold text-content-primary">{{ $t('DeploymentDetailView.logsHeading') }}</span>
                                     <span v-if="logEntryCount !== null"
                                         class="px-2 py-0.5 bg-status-successLight text-status-success text-xs font-bold rounded border border-status-success/30">
-                                        {{ logEntryCount }} entries
+                                        {{ $t('DeploymentDetailView.logEntryCount', { n: logEntryCount }, logEntryCount ?? 0) }}
                                     </span>
                                 </div>
                                 <button @click="copyToClipboard(prettyJson(selectedTask.logs), 'logs')"
-                                    :title="copiedKey === 'logs' ? 'Copied!' : 'Copy to clipboard'"
+                                    :title="copiedKey === 'logs' ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.clipboard')"
                                     class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors"
                                     :class="copiedKey === 'logs'
                                         ? 'bg-status-success text-white border-status-success'
                                         : 'bg-surface-card text-content-secondary border-border hover:bg-surface-input'">
                                     <component :is="copiedKey === 'logs' ? Check : Copy" :size="13" />
-                                    {{ copiedKey === 'logs' ? 'Copied' : 'Copy' }}
+                                    {{ copiedKey === 'logs' ? $t('DeploymentDetailView.copyAction.copied') : $t('DeploymentDetailView.copyAction.copy') }}
                                 </button>
                             </div>
                             <div class="bg-surface-input p-4 overflow-y-auto max-h-[500px]">
@@ -1626,7 +1737,7 @@ const formatDate = formatDateTime
                                             class="text-xs text-content-secondary hover:text-content-primary underline mb-2"
                                             @click="showTaskLogsTrace = !showTaskLogsTrace"
                                         >
-                                            {{ showTaskLogsTrace ? 'Technische Details ausblenden' : 'Technische Details anzeigen' }}
+                                            {{ showTaskLogsTrace ? $t('DeploymentDetailView.hideTechnicalDetails') : $t('DeploymentDetailView.showTechnicalDetails') }}
                                         </button>
                                         <pre
                                             v-if="showTaskLogsTrace && taskLogsSplit.details"
@@ -1643,12 +1754,12 @@ const formatDate = formatDateTime
                             <div class="bg-surface-input px-4 py-3 border-b border-card-border">
                                 <div class="flex items-center gap-2">
                                     <Terminal :size="16" class="text-content-disabled" />
-                                    <span class="font-semibold text-content-secondary">Logs</span>
+                                    <span class="font-semibold text-content-secondary">{{ $t('DeploymentDetailView.logsHeading') }}</span>
                                 </div>
                             </div>
                             <div class="text-center py-8 text-content-secondary">
                                 <Terminal :size="32" class="mx-auto mb-2 text-content-disabled" />
-                                <p class="text-sm">No logs available for this task</p>
+                                <p class="text-sm">{{ $t('DeploymentDetailView.noTaskLogs') }}</p>
                             </div>
                         </div>
                     </div>
@@ -1667,20 +1778,21 @@ const formatDate = formatDateTime
                                             $t('DeploymentDetailView.terraformState')
                                             }}</span>
                                         <span class="text-xs text-content-secondary">
-                                            {{ tfResourcesCount > 0 ? `${tfResourcesCount} verwaltete Ressourcen` :
-                                                'Erweiterte Details' }}
+                                            {{ tfResourcesCount > 0
+                                                ? $t('DeploymentDetailView.managedResources', { n: tfResourcesCount }, tfResourcesCount)
+                                                : $t('DeploymentDetailView.advancedDetails') }}
                                         </span>
                                     </div>
                                 </div>
 
                                 <button @click="copyToClipboard(prettyJson(activeDataTask?.tf_state), 'tf_state')"
-                                    :title="copiedKey === 'tf_state' ? 'Kopiert!' : 'In die Zwischenablage kopieren'"
+                                    :title="copiedKey === 'tf_state' ? $t('DeploymentDetailView.copyAction.copiedShort') : $t('DeploymentDetailView.copyAction.clipboard')"
                                     class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border transition-colors flex-shrink-0"
                                     :class="copiedKey === 'tf_state'
                                         ? 'bg-tag-info text-white border-tag-info'
                                         : 'bg-surface-card text-content-secondary border-border hover:bg-surface-input'">
                                     <component :is="copiedKey === 'tf_state' ? Check : Copy" :size="13" />
-                                    {{ copiedKey === 'tf_state' ? 'Copied' : 'Copy' }}
+                                    {{ copiedKey === 'tf_state' ? $t('DeploymentDetailView.copyAction.copied') : $t('DeploymentDetailView.copyAction.copy') }}
                                 </button>
                             </div>
 
@@ -1764,7 +1876,7 @@ const formatDate = formatDateTime
                         {{ $t('DeploymentDetailView.cancelButton') }}
                     </BaseButton>
                     <BaseButton variant="red" @click="confirmRedeploy">
-                        Redeploy
+                        {{ $t('DeploymentDetailView.redeployVm') }}
                     </BaseButton>
                 </div>
             </template>

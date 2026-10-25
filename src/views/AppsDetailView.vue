@@ -17,10 +17,13 @@ import { useRole } from '@/composables/useRole'
 import { formatDate, MAX_IMAGE_BYTES } from '@/utils/format'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import Modal from '@/components/ui/Modal.vue'
+import QuickDeployModal from '@/components/QuickDeployModal.vue'
 import AppVersionStatusBadge from '@/components/ui/AppVersionStatusBadge.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import type { AppVersionApproval, AppVariableMarkerError } from '@/types'
+import type { AppVersionApproval, AppVariableMarkerError, VmTopology } from '@/types'
+
+const topologyOptions: VmTopology[] = ['shared', 'per_team', 'per_user', 'custom']
 
 const deploymentStore = useDeploymentStore()
 const credStore = useOpenStackCredentialsStore()
@@ -39,12 +42,18 @@ const activeTab = ref<'overview' | 'store'>('overview')
 const showDeleteModal = ref(false)
 const isDeleting = ref(false)
 
-// Edit modal — Name/Description/Image. Privacy is intentionally NOT
+// Edit modal — Name/Description/Image/Metadata. Privacy is intentionally NOT
 // edited here; it has its own toggle in the Store tab to avoid two
 // UIs touching the same field.
 const showEditModal = ref(false)
 const isSavingEdit = ref(false)
-const editForm = ref<{ name: string; description: string }>({ name: '', description: '' })
+const editForm = ref<{
+  name: string
+  description: string
+  vmTopology: VmTopology | null
+  requirements: string
+  recommendedFor: string
+}>({ name: '', description: '', vmTopology: null, requirements: '', recommendedFor: '' })
 // Image is tri-state on submit:
 //   null         → user touched nothing → field omitted from payload
 //   File         → new upload → encode as data-URL and send
@@ -208,12 +217,22 @@ const isQuickDeploying = ref(false)
  * the extra detail call the tile needs. Anything that cannot be defaulted sends
  * the user into the regular wizard, with the draft already filled in.
  */
-const handleQuickDeploy = async () => {
+// Der Teilnehmer-Dialog läuft dem Schnell-Deploy voraus: Wer die Umgebung
+// bekommt, lässt sich aus der App nicht ableiten — alles andere schon.
+const showQuickDeployModal = ref(false)
+
+const openQuickDeploy = () => {
   if (!selectedVersion.value) {
     toast.warning(t('AppsDetailView.toasts.selectVersionFirst'))
     return
   }
   if (isQuickDeploying.value) return
+  showQuickDeployModal.value = true
+}
+
+const handleQuickDeploy = async (memberIds: string[]) => {
+  showQuickDeployModal.value = false
+  if (!selectedVersion.value || isQuickDeploying.value) return
 
   isQuickDeploying.value = true
   try {
@@ -221,6 +240,7 @@ const handleQuickDeploy = async () => {
       app.value.appId || app.value.id,
       app.value.name,
       selectedVersion.value,
+      memberIds,
     )
     if (outcome.ready) {
       toast.success(t('deployment.quickDeploy.ready', { name: app.value.name }))
@@ -308,6 +328,9 @@ const openEditModal = () => {
   editForm.value = {
     name: app.value.name || '',
     description: app.value.description || '',
+    vmTopology: app.value.vm_topology ?? null,
+    requirements: app.value.requirements || '',
+    recommendedFor: app.value.recommended_for || '',
   }
   editImage.value = null
   editImagePreview.value = app.value.image || null
@@ -379,11 +402,27 @@ const submitEdit = async () => {
 
   // Build payload — only send fields the user actually changed so we
   // don't accidentally overwrite server-side values with stale ones.
-  const payload: { name?: string; description?: string; image?: string } = {}
+  const payload: {
+    name?: string
+    description?: string
+    image?: string
+    vm_topology?: VmTopology | null
+    requirements?: string | null
+    recommended_for?: string | null
+  } = {}
   if (name !== app.value.name) payload.name = name
   if (editForm.value.description !== (app.value.description || '')) {
     payload.description = editForm.value.description
   }
+  // Metadata: a cleared field is sent as null, which the backend stores
+  // as "not specified" (AppUpdate is applied with exclude_unset).
+  if (editForm.value.vmTopology !== (app.value.vm_topology ?? null)) {
+    payload.vm_topology = editForm.value.vmTopology
+  }
+  const requirements = editForm.value.requirements.trim() || null
+  if (requirements !== (app.value.requirements ?? null)) payload.requirements = requirements
+  const recommendedFor = editForm.value.recommendedFor.trim() || null
+  if (recommendedFor !== (app.value.recommended_for ?? null)) payload.recommended_for = recommendedFor
   if (editImage.value instanceof File) {
     payload.image = await fileToDataUrl(editImage.value)
   } else if (editImage.value === 'remove') {
@@ -559,6 +598,30 @@ onMounted(async () => {
             </ul>
           </div>
 
+          <!-- Optional app metadata. Hidden when the owner declared nothing,
+               so existing apps look exactly as before. -->
+          <div
+            v-if="app.vm_topology || app.requirements || app.recommended_for"
+            data-testid="app-detail-metadata"
+            class="bg-surface-input rounded-lg p-4 border border-card-border"
+          >
+            <h3 class="text-sm font-semibold text-content-primary uppercase tracking-wide mb-2">{{ $t('AppsDetailView.metadataTitle') }}</h3>
+            <ul class="space-y-2 text-sm text-content-secondary">
+              <li v-if="app.vm_topology" class="flex justify-between gap-4">
+                <span>{{ $t('AppsDetailView.topologyLabel') }}</span>
+                <span class="font-medium text-right" data-testid="app-detail-topology">{{ $t(`AppsCreateView.topology.${app.vm_topology}`) }}</span>
+              </li>
+              <li v-if="app.recommended_for" class="flex justify-between gap-4">
+                <span>{{ $t('AppsDetailView.recommendedForLabel') }}</span>
+                <span class="font-medium text-right">{{ app.recommended_for }}</span>
+              </li>
+              <li v-if="app.requirements" class="flex justify-between gap-4">
+                <span>{{ $t('AppsDetailView.requirementsLabel') }}</span>
+                <span class="font-medium text-right">{{ app.requirements }}</span>
+              </li>
+            </ul>
+          </div>
+
           <div class="bg-surface-input rounded-lg p-4 border border-card-border">
             <h3 class="text-sm font-semibold text-content-primary uppercase tracking-wide mb-2">{{ $t('AppsDetailView.versionDetailsTitle') }}</h3>
             <div v-if="hasVersionInfo && versionInfo" class="space-y-2 text-sm">
@@ -626,7 +689,7 @@ onMounted(async () => {
               data-testid="app-detail-quick-deploy"
               :disabled="!selectedVersion || isQuickDeploying || (credStore.isResolved && !credStore.hasCredential)"
               :title="credStore.isResolved && !credStore.hasCredential ? $t('AppsDetailView.missingCredsTitle') : ''"
-              @click="handleQuickDeploy"
+              @click="openQuickDeploy"
             >
               <Zap :size="18" aria-hidden="true" />
               {{ $t('deployment.quickDeploy.button') }}
@@ -795,7 +858,7 @@ onMounted(async () => {
       </template>
     </Modal>
 
-    <!-- Edit modal: name / description / image. git_link is intentionally
+    <!-- Edit modal: name / description / image / metadata. git_link is intentionally
          immutable (backend rejects it; AppUpdate schema drops it). Privacy
          has its own toggle in the Store tab. -->
     <Modal v-if="app" :show="showEditModal" @close="closeEditModal">
@@ -871,6 +934,47 @@ onMounted(async () => {
               </div>
             </div>
           </div>
+
+          <!-- Metadata -->
+          <div>
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
+              {{ $t('AppsDetailView.editModal.topologyLabel') }}
+            </label>
+            <select
+              v-model="editForm.vmTopology"
+              data-testid="edit-topology"
+              class="w-full rounded-lg border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-surface-card text-content-primary"
+            >
+              <option :value="null">{{ $t('AppsCreateView.form.topologyUnknown') }}</option>
+              <option v-for="opt in topologyOptions" :key="opt" :value="opt">{{ $t(`AppsCreateView.topology.${opt}`) }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
+              {{ $t('AppsDetailView.editModal.recommendedForLabel') }}
+            </label>
+            <input
+              v-model="editForm.recommendedFor"
+              type="text"
+              data-testid="edit-recommended-for"
+              :placeholder="$t('AppsCreateView.form.recommendedForPlaceholder')"
+              class="w-full rounded-lg border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-surface-card text-content-primary"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-content-primary mb-1.5">
+              {{ $t('AppsDetailView.editModal.requirementsLabel') }}
+            </label>
+            <input
+              v-model="editForm.requirements"
+              type="text"
+              data-testid="edit-requirements"
+              :placeholder="$t('AppsCreateView.form.requirementsPlaceholder')"
+              class="w-full rounded-lg border border-border px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-surface-card text-content-primary"
+            />
+          </div>
         </div>
       </template>
       <template #footer>
@@ -931,6 +1035,13 @@ onMounted(async () => {
         </div>
       </template>
     </Modal>
+
+    <QuickDeployModal
+      :show="showQuickDeployModal"
+      :app-name="app?.name || ''"
+      @close="showQuickDeployModal = false"
+      @confirm="handleQuickDeploy"
+    />
 
   </div>
 </template>

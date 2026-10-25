@@ -11,7 +11,7 @@ import {
   BarChart3,
   ArrowRight,
   ArrowLeft,
-  Box,
+  SlidersHorizontal,
   Layers
 } from 'lucide-vue-next'
 import type { AppVariable } from '@/types'
@@ -130,6 +130,20 @@ const terraformVars = computed(() => {
   })
   return result
 })
+
+/**
+ * What the recap actually renders. The two lists stay separate above because
+ * each resolves its values differently (Packer may be nested per template),
+ * but the user sees one — the same merge the variable step performs. Order is
+ * deliberately Packer first, so both steps list the variables alike.
+ *
+ * ``source`` rides along: this is the last screen before submitting, where
+ * a value has to stay traceable to the tool that will consume it.
+ */
+const allVars = computed(() => [
+  ...packerVars.value.map((v) => ({ ...v, source: 'packer' as const })),
+  ...terraformVars.value.map((v) => ({ ...v, source: 'terraform' as const })),
+])
 
 /**
  * Translate a backend submit-error into a user-facing toast string.
@@ -455,6 +469,18 @@ onMounted(() => {
 })
 
 // --- Actions ---
+// Each summary section links back to the wizard step that produced it. Without
+// the first two, anyone arriving here from the express deploy was stuck: that
+// path fills the draft with a single team holding the lecturer, and the only
+// way to a course was to start the wizard over from the tile.
+const handleEditBaseConfig = () => {
+  router.push({ name: 'deployment.config' })
+}
+
+const handleEditTeams = () => {
+  router.push({ name: 'deployment.teams' })
+}
+
 const handleCustomize = () => {
   // Navigate to the variables page.
   router.push({ name: 'deployment.variables' })
@@ -570,9 +596,17 @@ const handleBack = () => {
     <div v-else class="flex-grow space-y-6">
       
       <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 rounded-full bg-primary text-content-inverse flex items-center justify-center font-bold text-sm">1</div>
-          <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.baseConfigTitle') }}</h3>
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-primary text-content-inverse flex items-center justify-center font-bold text-sm">1</div>
+            <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.baseConfigTitle') }}</h3>
+          </div>
+          <button @click="handleEditBaseConfig"
+            data-testid="summary-edit-base-config"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-colors border border-tag-accentBorder text-sm">
+            <ArrowRight :size="16" />
+            {{ t('deployment.summary.editBtn') }}
+          </button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-surface-card rounded-lg p-4 border border-card-border">
@@ -612,9 +646,17 @@ const handleBack = () => {
       </div>
 
       <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-8 h-8 rounded-full bg-tag-info text-content-inverse flex items-center justify-center font-bold text-sm">2</div>
-          <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.teamAssignmentTitle') }}</h3>
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-tag-info text-content-inverse flex items-center justify-center font-bold text-sm">2</div>
+            <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.teamAssignmentTitle') }}</h3>
+          </div>
+          <button @click="handleEditTeams"
+            data-testid="summary-edit-teams"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-colors border border-tag-accentBorder text-sm">
+            <ArrowRight :size="16" />
+            {{ t('deployment.summary.editBtn') }}
+          </button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div class="bg-surface-card rounded-lg p-4 border border-card-border">
@@ -657,6 +699,7 @@ const handleBack = () => {
             <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.variablesConfigTitle') }}</h3>
           </div>
           <button @click="handleCustomize"
+            data-testid="summary-edit-variables"
             class="flex items-center gap-2 px-4 py-2 rounded-lg bg-tag-accentLight text-tag-accent font-semibold hover:bg-tag-accentBorder/30 transition-colors border border-tag-accentBorder text-sm">
             <ArrowRight :size="16" />
             {{ t('deployment.summary.editBtn') }}
@@ -664,18 +707,33 @@ const handleBack = () => {
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- One list, mirroring step 3. The per-row badge carries what the
+               former two-card split conveyed. -->
           <div class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden">
             <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
-              <Box :size="18" class="text-tag-info" />
-              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.packerVars') }}</h4>
+              <SlidersHorizontal :size="18" class="text-tag-info" aria-hidden="true" />
+              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.variables.sectionTitle') }}</h4>
               <span class="ml-auto text-xs bg-tag-infoLight text-tag-info px-2 py-0.5 rounded-full font-bold">
-                {{ packerVars.length }}
+                {{ allVars.length }}
               </span>
             </div>
             <div class="p-4 space-y-2 max-h-64 overflow-y-auto">
-              <div v-for="item in packerVars" :key="item.label"
+              <div v-for="(item, index) in allVars" :key="`${index}-${item.label}`"
                 class="flex justify-between items-start gap-3 py-2 border-b border-card-border last:border-0">
-                <span class="text-sm font-semibold text-content-secondary flex-shrink-0">{{ item.label }}</span>
+                <span class="text-sm font-semibold text-content-secondary flex-shrink-0 flex items-center gap-1.5">
+                  {{ item.label }}
+                  <span
+                    data-testid="variable-source-badge"
+                    class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                    :class="item.source === 'packer'
+                      ? 'bg-tag-infoLight text-tag-info border-tag-infoBorder'
+                      : 'bg-tag-accentLight text-tag-accent border-tag-accentBorder'"
+                  >
+                    {{ item.source === 'packer'
+                      ? t('deployment.sourceLabels.packer')
+                      : t('deployment.sourceLabels.terraform') }}
+                  </span>
+                </span>
                 <span
                   class="text-sm text-content-primary font-medium text-right break-all"
                   :title="item.raw ? t('deployment.summary.submittedValue', { value: item.raw }) : undefined"
@@ -683,33 +741,8 @@ const handleBack = () => {
                   {{ item.value }}
                 </span>
               </div>
-              <p v-if="packerVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
-                {{ t('deployment.summary.noPackerVars') }}
-              </p>
-            </div>
-          </div>
-
-          <div class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden">
-            <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
-              <Layers :size="18" class="text-tag-accent" />
-              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.terraformVars') }}</h4>
-              <span class="ml-auto text-xs bg-tag-accentLight text-tag-accent px-2 py-0.5 rounded-full font-bold">
-                {{ terraformVars.length }}
-              </span>
-            </div>
-            <div class="p-4 space-y-2 max-h-64 overflow-y-auto">
-              <div v-for="item in terraformVars" :key="item.label"
-                class="flex justify-between items-start gap-3 py-2 border-b border-card-border last:border-0">
-                <span class="text-sm font-semibold text-content-secondary flex-shrink-0">{{ item.label }}</span>
-                <span
-                  class="text-sm text-content-primary font-medium text-right break-all"
-                  :title="item.raw ? t('deployment.summary.submittedValue', { value: item.raw }) : undefined"
-                >
-                  {{ item.value }}
-                </span>
-              </div>
-              <p v-if="terraformVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
-                {{ t('deployment.summary.noTerraformVars') }}
+              <p v-if="allVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
+                {{ t('deployment.variables.noVariables') }}
               </p>
             </div>
           </div>
@@ -720,7 +753,7 @@ const handleBack = () => {
           >
             <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
               <Layers :size="18" class="text-status-warning" />
-              <h4 class="font-bold text-content-primary text-sm">Hochgeladene Dateien</h4>
+              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.uploadedFiles') }}</h4>
               <span class="ml-auto text-xs bg-status-warningLight text-status-warning px-2 py-0.5 rounded-full font-bold">
                 {{ fileVarSummaries.reduce((acc, v) => acc + v.chips.length, 0) }}
               </span>
@@ -730,7 +763,7 @@ const handleBack = () => {
                 <div class="text-xs font-semibold text-content-secondary mb-1">
                   {{ entry.name }}
                   <span class="text-[10px] font-normal text-content-disabled ml-1">
-                    (Scope: {{ entry.scope }})
+                    {{ t('deployment.summary.scopeLabel', { scope: entry.scope }) }}
                   </span>
                 </div>
                 <div v-if="entry.chips.length === 0" class="text-xs text-content-disabled italic">

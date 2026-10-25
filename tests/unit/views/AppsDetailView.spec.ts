@@ -39,7 +39,8 @@ vi.mock('@/composables/useToast', () => ({
 vi.mock('@/api/app.api', () => ({
     appApi: {
         getById: vi.fn(),
-        delete: vi.fn()
+        delete: vi.fn(),
+        update: vi.fn()
     }
 }))
 import { appApi } from '@/api/app.api'
@@ -99,9 +100,17 @@ describe('AppsDetailView.vue', () => {
                     BaseButton: { template: '<button><slot /></button>' },
                     Modal: {
                         props: ['show'],
-                        template: '<div v-if="$props.show" class="modal"><slot name="title" /><slot /><slot name="footer" /></div>'
+                        template: '<div v-if="$props.show" class="modal"><slot name="title" /><slot /><slot name="body" /><slot name="footer" /></div>'
                     },
                     RouterLink: true,
+                    // Der Teilnehmer-Dialog lädt Kurse und Studierende selbst.
+                    // Hier wird die View getestet, nicht der Dialog — gestubbt
+                    // und über ``confirm`` ausgelöst.
+                    QuickDeployModal: {
+                        name: 'QuickDeployModal',
+                        props: ['show', 'appName'],
+                        template: '<div />'
+                    },
                     MarkdownRenderer: {
                         props: ['source'],
                         template: '<div>{{ source }}</div>'
@@ -227,10 +236,16 @@ describe('AppsDetailView.vue', () => {
     // --- Quick deploy (Issue #11) ---
 
     describe('Quick deploy', () => {
-        const clickQuickDeploy = async () => {
+        /**
+         * Knopf klicken und den Teilnehmer-Dialog bestätigen. Der
+         * Schnell-Deploy startet erst danach — der Knopf allein öffnet nur den
+         * Dialog.
+         */
+        const clickQuickDeploy = async (memberIds: string[] = []) => {
             const wrapper = mountComponent()
             await flushPromises()
             await wrapper.find('[data-testid="app-detail-quick-deploy"]').trigger('click')
+            await wrapper.findComponent({ name: 'QuickDeployModal' }).vm.$emit('confirm', memberIds)
             await flushPromises()
             return wrapper
         }
@@ -239,7 +254,7 @@ describe('AppsDetailView.vue', () => {
             mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
             await clickQuickDeploy()
 
-            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith('app-123', 'Test App', 'v1.0')
+            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith('app-123', 'Test App', 'v1.0', [])
             expect(mockPush).toHaveBeenCalledWith({ name: 'deployment.summary' })
             expect(mockToastSuccess).toHaveBeenCalledWith('deployment.quickDeploy.ready')
         })
@@ -258,6 +273,99 @@ describe('AppsDetailView.vue', () => {
 
             expect(mockToastError).toHaveBeenCalledWith('deployment.quickDeploy.error')
             expect(mockPush).not.toHaveBeenCalledWith({ name: 'deployment.summary' })
+        })
+
+        it('reicht die im Dialog gewählten Teilnehmer an den Store durch', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            await clickQuickDeploy(['kc-1', 'kc-2'])
+
+            expect(mockPrepareQuickDeploy).toHaveBeenCalledWith(
+                'app-123', 'Test App', 'v1.0', ['kc-1', 'kc-2'],
+            )
+        })
+
+        it('startet den Schnell-Deploy erst nach Bestätigung des Dialogs', async () => {
+            mockPrepareQuickDeploy.mockResolvedValue({ ready: true })
+            const wrapper = mountComponent()
+            await flushPromises()
+
+            await wrapper.find('[data-testid="app-detail-quick-deploy"]').trigger('click')
+            await flushPromises()
+
+            expect(mockPrepareQuickDeploy).not.toHaveBeenCalled()
+        })
+    })
+    // --- 5. App-Metadaten (Issue #12) ---
+
+    describe('App-Metadaten', () => {
+        const appWithMetadata = {
+            appId: 'app-123',
+            name: 'Test App',
+            description: 'Detail Beschreibung',
+            userId: 'user-1',
+            versions: ['v1.0'],
+            vm_topology: 'shared',
+            requirements: '4 GB RAM',
+            recommended_for: 'Python-Kurse',
+        }
+
+        const openEditModal = async (wrapper: ReturnType<typeof mountComponent>) => {
+            await wrapper.findAll('button').find(b => b.text().includes('AppsDetailView.editApp'))!.trigger('click')
+        }
+
+        const saveEdit = async (wrapper: ReturnType<typeof mountComponent>) => {
+            await wrapper.findAll('.modal button').find(b => b.text().includes('AppsDetailView.editModal.saveButton'))!.trigger('click')
+            await flushPromises()
+        }
+
+        it('zeigt Topologie, Empfehlung und Anforderungen an', async () => {
+            ;(appApi.getById as any).mockResolvedValue({ data: appWithMetadata })
+            const wrapper = mountComponent()
+            await flushPromises()
+
+            const box = wrapper.find('[data-testid="app-detail-metadata"]')
+            expect(box.exists()).toBe(true)
+            expect(box.find('[data-testid="app-detail-topology"]').text()).toBe('AppsCreateView.topology.shared')
+            expect(box.text()).toContain('4 GB RAM')
+            expect(box.text()).toContain('Python-Kurse')
+        })
+
+        it('blendet den Abschnitt aus, wenn keine Metadaten gesetzt sind', async () => {
+            const wrapper = mountComponent()
+            await flushPromises()
+
+            expect(wrapper.find('[data-testid="app-detail-metadata"]').exists()).toBe(false)
+        })
+
+        it('sendet beim Bearbeiten nur geänderte Felder, geleerte als null', async () => {
+            ;(appApi.getById as any).mockResolvedValue({ data: appWithMetadata })
+            ;(appApi.update as any).mockResolvedValue({ data: {} })
+            const wrapper = mountComponent()
+            await flushPromises()
+
+            await openEditModal(wrapper)
+            await wrapper.find('[data-testid="edit-topology"]').setValue('per_team')
+            await wrapper.find('[data-testid="edit-requirements"]').setValue('')
+            await saveEdit(wrapper)
+
+            expect(appApi.update).toHaveBeenCalledWith('app-123', {
+                vm_topology: 'per_team',
+                requirements: null,
+            })
+            expect(mockToastSuccess).toHaveBeenCalledWith('AppsDetailView.toasts.editSuccess')
+        })
+
+        it('zeigt einen Fehler-Toast, wenn das Speichern fehlschlägt', async () => {
+            ;(appApi.getById as any).mockResolvedValue({ data: appWithMetadata })
+            ;(appApi.update as any).mockRejectedValue(new Error('boom'))
+            const wrapper = mountComponent()
+            await flushPromises()
+
+            await openEditModal(wrapper)
+            await wrapper.find('[data-testid="edit-recommended-for"]').setValue('Statistik')
+            await saveEdit(wrapper)
+
+            expect(mockToastError).toHaveBeenCalledWith('AppsDetailView.toasts.editError')
         })
     })
 })

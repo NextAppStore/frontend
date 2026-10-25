@@ -157,7 +157,7 @@ const clearFile = () => {
           <span class="text-content-secondary">{{ t('fileDropZone.pick') }}</span>
         </div>
         <div class="text-xs text-content-disabled mt-0.5">
-          max. {{ Math.round(maxBytes / 1024 / 1024) }} MB
+          {{ t('fileDropZone.maxSize', { n: Math.round(maxBytes / 1024 / 1024) }) }}
         </div>
       </div>
       <input

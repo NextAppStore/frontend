@@ -13,9 +13,11 @@
  * a different draft channel (``fileUploads``) than scalar inputs.
  *
  * The visual styling (border / focus colors) is sourced from the
- * ``accent`` prop so both wizard sections (Packer = blue, Terraform =
- * purple) stay visually distinct without duplicating five separate
- * input variants per color.
+ * ``accent`` prop. It dates from the time the wizard showed two
+ * variable sections side by side and gave each its own palette; since
+ * they were merged into one list, every call site uses the default.
+ * The prop is kept because it costs nothing and a second palette is
+ * cheaper to re-introduce than to re-derive.
  */
 import { computed } from 'vue'
 import OpenStackResourcePicker from '@/components/OpenStackResourcePicker.vue'
@@ -32,8 +34,8 @@ const props = defineProps<{
    *  picker. Caller supplies it because cross-variable lookups live
    *  in the wizard's variables list, not in this component. */
   filterNetworkId?: string | null
-  /** Accent color used for borders + focus ring; the wizard's two
-   *  sections (Packer / Terraform) drive different palettes. */
+  /** Accent color used for borders + focus ring. Defaults to ``blue``,
+   *  which is what the merged variable list uses throughout. */
   accent?: 'blue' | 'purple'
   /** DOM ``id`` to put on the underlying input. The single-input
    *  variant uses the variable name verbatim for ``<label>``

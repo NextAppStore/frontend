@@ -36,16 +36,17 @@ const mockStreamConnectionState = ref<'idle' | 'connecting' | 'live' | 'reconnec
 vi.mock('lucide-vue-next', () => {
   const icon = (className: string) => ({ template: `<span class="${className}" />` })
 
-  // Every icon the view imports must be a named export here — vitest
+  // Every icon the view (and its mounted children, e.g.
+  // RdpClientHelpPopover) imports must be a named export here — vitest
   // validates named ESM imports at module-eval time, so a Proxy
-  // fallback isn't enough. Keep this list in sync with the two
-  // ``lucide-vue-next`` imports in DeploymentDetailView.vue.
+  // fallback isn't enough. Keep this list in sync with every
+  // ``lucide-vue-next`` import reachable from DeploymentDetailView.vue.
   const names = [
     'CircleArrowLeft', 'Loader2', 'Users', 'Settings', 'Terminal',
     'ChevronDown', 'Trash2', 'GitBranch', 'User', 'Calendar', 'Clock',
     'Package', 'AlertCircle', 'CheckCircle', 'XCircle', 'StopCircle',
     'Flame', 'Copy', 'Check', 'Send', 'PauseCircle', 'PlayCircle',
-    'RefreshCw', 'Server', 'Network', 'Shield', 'Eye', 'EyeOff',
+    'RefreshCw', 'Server', 'Network', 'Shield', 'Eye', 'EyeOff', 'Info',
   ]
   return Object.fromEntries(
     names.map((n) => [n, icon(`icon-${n.toLowerCase()}`)]),
@@ -417,6 +418,52 @@ describe('DeploymentDetailView.vue — member self-access', () => {
     expect(mocks.mockListTasksByDeployment).not.toHaveBeenCalled()
     // The own credential renders in the Teams card.
     expect(wrapper.text()).toContain('member1')
+  })
+
+  it('rendert die RDP-Pill statt eines kaputten http-Links fuer authtype: rdp, und wechselt sie per Toggle auf IPv6', async () => {
+    // Windows-App-shaped account: authtype "rdp", port 3389, plus a
+    // team-level fixed_ip_v6 — regression test for the URL-pill fallback
+    // that used to render authtype: 'rdp' as a broken http://<ip>:3389 link.
+    // Also covers the IPv4/IPv6 toggle: only one RDP command is visible at
+    // a time, switching with the segmented control above the team list.
+    localStorage.removeItem('cnd.ipVersionPreference')
+    mocks.mockGetMyAccess.mockResolvedValue({
+      data: {
+        user_accounts: {
+          'Team Alpha-member1': {
+            username: 'member1',
+            team: 'Team Alpha',
+            ip: '10.200.1.42',
+            port: 3389,
+            auth: 'super-secret-pw',
+            type: 'password',
+            authtype: 'rdp',
+          },
+        },
+        team_vms: {
+          'Team Alpha': { fixed_ip_v6: '2001:7c0:1b20:c913:1::2e3' },
+        },
+      },
+    })
+
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    // Default preference is IPv4 — only the v4 command is shown.
+    let text = wrapper.text()
+    expect(text).toContain('mstsc /v:10.200.1.42')
+    expect(text).not.toContain('mstsc /v:[2001:7c0:1b20:c913:1::2e3]')
+    expect(text).not.toContain('http://10.200.1.42:3389')
+
+    // Switching the toggle to IPv6 swaps the pill, not adds a second one.
+    const ipv6Button = wrapper.findAll('button').find((b) => b.text() === 'DeploymentDetailView.ipToggle.ipv6')
+    expect(ipv6Button).toBeTruthy()
+    await ipv6Button!.trigger('click')
+    await nextTick()
+
+    text = wrapper.text()
+    expect(text).toContain('mstsc /v:[2001:7c0:1b20:c913:1::2e3]')
+    expect(text).not.toContain('mstsc /v:10.200.1.42')
   })
 
   it('ruft /my-access NICHT auf, wenn der Nutzer Owner-View hat', async () => {

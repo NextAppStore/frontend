@@ -93,24 +93,30 @@ const lifecyclePillClass = computed(() => pillToneClass(lifecycleTone.value))
 
 const uptime = computed(() => formatUptime(detail.value?.hardware?.launched_at))
 
-// --- Map network IDs / fixed IPs to the human-friendly network name.
+// --- Map a Stage-2 port to the human-friendly network name.
 // The Stage-2 ``ports`` block only carries the ``network_id`` (UUID).
-// The Stage-1 ``addresses`` block, on the other hand, is keyed by
-// the OpenStack-side network NAME (e.g. ``"NAT"``) and carries the
-// fixed_ip for that network. So we walk addresses to build two cheap
-// lookups: by-fixed-ip first, then by-mac as fallback.
-const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }): string | null => {
+// The Stage-1 ``addresses`` block, on the other hand, is keyed by the
+// OpenStack-side network NAME (e.g. ``"NAT"``). The MAC is the stable link
+// between the two (all addresses of a port share it). The fixed IPs are the
+// fallback; each field carries one address family, so they are compared
+// field by field.
+const portNetworkName = (port: {
+  fixed_ip: string | null
+  fixed_ip_v6: string | null
+  mac: string | null
+}): string | null => {
   const addrs = detail.value?.addresses
   if (!addrs || addrs.length === 0) return null
-  if (port.fixed_ip) {
-    const m = addrs.find((a) => a.fixed_ip === port.fixed_ip)
-    if (m) return m.network
-  }
   if (port.mac) {
     const m = addrs.find((a) => a.mac === port.mac)
     if (m) return m.network
   }
-  return null
+  const m = addrs.find(
+    (a) =>
+      (port.fixed_ip !== null && a.fixed_ip === port.fixed_ip) ||
+      (port.fixed_ip_v6 !== null && a.fixed_ip_v6 === port.fixed_ip_v6),
+  )
+  return m ? m.network : null
 }
 </script>
 
@@ -320,7 +326,7 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
           <div class="space-y-2">
             <div
               v-for="addr in detail.addresses"
-              :key="`${addr.network}::${addr.fixed_ip || addr.mac || ''}`"
+              :key="`${addr.network}::${addr.fixed_ip || addr.fixed_ip_v6 || addr.mac || ''}`"
               class="text-xs bg-surface-card rounded border border-card-border p-2.5 space-y-1"
             >
               <p class="font-semibold text-content-primary">{{ addr.network }}</p>
@@ -333,7 +339,15 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
                   <span class="text-content-disabled">{{ t('vm.drawer.network.floatingIp') }}</span>
                   <code class="ml-1 font-mono text-status-success">{{ addr.floating_ip }}</code>
                 </div>
-                <div v-if="addr.mac">
+                <!-- IPv6 and MAC get the full row — both are long enough
+                     ("xxxx:xxxx:...:xxxx" / "xx:xx:xx:xx:xx:xx") that
+                     cramming them into a half-width cell next to another
+                     field pushes them past the panel edge. -->
+                <div v-if="addr.fixed_ip_v6" class="col-span-2">
+                  <span class="text-content-disabled">{{ t('vm.drawer.network.fixedIpV6') }}</span>
+                  <code class="ml-1 font-mono break-all">{{ addr.fixed_ip_v6 }}</code>
+                </div>
+                <div v-if="addr.mac" class="col-span-2">
                   <span class="text-content-disabled">{{ t('vm.drawer.network.mac') }}</span>
                   <code class="ml-1 font-mono">{{ addr.mac }}</code>
                 </div>
@@ -385,7 +399,7 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
                     ? 'bg-status-successLight text-status-success border-status-success/30'
                     : 'bg-surface-input text-content-secondary border-card-border'"
                 >
-                  {{ port.status || 'unknown' }}
+                  {{ port.status || t('vm.statusUnknown') }}
                 </span>
               </div>
               <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-content-secondary">
@@ -393,7 +407,11 @@ const portNetworkName = (port: { fixed_ip: string | null; mac: string | null }):
                   <span class="text-content-disabled">IP</span>
                   <code class="ml-1 font-mono">{{ port.fixed_ip || '—' }}</code>
                 </div>
-                <div>
+                <div v-if="port.fixed_ip_v6" class="col-span-2">
+                  <span class="text-content-disabled">{{ t('vm.drawer.network.fixedIpV6') }}</span>
+                  <code class="ml-1 font-mono break-all">{{ port.fixed_ip_v6 }}</code>
+                </div>
+                <div class="col-span-2">
                   <span class="text-content-disabled">{{ t('vm.drawer.network.mac') }}</span>
                   <code class="ml-1 font-mono">{{ port.mac || '—' }}</code>
                 </div>

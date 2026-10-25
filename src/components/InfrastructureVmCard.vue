@@ -102,6 +102,14 @@ const flavorBrief = computed(() => {
   return parts.length > 0 ? parts.join(' · ') : null
 })
 
+// --- IPv4/IPv6 styling ---
+// Both addresses stay visible on this compact card (no room for a
+// per-card toggle without noise across many VMs). Styled identically —
+// no preferred-version emphasis — so neither address reads as more or
+// less important than the other.
+const v4AddressClass = 'font-mono text-content-primary'
+const v6AddressClass = 'font-mono text-content-primary'
+
 const cardBorderClass = computed(() => {
   if (props.resource.drift === 'missing') return 'border-status-error/50 ring-1 ring-status-errorLight'
   if (props.resource.drift === 'stale') return 'border-status-warning/50'
@@ -172,10 +180,10 @@ const cardBorderClass = computed(() => {
       <div class="space-y-0.5">
         <p v-if="flavorBrief">{{ flavorBrief }}</p>
         <p v-if="resource.hardware?.image_name" class="text-content-disabled">
-          Image: {{ resource.hardware.image_name }}
+          {{ t('vm.imageLabel', { name: resource.hardware.image_name }) }}
         </p>
         <p v-else-if="resource.hardware?.image_id" class="text-content-disabled font-mono">
-          Image-ID: {{ resource.hardware.image_id.slice(0, 8) }}…
+          {{ t('vm.imageIdLabel', { id: resource.hardware.image_id.slice(0, 8) }) }}
         </p>
         <p v-if="resource.hardware?.availability_zone" class="text-content-disabled">
           AZ: {{ resource.hardware.availability_zone }}
@@ -184,20 +192,28 @@ const cardBorderClass = computed(() => {
       </div>
     </div>
 
-    <!-- Addresses -->
+    <!-- Addresses — one line per IP (v4/v6/floating each run too long to
+         share a line without overflowing the card on narrow widths). -->
     <div v-if="resource.addresses.length > 0" class="flex items-start gap-2 text-xs text-content-secondary">
       <Network :size="14" class="mt-0.5 shrink-0 text-content-disabled" />
-      <div class="space-y-1 flex-1 min-w-0">
+      <div class="space-y-1.5 flex-1 min-w-0">
         <div
           v-for="addr in resource.addresses"
           :key="`${resource.address}::${addr.network}`"
-          class="flex flex-wrap items-baseline gap-1"
+          class="space-y-0.5"
         >
           <span class="text-content-disabled">{{ addr.network }}:</span>
-          <span v-if="addr.fixed_ip" class="font-mono">{{ addr.fixed_ip }}</span>
-          <span v-if="addr.floating_ip" class="font-mono text-status-success">
+          <p v-if="addr.fixed_ip" class="break-all" :class="v4AddressClass">
+            <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv4Label') }}</span>
+            {{ addr.fixed_ip }}
+          </p>
+          <p v-if="addr.fixed_ip_v6" class="break-all" :class="v6AddressClass">
+            <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider">{{ t('vm.ipv6Label') }}</span>
+            {{ addr.fixed_ip_v6 }}
+          </p>
+          <p v-if="addr.floating_ip" class="font-mono text-status-success break-all">
             → {{ addr.floating_ip }}
-          </span>
+          </p>
         </div>
       </div>
     </div>
