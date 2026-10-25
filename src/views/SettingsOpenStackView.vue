@@ -448,7 +448,7 @@ const maybeReturnToWizard = () => {
 
       <div class="px-6 pb-6 flex justify-end">
         <button
-          class="px-4 py-2 bg-primary text-content-inverse rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          class="px-4 py-2 bg-primary text-content-onColor rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           :disabled="credStore.loading || credStore.isLocked"
           :title="credStore.isLocked ? t('SettingsOpenStackView.tooltips.lockedActiveDeployments') : ''"
           @click="handleSave"

@@ -1162,7 +1162,7 @@ const formatDate = formatDateTime
                     </div>
                     <div class="bg-gray-900 rounded-md p-3 max-h-72 overflow-y-auto font-mono text-xs">
                         <div v-for="(log, idx) in streamLiveLogs" :key="`${log.timestamp}-${idx}`"
-                            class="text-content-inverse whitespace-pre-wrap break-words" :class="{
+                            class="text-content-onColor whitespace-pre-wrap break-words" :class="{
                                 'text-status-error': log.level === 'ERROR',
                                 'text-status-warning': log.level === 'WARNING',
                                 'text-status-success': log.level === 'SUCCESS',

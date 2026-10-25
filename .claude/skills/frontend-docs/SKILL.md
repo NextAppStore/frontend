@@ -136,7 +136,7 @@ Merge-Commits überspringen, ihre Inhalte stecken in den Einzelcommits.
 | Neue Datei in `src/components/ui/` | README-Baum, `frontend-dev` §5 Inventar |
 | `src/api/*.api.ts` oder `src/stores/*.store.ts` neu | README `api/ ↔ stores/`, Kopfkommentar der Datei |
 | Neues Composable | README-Tabelle „Zentrale Mechanismen", falls querschnittlich |
-| `tailwind.config.js` | `frontend-dev` §6 Token-Tabelle |
+| `tailwind.config.js` oder Farbvariablen in `src/style.css` | `frontend-dev` §6 Styling |
 | `package.json` (Dependency) | README `Technologie-Stack` |
 | `src/types/index.ts` → `AppVariableOsType` | die drei Gegenstellen (siehe `frontend-dev` §10) |
 | `src/env.ts`, `docker-entrypoint.sh`, `public/env-config.js` | `frontend-dev` §11 |

@@ -1079,7 +1079,7 @@ watch(
         :class="[
           'flex items-center gap-2 px-8 py-2.5 rounded-full font-bold transition-colors shadow-lg',
           canSubmit
-            ? 'bg-btn-primary text-btn-primary-text hover:bg-btn-primaryHover shadow-btn-primary/20'
+            ? 'bg-btn-primary text-btn-primaryText hover:bg-btn-primaryHover shadow-btn-primary/20'
             : 'bg-surface-input text-content-disabled cursor-not-allowed shadow-none',
         ]"
       >

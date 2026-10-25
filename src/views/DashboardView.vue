@@ -251,7 +251,7 @@ onMounted(() => {
         <p class="text-xs text-content-secondary mt-1 mb-4">{{ t('DashboardView.noCredentialsHint') }}</p>
         <RouterLink
           to="/user/openstack"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-content-inverse text-xs font-semibold rounded-lg hover:bg-primary-dark transition-colors"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-content-onColor text-xs font-semibold rounded-lg hover:bg-primary-dark transition-colors"
         >
           {{ t('DashboardView.setUpNow') }} <ArrowRight :size="12" />
         </RouterLink>
@@ -422,7 +422,7 @@ onMounted(() => {
   padding: 11px 22px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   border: 1px solid transparent;
-  color: var(--color-content-inverse);
+  color: var(--color-btn-primary-text);
   font-size: 0.875rem;
   font-weight: 600;
   border-radius: 12px;
