@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { roleLabelKey, roleBadgeVariant as roleBadgeVariantFor } from '@/i18n/role-labels'
+import { currentLocale } from '@/i18n/locale'
 import Badge from '@/components/ui/Badge.vue'
 import Card from '@/components/ui/Card.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -29,7 +30,9 @@ const roleLabel = computed(() => t(roleLabelKey(user.value?.role)))
 
 const createdDate = computed(() => {
   if (!user.value?.created_at) return 'N/A'
-  return new Date(user.value.created_at).toLocaleDateString('de-DE', {
+  // Long month name ("23. Oktober 2026" / "October 23, 2026") — a shape the
+  // shared helpers don't cover, so the locale is applied directly here.
+  return new Date(user.value.created_at).toLocaleDateString(currentLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric'

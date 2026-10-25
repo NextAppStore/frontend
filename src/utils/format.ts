@@ -1,36 +1,42 @@
 /**
  * Shared date formatting helpers.
  *
- * Consolidates the ``de-DE`` date formatting used across several views. Two
- * shapes are exposed:
+ * Consolidates the date formatting used across several views. Two shapes are
+ * exposed:
  *
- * - :func:`formatDate` — date only (``dd.mm.yyyy``), for list/detail views.
+ * - :func:`formatDate` — date only, for list/detail views.
  * - :func:`formatDateTime` — date + time, where the exact timestamp matters.
  *
  * Both tolerate ``null``/empty input and unparseable strings. :func:`formatDate`
  * returns the input verbatim when it can't be parsed; :func:`formatDateTime`
  * yields ``'-'`` for empty input.
+ *
+ * The locale follows the UI language rather than a fixed ``de-DE``, so a date
+ * reads ``23.10.2026`` in German and ``10/23/2026`` in English. It is resolved
+ * per call, not once at module load: the language can change at runtime and a
+ * cached value would leave every already-imported view formatting in the old
+ * one.
  */
 
-const LOCALE = 'de-DE'
+import { currentLocale } from '@/i18n/locale'
 
 /**
- * Date only (``dd.mm.yyyy``). Accepts a ``Date`` or a string; returns the
- * input verbatim when it is not a parseable date, matching the previous
- * per-view helpers.
+ * Date only. Accepts a ``Date`` or a string; returns the input verbatim when
+ * it is not a parseable date, matching the previous per-view helpers.
  */
 export function formatDate(value?: string | Date | null): string {
+  const locale = currentLocale()
   if (value instanceof Date) {
-    return isNaN(value.getTime()) ? String(value) : value.toLocaleDateString(LOCALE)
+    return isNaN(value.getTime()) ? String(value) : value.toLocaleDateString(locale)
   }
   if (typeof value === 'string') {
     const d = new Date(value)
-    if (!isNaN(d.getTime())) return d.toLocaleDateString(LOCALE)
+    if (!isNaN(d.getTime())) return d.toLocaleDateString(locale)
   }
   return value as string
 }
 
-/** Date + time (``dd.mm.yyyy, hh:mm:ss``). Empty → ``'-'``. */
+/** Date + time. Empty → ``'-'``. */
 export function formatDateTime(
   value?: string | number | Date | null,
   options: Intl.DateTimeFormatOptions = {
@@ -43,7 +49,7 @@ export function formatDateTime(
   },
 ): string {
   if (value === null || value === undefined || value === '') return '-'
-  return new Date(value).toLocaleString(LOCALE, options)
+  return new Date(value).toLocaleString(currentLocale(), options)
 }
 
 /**

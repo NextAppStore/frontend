@@ -735,7 +735,7 @@ const handleBack = () => {
           >
             <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
               <Layers :size="18" class="text-status-warning" />
-              <h4 class="font-bold text-content-primary text-sm">Hochgeladene Dateien</h4>
+              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.uploadedFiles') }}</h4>
               <span class="ml-auto text-xs bg-status-warningLight text-status-warning px-2 py-0.5 rounded-full font-bold">
                 {{ fileVarSummaries.reduce((acc, v) => acc + v.chips.length, 0) }}
               </span>
@@ -745,7 +745,7 @@ const handleBack = () => {
                 <div class="text-xs font-semibold text-content-secondary mb-1">
                   {{ entry.name }}
                   <span class="text-[10px] font-normal text-content-disabled ml-1">
-                    (Scope: {{ entry.scope }})
+                    {{ t('deployment.summary.scopeLabel', { scope: entry.scope }) }}
                   </span>
                 </div>
                 <div v-if="entry.chips.length === 0" class="text-xs text-content-disabled italic">

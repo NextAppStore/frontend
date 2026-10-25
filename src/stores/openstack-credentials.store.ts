@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import i18n from '@/i18n'
 import axios from 'axios'
 import { credentialsApi } from '@/api/credentials.api'
 import type {
@@ -23,7 +24,7 @@ function extractError(err: unknown, fallback: string): string {
       const reason = (detail as { reason?: string }).reason
       if (reason === LOCKED_REASON) {
         const n = (detail as { active_deployments?: number }).active_deployments ?? 0
-        return `Credentials gesperrt — ${n} aktive(s) Deployment(s)`
+        return i18n.global.t('SettingsOpenStackView.lockBanner.message', { count: n })
       }
       if (reason) return String(reason)
     }

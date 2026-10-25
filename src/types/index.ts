@@ -88,6 +88,9 @@ export interface CourseUpdate {
 // ----------------------------------------------------------------
 // APP TYPES
 // ----------------------------------------------------------------
+// Mirrors backend ``VmTopology``. ``null`` = not declared by the app owner.
+export type VmTopology = 'shared' | 'per_team' | 'per_user' | 'custom'
+
 export interface App {
   appId: string
   name: string
@@ -100,6 +103,9 @@ export interface App {
   // Data-URL ("data:image/png;base64,...") or null when the app
   // has no logo. Goes straight into ``<img :src=...>``.
   image?: string | null
+  vm_topology?: VmTopology | null
+  requirements?: string | null
+  recommended_for?: string | null
 }
 
 export interface AppWithUser extends App {
@@ -127,6 +133,9 @@ export interface AppCreate {
   // Data-URL of the logo. Use the FileReader.readAsDataURL output.
   // Omit / null = no logo.
   image?: string | null
+  vm_topology?: VmTopology | null
+  requirements?: string | null
+  recommended_for?: string | null
 }
 
 export interface AppUpdate {
@@ -136,6 +145,10 @@ export interface AppUpdate {
   // Data-URL ("data:image/...;base64,..."), empty string to clear
   // the existing image, or undefined to leave unchanged.
   image?: string | null
+  // Omitted = unchanged, ``null`` = cleared (backend uses exclude_unset).
+  vm_topology?: VmTopology | null
+  requirements?: string | null
+  recommended_for?: string | null
 }
 
 // ----------------------------------------------------------------
