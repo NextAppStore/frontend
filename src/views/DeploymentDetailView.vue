@@ -41,12 +41,24 @@ const rdpCommandFor = (data: { ip?: string; port?: number }): string => {
 // brackets in an mstsc target.
 const rdpCommandForV6 = (ipv6: string): string => `mstsc /v:[${ipv6}]`
 
-// Resolve the IPv6 address to use for a member's RDP command: the
+// Resolve the IPv6 address to use for a member's pill (RDP, SSH, or
+// URL — the resolution is the same regardless of authtype): the
 // account's own ``ip_v6`` wins when present (per-member precision, now
 // that the worker output carries it), falling back to the team VM's
 // ``fixed_ip_v6`` for apps that only publish it at the team level.
-const rdpIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null =>
-    account.ip_v6 || team.vm?.fixed_ip_v6 || null
+//
+// Normalised here, once, for every caller: terraform's own
+// ``fixed_ip_v6`` instance attribute comes back pre-bracketed (e.g.
+// "[2001:db8::1]", confirmed via `terraform state show` — not a CLI
+// artifact), while apps that instead read a team port's
+// ``all_fixed_ips`` list (e.g. Windows-App) get a bare address. Strip
+// any brackets here so every consumer (rdpCommandForV6,
+// sshCommandForV6, userUrlForV6, teamVmUrlForV6) can add its own
+// without ever doubling up into "[[...]]".
+const accountIpv6For = (account: UserAccount, team: { vm?: { fixed_ip_v6?: string } | null }): string | null => {
+    const raw = account.ip_v6 || team.vm?.fixed_ip_v6 || null
+    return raw ? raw.replace(/^\[|\]$/g, '') : null
+}
 
 
 const route = useRoute()
@@ -143,9 +155,12 @@ const {
     visiblePasswords,
     togglePasswordVisibility,
     sshCommandFor,
+    sshCommandForV6,
     userUrlFor,
+    userUrlForV6,
+    teamVmUrlForV6,
     enrichedTeams,
-    hasAnyRdpAccount,
+    hasAnyIpv6Account,
     copiedKey,
     copyToClipboard,
     resendState,
@@ -1193,10 +1208,11 @@ const formatDate = formatDateTime
                     {{ deployment.teams.length }}
                 </span>
 
-                <!-- One global IPv4/IPv6 preference for all RDP pills below —
-                     not per-team or per-row, since network reachability
-                     (VPN vs. no VPN) is typically the same for everyone. -->
-                <div v-if="hasAnyRdpAccount" class="ml-auto inline-flex rounded-lg border border-card-border bg-surface-input p-0.5"
+                <!-- One global IPv4/IPv6 preference for all RDP/SSH pills
+                     below — not per-team or per-row, since network
+                     reachability (VPN vs. no VPN) is typically the same
+                     for everyone. -->
+                <div v-if="hasAnyIpv6Account" class="ml-auto inline-flex rounded-lg border border-card-border bg-surface-input p-0.5"
                     role="group" :aria-label="$t('DeploymentDetailView.ipToggle.ariaLabel')">
                     <button type="button" @click="setIpVersion('v4')"
                         class="px-3 py-1 text-xs font-semibold rounded-md transition-colors"
@@ -1264,13 +1280,25 @@ const formatDate = formatDateTime
                                     </button>
                                 </div>
 
+                                <!-- URL pill — shows IPv4 or IPv6 depending on the
+                                     shared toggle above, same pattern as SSH/RDP. -->
                                 <div v-if="member.account.data.ip && member.account.data.port && member.account.data.type !== 'ssh_key' && member.account.data.authtype !== 'ssh' && member.account.data.authtype !== 'rdp' && member.account.data.port !== 22 && member.account.data.port !== 3389"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-[280px]">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">URL:</span>
-                                    <a :href="userUrlFor(member.account.data, team.vm?.url) ?? ''" target="_blank" rel="noopener noreferrer"
-                                        class="text-tag-info hover:underline truncate">{{ userUrlFor(member.account.data, team.vm?.url)?.replace(/^https?:\/\//, '') }}</a>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? 'URL (IPv6):' : 'URL:' }}
+                                    </span>
+                                    <a :href="(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? userUrlForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data, team.vm?.url)
+                                            : userUrlFor(member.account.data, team.vm?.url)) ?? ''"
+                                        target="_blank" rel="noopener noreferrer"
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.ssh.unavailableV6') : undefined"
+                                        class="text-tag-info hover:underline truncate">{{ (ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? userUrlForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data, team.vm?.url)
+                                            : userUrlFor(member.account.data, team.vm?.url))?.replace(/^https?:\/\//, '') }}</a>
                                     <button
-                                        @click="copyToClipboard(userUrlFor(member.account.data, team.vm?.url) ?? '', 'vmurl-' + member.account.key)"
+                                        @click="copyToClipboard((ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? userUrlForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data, team.vm?.url)
+                                            : userUrlFor(member.account.data, team.vm?.url)) ?? '', 'vmurl-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
                                         :title="copiedKey === 'vmurl-' + member.account.key ? 'Kopiert!' : 'URL kopieren'">
                                         <component :is="copiedKey === 'vmurl-' + member.account.key ? Check : Copy" :size="12" />
@@ -1278,11 +1306,21 @@ const formatDate = formatDateTime
                                 </div>
                                 <div v-else-if="team.vm?.url"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-[280px]">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">URL:</span>
-                                    <a :href="team.vm.url" target="_blank" rel="noopener noreferrer"
-                                        class="text-tag-info hover:underline truncate">{{ team.vm.url.replace(/^https?:\/\//, '') }}</a>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? 'URL (IPv6):' : 'URL:' }}
+                                    </span>
+                                    <a :href="ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? teamVmUrlForV6(team.vm.url, accountIpv6For(member.account.data, team) ?? '')
+                                            : team.vm.url"
+                                        target="_blank" rel="noopener noreferrer"
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.ssh.unavailableV6') : undefined"
+                                        class="text-tag-info hover:underline truncate">{{ (ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? teamVmUrlForV6(team.vm.url, accountIpv6For(member.account.data, team) ?? '')
+                                            : team.vm.url).replace(/^https?:\/\//, '') }}</a>
                                     <button
-                                        @click="copyToClipboard(team.vm.url, 'vmurl-' + member.account.key)"
+                                        @click="copyToClipboard(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? teamVmUrlForV6(team.vm.url, accountIpv6For(member.account.data, team) ?? '')
+                                            : team.vm.url, 'vmurl-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
                                         :title="copiedKey === 'vmurl-' + member.account.key ? 'Kopiert!' : 'URL kopieren'">
                                         <component :is="copiedKey === 'vmurl-' + member.account.key ? Check : Copy" :size="12" />
@@ -1290,13 +1328,26 @@ const formatDate = formatDateTime
                                 </div>
 
                                 <!-- Ready-to-use SSH command line — already
-                                     includes username, IP and (for non-22) the port. -->
+                                     includes username, IP and (for non-22) the port.
+                                     Shows IPv4 or IPv6 depending on the shared toggle
+                                     above — never both at once — falling back to IPv4
+                                     when no IPv6 target is available so the pill is
+                                     never empty. -->
                                 <div v-if="!team.vm?.url && member.account.data.ip && member.account.data.username && (!member.account.data.authtype || member.account.data.authtype === 'ssh')"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-full">
-                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">SSH:</span>
-                                    <span class="truncate">{{ sshCommandFor(member.account.data) }}</span>
+                                    <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? 'SSH (IPv6):' : 'SSH:' }}
+                                    </span>
+                                    <span class="truncate"
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.ssh.unavailableV6') : undefined">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? sshCommandForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data)
+                                            : sshCommandFor(member.account.data) }}
+                                    </span>
                                     <button
-                                        @click="copyToClipboard(sshCommandFor(member.account.data), 'ssh-' + member.account.key)"
+                                        @click="copyToClipboard(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? sshCommandForV6(accountIpv6For(member.account.data, team) ?? '', member.account.data)
+                                            : sshCommandFor(member.account.data), 'ssh-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
                                         :title="copiedKey === 'ssh-' + member.account.key ? 'Kopiert!' : 'SSH-Befehl kopieren'">
                                         <component :is="copiedKey === 'ssh-' + member.account.key ? Check : Copy" :size="12" />
@@ -1311,24 +1362,24 @@ const formatDate = formatDateTime
                                 <div v-if="member.account.data.authtype === 'rdp'"
                                     class="flex items-center gap-1.5 bg-surface-input px-2 py-1 rounded border border-card-border max-w-full">
                                     <span class="text-content-disabled font-sans text-[10px] uppercase tracking-wider flex-shrink-0">
-                                        {{ ipVersion === 'v6' && rdpIpv6For(member.account.data, team) ? 'RDP (IPv6):' : 'RDP:' }}
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? 'RDP (IPv6):' : 'RDP:' }}
                                     </span>
                                     <span class="truncate"
-                                        :title="ipVersion === 'v6' && !rdpIpv6For(member.account.data, team) ? $t('DeploymentDetailView.rdp.unavailableV6') : undefined">
-                                        {{ ipVersion === 'v6' && rdpIpv6For(member.account.data, team)
-                                            ? rdpCommandForV6(rdpIpv6For(member.account.data, team) ?? '')
+                                        :title="ipVersion === 'v6' && !accountIpv6For(member.account.data, team) ? $t('DeploymentDetailView.rdp.unavailableV6') : undefined">
+                                        {{ ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(accountIpv6For(member.account.data, team) ?? '')
                                             : rdpCommandFor(member.account.data) }}
                                     </span>
                                     <button
-                                        @click="copyToClipboard(ipVersion === 'v6' && rdpIpv6For(member.account.data, team)
-                                            ? rdpCommandForV6(rdpIpv6For(member.account.data, team) ?? '')
+                                        @click="copyToClipboard(ipVersion === 'v6' && accountIpv6For(member.account.data, team)
+                                            ? rdpCommandForV6(accountIpv6For(member.account.data, team) ?? '')
                                             : rdpCommandFor(member.account.data), 'rdp-' + member.account.key)"
                                         class="text-content-disabled hover:text-status-warning p-0.5 rounded hover:bg-surface-input transition-colors flex-shrink-0"
                                         :title="copiedKey === 'rdp-' + member.account.key ? 'Kopiert!' : 'RDP-Befehl kopieren'">
                                         <component :is="copiedKey === 'rdp-' + member.account.key ? Check : Copy" :size="12" />
                                     </button>
                                     <RdpClientHelpPopover
-                                        :ip="ipVersion === 'v6' && rdpIpv6For(member.account.data, team) ? (rdpIpv6For(member.account.data, team) ?? '') : (member.account.data.ip ?? '')"
+                                        :ip="ipVersion === 'v6' && accountIpv6For(member.account.data, team) ? (accountIpv6For(member.account.data, team) ?? '') : (member.account.data.ip ?? '')"
                                         :port="member.account.data.port" />
                                 </div>
 

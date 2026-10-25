@@ -164,9 +164,40 @@ describe('NewDeploymentSummaryView.vue', () => {
     expect(routerPushMock).toHaveBeenCalledWith({ name: 'deployment.variables' })
 
     // "Bearbeiten" Button bei den Variablen testen
-    const editBtn = wrapper.findAll('button').find(b => b.text().includes('deployment.summary.editBtn'))
-    await editBtn?.trigger('click')
+    const editBtn = wrapper.find('[data-testid="summary-edit-variables"]')
+    await editBtn.trigger('click')
     expect(routerPushMock).toHaveBeenCalledWith({ name: 'deployment.variables' }) // Ruft die gleiche Route auf
+  })
+
+  // Jeder Abschnitt verweist auf den Wizard-Schritt, der ihn erzeugt hat. Ohne
+  // die ersten beiden saß fest, wer über den Schnell-Deploy hier ankam: Dieser
+  // Weg füllt den Draft mit einem Team aus dem Dozenten, und zu einem Kurs kam
+  // man nur, indem man den Wizard von der Kachel aus neu begann.
+  it('springt vom Abschnitt Basis-Konfiguration zurück in Schritt 1', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="summary-edit-base-config"]').trigger('click')
+
+    expect(routerPushMock).toHaveBeenCalledWith({ name: 'deployment.config' })
+  })
+
+  it('springt vom Abschnitt Team-Zuweisung zurück in Schritt 2', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="summary-edit-teams"]').trigger('click')
+
+    expect(routerPushMock).toHaveBeenCalledWith({ name: 'deployment.teams' })
+  })
+
+  it('bietet in jedem der drei Abschnitte einen Bearbeiten-Knopf', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="summary-edit-base-config"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="summary-edit-teams"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="summary-edit-variables"]').exists()).toBe(true)
   })
 
   it('submits the deployment, maps IDs correctly and redirects on success', async () => {

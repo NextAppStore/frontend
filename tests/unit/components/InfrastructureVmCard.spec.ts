@@ -61,19 +61,46 @@ describe('InfrastructureVmCard — IPv4/IPv6 address display', () => {
     expect(v6Line?.classes()).not.toContain('text-xs')
   })
 
-  it('emphasises v4 by default and v6 once the preference switches', async () => {
+  it('renders v4 and v6 identically regardless of the shared preference', async () => {
     const wrapper = mountCard()
 
     const v4Line = () => wrapper.findAll('p').find((p) => p.text().includes('10.200.3.147'))
     const v6Line = () => wrapper.findAll('p').find((p) => p.text().includes('2001:7c0:1b20:c913:1::134'))
 
     expect(v4Line()?.classes()).toContain('text-content-primary')
-    expect(v6Line()?.classes()).toContain('text-content-disabled')
+    expect(v6Line()?.classes()).toContain('text-content-primary')
 
     useIpVersionPreference().setIpVersion('v6')
     await wrapper.vm.$nextTick()
 
-    expect(v4Line()?.classes()).toContain('text-content-disabled')
+    expect(v4Line()?.classes()).toContain('text-content-primary')
     expect(v6Line()?.classes()).toContain('text-content-primary')
+  })
+})
+
+describe('InfrastructureVmCard — address families on edge cases', () => {
+  const withAddress = (fixed_ip: string | null, fixed_ip_v6: string | null) =>
+    mount(InfrastructureVmCard, {
+      props: {
+        resource: {
+          ...resource,
+          addresses: [{ network: 'DHBWV6', fixed_ip, fixed_ip_v6, floating_ip: null, mac: null }],
+        } as unknown as DeploymentResource,
+      },
+    })
+
+  it('renders only the IPv6 line on IPv6-only networks (fixed_ip is null)', () => {
+    const v6 = '2001:7c0:1b20:c913:1::134'
+    const wrapper = withAddress(null, v6)
+    const text = wrapper.text()
+    expect(text).not.toContain('vm.ipv4Label')
+    expect(text).toContain('vm.ipv6Label')
+    expect(text.split(v6)).toHaveLength(2) // rendered exactly once
+  })
+
+  it('renders only the IPv4 line when the network has no IPv6', () => {
+    const wrapper = withAddress('10.200.3.147', null)
+    expect(wrapper.text()).toContain('vm.ipv4Label')
+    expect(wrapper.text()).not.toContain('vm.ipv6Label')
   })
 })

@@ -17,6 +17,7 @@ import { useRole } from '@/composables/useRole'
 import { formatDate, MAX_IMAGE_BYTES } from '@/utils/format'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import Modal from '@/components/ui/Modal.vue'
+import QuickDeployModal from '@/components/QuickDeployModal.vue'
 import AppVersionStatusBadge from '@/components/ui/AppVersionStatusBadge.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
@@ -208,12 +209,22 @@ const isQuickDeploying = ref(false)
  * the extra detail call the tile needs. Anything that cannot be defaulted sends
  * the user into the regular wizard, with the draft already filled in.
  */
-const handleQuickDeploy = async () => {
+// Der Teilnehmer-Dialog läuft dem Schnell-Deploy voraus: Wer die Umgebung
+// bekommt, lässt sich aus der App nicht ableiten — alles andere schon.
+const showQuickDeployModal = ref(false)
+
+const openQuickDeploy = () => {
   if (!selectedVersion.value) {
     toast.warning(t('AppsDetailView.toasts.selectVersionFirst'))
     return
   }
   if (isQuickDeploying.value) return
+  showQuickDeployModal.value = true
+}
+
+const handleQuickDeploy = async (memberIds: string[]) => {
+  showQuickDeployModal.value = false
+  if (!selectedVersion.value || isQuickDeploying.value) return
 
   isQuickDeploying.value = true
   try {
@@ -221,6 +232,7 @@ const handleQuickDeploy = async () => {
       app.value.appId || app.value.id,
       app.value.name,
       selectedVersion.value,
+      memberIds,
     )
     if (outcome.ready) {
       toast.success(t('deployment.quickDeploy.ready', { name: app.value.name }))
@@ -626,7 +638,7 @@ onMounted(async () => {
               data-testid="app-detail-quick-deploy"
               :disabled="!selectedVersion || isQuickDeploying || (credStore.isResolved && !credStore.hasCredential)"
               :title="credStore.isResolved && !credStore.hasCredential ? $t('AppsDetailView.missingCredsTitle') : ''"
-              @click="handleQuickDeploy"
+              @click="openQuickDeploy"
             >
               <Zap :size="18" aria-hidden="true" />
               {{ $t('deployment.quickDeploy.button') }}
@@ -931,6 +943,13 @@ onMounted(async () => {
         </div>
       </template>
     </Modal>
+
+    <QuickDeployModal
+      :show="showQuickDeployModal"
+      :app-name="app?.name || ''"
+      @close="showQuickDeployModal = false"
+      @confirm="handleQuickDeploy"
+    />
 
   </div>
 </template>

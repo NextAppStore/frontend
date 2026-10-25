@@ -10,8 +10,8 @@ export interface UserAccount {
   username: string
   team: string
   ip: string
-  // IPv6 counterpart to ``ip``, worker-side addition — optional since
-  // only RDP-style apps (Windows) currently publish it.
+  // IPv6 counterpart to ``ip``, worker-side addition — not every app
+  // publishes it yet.
   ip_v6?: string
   port: number
   auth: string
@@ -43,12 +43,31 @@ export function useDeploymentCredentials(
     visiblePasswords.value[key] = !visiblePasswords.value[key]
   }
 
+  // terraform's fixed_ip_v6 attribute comes back already bracketed
+  // (e.g. "[2001:db8::1]", confirmed via `terraform state show` —
+  // not a CLI formatting artifact). Strip any brackets before use so
+  // callers that add their own (userUrlForV6, teamVmUrlForV6) don't
+  // double them up, and ssh's plain `user@ipv6` doesn't end up as
+  // `user@[ipv6]`.
+  const stripIpv6Brackets = (ipv6: string): string => ipv6.replace(/^\[|\]$/g, '')
+
   // Build a copy-paste SSH command from an account. Skips ``-p`` for the
   // default port 22 so the line stays short for the common case.
   const sshCommandFor = (data: { username?: string; ip?: string; port?: number }): string => {
     if (!data.username || !data.ip) return ''
     const portFlag = data.port && data.port !== 22 ? `-p ${data.port} ` : ''
     return `ssh ${portFlag}${data.username}@${data.ip}`
+  }
+
+  // Same as sshCommandFor, but for an IPv6 target. IPv6 literals need no
+  // brackets in an ssh command line (unlike mstsc), but do need brackets
+  // when a non-default port follows via ``-p`` — ssh itself doesn't
+  // require them, only mstsc-style ``host:port`` targets do, so this
+  // stays a plain ``user@ipv6``.
+  const sshCommandForV6 = (ipv6: string, data: { username?: string; port?: number }): string => {
+    if (!data.username || !ipv6) return ''
+    const portFlag = data.port && data.port !== 22 ? `-p ${data.port} ` : ''
+    return `ssh ${portFlag}${data.username}@${stripIpv6Brackets(ipv6)}`
   }
 
   // Build a per-user URL from user_accounts (ip + port), preserving any path
@@ -62,6 +81,34 @@ export function useDeploymentCredentials(
       } catch { /* ignore malformed url */ }
     }
     return `http://${data.ip}:${data.port}${path}`
+  }
+
+  // Same as userUrlFor, but for an IPv6 target. IPv6 literals need
+  // brackets in a URL authority component (unlike a plain ssh target).
+  const userUrlForV6 = (ipv6: string, data: { port?: number }, teamVmUrl?: string): string | null => {
+    if (!ipv6 || !data.port) return null
+    let path = ''
+    if (teamVmUrl) {
+      try {
+        path = new URL(teamVmUrl).pathname.replace(/\/$/, '')
+      } catch { /* ignore malformed url */ }
+    }
+    return `http://[${stripIpv6Brackets(ipv6)}]:${data.port}${path}`
+  }
+
+  // team.vm.url is pre-built by terraform with the v4 address baked in
+  // (e.g. "http://10.200.2.205/pgadmin4"), so an IPv6 variant can't be
+  // assembled from parts like userUrlForV6 — the hostname has to be
+  // swapped in the existing URL instead. Falls back to the original URL
+  // on any parse failure so the pill never goes empty.
+  const teamVmUrlForV6 = (teamVmUrl: string, ipv6: string): string => {
+    try {
+      const parsed = new URL(teamVmUrl)
+      parsed.hostname = `[${stripIpv6Brackets(ipv6)}]`
+      return parsed.toString()
+    } catch {
+      return teamVmUrl
+    }
   }
 
   const typedUserAccounts = computed<Record<string, UserAccount> | null>(() => {
@@ -245,12 +292,18 @@ export function useDeploymentCredentials(
     });
   });
 
-  // Whether any member across any team has an RDP account — the IPv4/IPv6
-  // toggle only makes sense (and only renders) when there's an RDP pill
-  // anywhere to apply it to.
-  const hasAnyRdpAccount = computed(() =>
+  // Whether any member across any team has an account the IPv4/IPv6 toggle
+  // could apply to — an RDP account (always offered the toggle), or an
+  // SSH/URL account whose own ``ip_v6``/the team VM's ``fixed_ip_v6`` is
+  // set. The toggle only makes sense (and only renders) when there's at
+  // least one such pill anywhere to apply it to.
+  const hasAnyIpv6Account = computed(() =>
     enrichedTeams.value.some((team) =>
-      team.members.some((member) => member.account?.data.authtype === 'rdp'),
+      team.members.some((member) => {
+        const authtype = member.account?.data.authtype
+        if (authtype === 'rdp') return true
+        return Boolean(member.account?.data.ip_v6 || team.vm?.fixed_ip_v6)
+      }),
     ),
   )
 
@@ -343,11 +396,14 @@ export function useDeploymentCredentials(
     visiblePasswords,
     togglePasswordVisibility,
     sshCommandFor,
+    sshCommandForV6,
     userUrlFor,
+    userUrlForV6,
+    teamVmUrlForV6,
     typedUserAccounts,
     extractTeamVms,
     enrichedTeams,
-    hasAnyRdpAccount,
+    hasAnyIpv6Account,
     copiedKey,
     copyToClipboard,
     resendState,

@@ -37,6 +37,7 @@ export default {
   action: {
     back: "Zurück",
     close: "Schließen",
+    cancel: "Abbrechen",
   },
 
   // Fehlertexte, die greifen, wenn das Backend keine eigene Meldung liefert.
@@ -351,9 +352,12 @@ export default {
     ipToggle: {
       ipv4: "IPv4",
       ipv6: "IPv6",
-      ariaLabel: "IP-Version für RDP-Befehle wählen",
+      ariaLabel: "IP-Version für RDP-/SSH-Befehle wählen",
     },
     rdp: {
+      unavailableV6: "IPv6 für dieses Team nicht verfügbar",
+    },
+    ssh: {
       unavailableV6: "IPv6 für dieses Team nicht verfügbar",
     },
     rdpHelp: {
@@ -696,7 +700,20 @@ export default {
       noVersion: 'Für diese App gibt es noch keine Version zum Deployen.',
       missingCreds: 'Bitte zuerst OpenStack-Credentials hinterlegen.',
       noIdentity: 'Dein Konto ist noch nicht mit Keycloak verknüpft — bitte den Assistenten nutzen.',
-      error: 'Schnell-Deploy konnte nicht vorbereitet werden.'
+      error: 'Schnell-Deploy konnte nicht vorbereitet werden.',
+      modalTitle: '{name} schnell deployen',
+      modalHint: 'Name, Version und Variablen sind bereits vorbefüllt. Wähle nur noch, wer die Umgebung bekommt.',
+      courseLabel: 'Kurs',
+      selfOnly: 'Nur ich',
+      selfOnlyNamed: 'Nur ich ({name})',
+      selfOnlyHint: 'Du bekommst eine eigene Umgebung — passend zum Ausprobieren einer App.',
+      loadingCourses: 'Kurse werden geladen…',
+      coursesError: 'Kurse konnten nicht geladen werden.',
+      participantsLabel: 'Teilnehmer',
+      selectedCount: '{selected} von {total} ausgewählt',
+      loadingParticipants: 'Teilnehmer werden geladen…',
+      noParticipants: 'In diesem Kurs sind keine Teilnehmer eingetragen.',
+      confirm: 'Weiter zur Übersicht'
     },
     apps: {
       nodejs: {
