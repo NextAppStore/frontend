@@ -17,6 +17,7 @@ import EntityListState from '@/components/ui/EntityListState.vue'
 import { useDeploymentStore } from '@/stores/deployment.store'
 import { useAppStore } from '@/stores/app.store'
 import { formatDateTime } from '@/utils/format'
+import { deploymentStatusLabelKey } from '@/i18n/deployment-status-labels'
 
 const deploymentStore = useDeploymentStore()
 const appStore = useAppStore()
@@ -132,10 +133,11 @@ const getStatusColor = (status: string) => {
                 </div>
               </div>
               <span
+                data-testid="deployment-status"
                 class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border capitalize whitespace-nowrap"
                 :class="getStatusColor(deployment.status)"
               >
-                {{ deployment.status }}
+                {{ $t(deploymentStatusLabelKey(deployment.status)) }}
               </span>
             </div>
 

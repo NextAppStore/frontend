@@ -394,7 +394,7 @@ async function load(opts: { forceRefresh?: boolean } = {}) {
       errorMessage.value = detail?.message || err?.message || t('openstackPicker.osError')
     } else {
       errorReason.value = 'unavailable'
-      errorMessage.value = err?.message || 'Resource konnte nicht geladen werden.'
+      errorMessage.value = err?.message || t('openstackPicker.loadError')
     }
     items.value = []
   } finally {
