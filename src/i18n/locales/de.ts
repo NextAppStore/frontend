@@ -847,8 +847,6 @@ export default {
       sectionTitle: 'Variablen',
       sectionDesc: 'Konfiguration dieser Umgebung',
       imageGroup: 'Image',
-      originImage: 'Image',
-      originInfra: 'Infrastruktur',
       showInfo: 'Info anzeigen',
       markerErrorTitle: '⚠ @openstack-Marker fehlerhaft',
       markerErrorToast: '{count} fehlerhafte(r) @openstack-Marker — die betroffenen Variablen werden als Free-Text gerendert:\n{lines}',
@@ -872,6 +870,10 @@ export default {
       allPreconfigured: 'Alles vorkonfiguriert, hier ist keine Eingabe nötig. Für Anpassungen die erweiterten Einstellungen öffnen.',
       recommended: 'Empfohlen',
       recommendedHint: 'Vom App-Entwickler empfohlener Wert. Kann angepasst werden.'
+    },
+    sourceLabels: {
+      packer: 'Packer',
+      terraform: 'Terraform',
     },
     summary: {
       scopeLabel: "(Scope: {scope})",

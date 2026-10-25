@@ -136,8 +136,14 @@ const terraformVars = computed(() => {
  * each resolves its values differently (Packer may be nested per template),
  * but the user sees one — the same merge the variable step performs. Order is
  * deliberately Packer first, so both steps list the variables alike.
+ *
+ * ``source`` rides along: this is the last screen before submitting, where
+ * a value has to stay traceable to the tool that will consume it.
  */
-const allVars = computed(() => [...packerVars.value, ...terraformVars.value])
+const allVars = computed(() => [
+  ...packerVars.value.map((v) => ({ ...v, source: 'packer' as const })),
+  ...terraformVars.value.map((v) => ({ ...v, source: 'terraform' as const })),
+])
 
 /**
  * Translate a backend submit-error into a user-facing toast string.
@@ -701,9 +707,8 @@ const handleBack = () => {
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <!-- One list, mirroring step 3. Splitting the recap by Packer and
-               Terraform would re-introduce exactly the distinction the
-               variable step no longer makes. -->
+          <!-- One list, mirroring step 3. The per-row badge carries what the
+               former two-card split conveyed. -->
           <div class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden">
             <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
               <SlidersHorizontal :size="18" class="text-tag-info" aria-hidden="true" />
@@ -715,7 +720,20 @@ const handleBack = () => {
             <div class="p-4 space-y-2 max-h-64 overflow-y-auto">
               <div v-for="(item, index) in allVars" :key="`${index}-${item.label}`"
                 class="flex justify-between items-start gap-3 py-2 border-b border-card-border last:border-0">
-                <span class="text-sm font-semibold text-content-secondary flex-shrink-0">{{ item.label }}</span>
+                <span class="text-sm font-semibold text-content-secondary flex-shrink-0 flex items-center gap-1.5">
+                  {{ item.label }}
+                  <span
+                    data-testid="variable-source-badge"
+                    class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                    :class="item.source === 'packer'
+                      ? 'bg-tag-infoLight text-tag-info border-tag-infoBorder'
+                      : 'bg-tag-accentLight text-tag-accent border-tag-accentBorder'"
+                  >
+                    {{ item.source === 'packer'
+                      ? t('deployment.sourceLabels.packer')
+                      : t('deployment.sourceLabels.terraform') }}
+                  </span>
+                </span>
                 <span
                   class="text-sm text-content-primary font-medium text-right break-all"
                   :title="item.raw ? t('deployment.summary.submittedValue', { value: item.raw }) : undefined"

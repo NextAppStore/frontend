@@ -23,10 +23,13 @@ vi.mock('vue-router', () => ({
 // Partieller Mock: Nur ``useI18n`` wird gestubbt, ``createI18n`` bleibt echt.
 // Sonst bricht jeder Import, der transitiv die i18n-Instanz zieht — etwa
 // Stores, die Fallback-Fehlertexte über ``i18n.global.t`` übersetzen.
+// Parameter werden mit ausgegeben — sonst lässt sich nicht prüfen, ob ein
+// interpolierter Wert überhaupt ankommt.
 vi.mock('vue-i18n', async (importOriginal) => ({
   ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({
-    t: (key: string) => key
+    t: (key: string, params?: Record<string, unknown>) =>
+      params ? `${key} ${JSON.stringify(params)}` : key
   })
 }))
 
@@ -438,8 +441,8 @@ describe('NewDeploymentVariableView.vue', () => {
 
       const badges = wrapper.findAll('[data-testid="variable-origin-badge"]')
       expect(badges).toHaveLength(2)
-      expect(badges[0]?.text()).toContain('deployment.variables.originImage')
-      expect(badges[1]?.text()).toContain('deployment.variables.originInfra')
+      expect(badges[0]?.text()).toContain('deployment.sourceLabels.packer')
+      expect(badges[1]?.text()).toContain('deployment.sourceLabels.terraform')
     })
 
     it('leaves unambiguous names free of an origin badge', async () => {
@@ -452,6 +455,34 @@ describe('NewDeploymentVariableView.vue', () => {
       await flushPromises()
 
       expect(wrapper.findAll('[data-testid="variable-origin-badge"]')).toHaveLength(0)
+    })
+
+    it('names the consuming tool in the info popover', async () => {
+      const mockVars = [
+        { name: 'image_name', source: 'packer', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('deployment.sourceLabels.packer')
+
+      await wrapper.find('[data-testid="variable-info-toggle"]').trigger('click')
+
+      expect(wrapper.text()).toContain('deployment.sourceLabels.packer')
+    })
+
+    it('offers the popover even without a description', async () => {
+      const mockVars = [
+        { name: 'db_password', source: 'terraform', type: 'string', required: true }
+      ]
+
+      const wrapper = createWrapper({}, mockVars)
+      await flushPromises()
+
+      await wrapper.find('[data-testid="variable-info-toggle"]').trigger('click')
+
+      expect(wrapper.text()).toContain('deployment.sourceLabels.terraform')
     })
 
     it('keeps the per-image heading for apps building more than one image', async () => {

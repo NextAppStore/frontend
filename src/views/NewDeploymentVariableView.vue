@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   AlertTriangle,
   ChevronDown,
+  Wrench,
   Sparkles,
 } from 'lucide-vue-next'
 import type { AppVariable, DeploymentFile } from '@/types'
@@ -423,8 +424,8 @@ const ambiguousNames = computed<Set<string>>(() => {
 
 const originLabel = (v: AppVariable): string =>
   v.source === 'packer'
-    ? t('deployment.variables.originImage')
-    : t('deployment.variables.originInfra')
+    ? t('deployment.sourceLabels.packer')
+    : t('deployment.sourceLabels.terraform')
 
 /**
  * True when the value currently shown is still the author's default, i.e. the
@@ -818,8 +819,11 @@ watch(
                   {{ variable.name }}
                 </label>
 
+                <!-- Rendered for every variable: the popover used to be
+                     conditional, but now it always carries the source. -->
                 <button
-                  v-if="variable.description || isList(variable.type)"
+                  type="button"
+                  data-testid="variable-info-toggle"
                   @click.stop="toggleTooltip(formKeyFor(variable))"
                   class="text-content-disabled hover:text-tag-info transition-colors focus:outline-none"
                   :class="activeTooltip === formKeyFor(variable) ? 'text-tag-info' : ''"
@@ -845,6 +849,10 @@ watch(
 
               <div v-if="activeTooltip === formKeyFor(variable)" class="mb-3 bg-tag-infoLight p-3 rounded-lg border border-tag-infoBorder text-sm text-content-secondary">
                 <p v-if="variable.description" class="mb-2">{{ variable.description }}</p>
+                <div class="flex gap-2 items-center text-xs text-tag-info">
+                  <Wrench :size="12" class="shrink-0" aria-hidden="true" />
+                  <span>{{ originLabel(variable) }}</span>
+                </div>
                 <div v-if="isList(variable.type)" class="flex gap-2 items-start text-xs text-tag-info">
                   <Info :size="12" class="mt-0.5 shrink-0" />
                   <span>{{ t('deployment.variables.commaSeparated') }}</span>
