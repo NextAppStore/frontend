@@ -55,10 +55,11 @@ describe('NewDeploymentTeamsView.vue', () => {
     } as any)
   })
 
-  function createWrapper(customDraftState = {}) {
+  function createWrapper(customDraftState = {}, apps: unknown[] = []) {
     const pinia = createTestingPinia({
       createSpy: vi.fn,
       initialState: {
+        app: { apps },
         deployment: {
           studentCache: new Map([
             ['u1', { userId: 'u1', firstName: 'John', lastName: 'Doe' }],
@@ -223,5 +224,28 @@ describe('NewDeploymentTeamsView.vue', () => {
     await backBtn.trigger('click')
 
     expect(routerPushMock).toHaveBeenCalledWith({ name: 'deployment.config' })
+  })
+  // Issue #12: shared topology shows a hint instead of a group choice.
+  it('shows the shared hint and keeps everyone in one group for shared apps', async () => {
+    const wrapper = createWrapper({ appId: 'app-1' }, [{ appId: 'app-1', vm_topology: 'shared' }])
+    await flushPromises()
+    const store = useDeploymentStore()
+
+    expect(wrapper.find('[data-testid="shared-topology-hint"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="group-controls"]').exists()).toBe(false)
+    expect(store.draft.groupMode).toBe('one')
+    expect(store.draft.groupCount).toBe(1)
+    expect(store.draft.assignments[0]).toEqual(['u1', 'u2'])
+  })
+
+  it('keeps the regular group choice when the topology is unknown', async () => {
+    const wrapper = createWrapper({ appId: 'app-1' }, [{ appId: 'app-1', vm_topology: null }])
+    await flushPromises()
+    const store = useDeploymentStore()
+
+    expect(wrapper.find('[data-testid="shared-topology-hint"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="group-controls"]').exists()).toBe(true)
+    expect(store.draft.groupMode).toBe('custom')
+    expect(store.draft.groupCount).toBe(2)
   })
 })

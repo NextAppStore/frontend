@@ -4,12 +4,18 @@ import { userApi } from '@/api/user.api'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useDeploymentStore } from '@/stores/deployment.store'
+import { useAppStore } from '@/stores/app.store'
 import DeploymentProgressBar from '@/components/DeploymentProgressBar.vue'
-import { Plus, Minus, Users, ArrowLeft, ArrowRight, GripVertical, Trash2, UserPlus, Shuffle, X } from 'lucide-vue-next'
+import { Plus, Minus, Users, ArrowLeft, ArrowRight, GripVertical, Trash2, UserPlus, Shuffle, X, Info } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const router = useRouter()
 const store = useDeploymentStore()
+const appStore = useAppStore()
+
+// ``shared`` apps deploy one VM, so grouping has no effect: show a hint
+// and keep everyone in one team. Any other value keeps the group choice.
+const isShared = computed(() => store.draftAppDetails?.vm_topology === 'shared')
 
 // --- Reactive cache wrapper ---
 const studentCacheMap = store.studentCache ?? new Map<string, any>()
@@ -129,6 +135,10 @@ onMounted(async () => {
   // Ensure all groups have names.
   ensureDefaultGroupNames()
   
+  // ``draftAppDetails`` reads from the app list, which is empty when the
+  // wizard was entered from the detail page (same fallback as the summary).
+  if (appStore.apps.length === 0) void appStore.fetchApps()
+
   const assignments = store.draft.assignments as string[][]
   const assignedIds: string[] = assignments 
     ? ([] as string[]).concat(...assignments.filter((arr): arr is string[] => Array.isArray(arr) && arr.length > 0))
@@ -209,6 +219,11 @@ const setCustom = () => {
   // Ensure names exist for the current count.
   ensureDefaultGroupNames()
 }
+
+// Reactive rather than in onMounted: the app list may arrive after mount.
+watch(isShared, (shared) => {
+  if (shared && store.draft.studentIds.length > 0) setOneGroup()
+}, { immediate: true })
 
 const increment = () => { if (store.draft.groupCount < totalStudents.value) store.draft.groupCount++ }
 
@@ -375,7 +390,20 @@ const handleBack = () => router.push({ name: 'deployment.config' })
 
       <!-- Controls Section -->
       <div class="p-6 bg-surface-card border-b-2 border-card-border">
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        <!-- Shared topology: hint instead of a group choice without effect -->
+        <div
+          v-if="isShared"
+          data-testid="shared-topology-hint"
+          class="bg-tag-infoLight border-2 border-tag-infoBorder rounded-xl p-4 flex items-start gap-3"
+        >
+          <Info :size="20" class="text-tag-info flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <p class="font-semibold text-content-primary mb-1">{{ t('deployment.assignment.sharedTopologyTitle') }}</p>
+            <p class="text-sm text-tag-info">{{ t('deployment.assignment.sharedTopologyHint') }}</p>
+          </div>
+        </div>
+
+        <div v-else data-testid="group-controls" class="flex flex-wrap items-center justify-between gap-4">
           
           <!-- Mode Selection -->
           <div class="flex gap-2">
