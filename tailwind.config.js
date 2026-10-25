@@ -1,5 +1,12 @@
 import typography from '@tailwindcss/typography'
 
+// Tokens hold plain hex values, so Tailwind cannot derive opacity variants
+// (``bg-primary/10``) from a bare ``var()`` and silently drops those classes.
+// ``color-mix`` with ``<alpha-value>`` restores them; without a modifier the
+// alpha is 1 and the colour is unchanged.
+const token = (name) =>
+  `color-mix(in srgb, var(--color-${name}) calc(<alpha-value> * 100%), transparent)`
+
 export default {
   content: [
     "./index.html",
@@ -95,21 +102,48 @@ export default {
 
         // ── Tag / badge palette ────────────────────────────────────
         tag: {
-          info:          'var(--color-tag-info)',
-          infoLight:     'var(--color-tag-info-light)',
-          infoBorder:    'var(--color-tag-info-border)',
-          warning:       'var(--color-tag-warning)',
-          warningLight:  'var(--color-tag-warning-light)',
-          warningBorder: 'var(--color-tag-warning-border)',
-          destroy:       'var(--color-tag-destroy)',
-          destroyLight:  'var(--color-tag-destroy-light)',
-          destroyBorder: 'var(--color-tag-destroy-border)',
-          neutral:       'var(--color-tag-neutral)',
-          neutralLight:  'var(--color-tag-neutral-light)',
-          neutralBorder: 'var(--color-tag-neutral-border)',
-          accent:        'var(--color-tag-accent)',
-          accentLight:   'var(--color-tag-accent-light)',
-          accentBorder:  'var(--color-tag-accent-border)',
+          info:          token('tag-info'),
+          infoLight:     token('tag-info-light'),
+          infoBorder:    token('tag-info-border'),
+          warning:       token('tag-warning'),
+          warningLight:  token('tag-warning-light'),
+          warningBorder: token('tag-warning-border'),
+          destroy:       token('tag-destroy'),
+          destroyLight:  token('tag-destroy-light'),
+          destroyBorder: token('tag-destroy-border'),
+          neutral:       token('tag-neutral'),
+          neutralLight:  token('tag-neutral-light'),
+          neutralBorder: token('tag-neutral-border'),
+          accent:        token('tag-accent'),
+          accentLight:   token('tag-accent-light'),
+          accentBorder:  token('tag-accent-border'),
+        },
+      },
+
+      // Map the typography plugin's palette onto our tokens so rendered
+      // Markdown (tables, bold, lists, quotes …) follows light/dark mode
+      // instead of the plugin's fixed light-mode greys.
+      typography: {
+        DEFAULT: {
+          css: {
+            '--tw-prose-body':         'var(--color-content-secondary)',
+            '--tw-prose-headings':     'var(--color-content-primary)',
+            '--tw-prose-lead':         'var(--color-content-secondary)',
+            '--tw-prose-links':        'var(--color-content-link)',
+            '--tw-prose-bold':         'var(--color-content-primary)',
+            '--tw-prose-counters':     'var(--color-content-secondary)',
+            '--tw-prose-bullets':      'var(--color-border-strong)',
+            '--tw-prose-hr':           'var(--color-border)',
+            '--tw-prose-quotes':       'var(--color-content-primary)',
+            '--tw-prose-quote-borders': 'var(--color-border-strong)',
+            '--tw-prose-captions':     'var(--color-content-secondary)',
+            '--tw-prose-kbd':          'var(--color-content-primary)',
+            '--tw-prose-code':         'var(--color-content-primary)',
+            '--tw-prose-pre-code':     'var(--color-content-primary)',
+            '--tw-prose-pre-bg':       'var(--color-surface-card)',
+            '--tw-prose-th-borders':   'var(--color-border-strong)',
+            '--tw-prose-td-borders':   'var(--color-border)',
+          },
         },
       },
     },

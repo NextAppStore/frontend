@@ -379,7 +379,7 @@ const handleBack = () => router.push({ name: 'deployment.config' })
       <div class="p-8 pb-6 bg-surface-card border-b-2 border-card-border">
         <div class="flex items-center gap-3 mb-4">
           <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-            <Users :size="28" class="text-content-inverse" />
+            <Users :size="28" class="text-content-onColor" />
           </div>
           <h1 class="text-3xl font-bold text-content-primary">
             {{ t('deployment.title') }}
@@ -468,7 +468,7 @@ const handleBack = () => router.push({ name: 'deployment.config' })
         <!-- Info Banner -->
         <div class="mt-4 bg-tag-infoLight border-2 border-tag-infoBorder rounded-xl p-4 flex items-start gap-3">
           <div class="w-8 h-8 rounded-full bg-tag-info flex items-center justify-center flex-shrink-0 mt-0.5">
-            <GripVertical :size="16" class="text-content-inverse" />
+            <GripVertical :size="16" class="text-content-onColor" />
           </div>
           <div>
             <p class="font-semibold text-content-primary mb-1">{{ t('deployment.assignment.dragDropTitle') }}</p>

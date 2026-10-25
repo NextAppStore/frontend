@@ -23,7 +23,7 @@ const styles = computed(() => {
         iconBox: 'bg-status-error/20 text-status-error',
         title: 'text-content-primary',
         message: 'text-content-secondary',
-        cta: 'bg-status-error hover:bg-primary-dark text-content-inverse',
+        cta: 'bg-status-error hover:bg-primary-dark text-content-onColor',
         icon: AlertCircle,
       }
     case 'lock':
@@ -32,7 +32,7 @@ const styles = computed(() => {
         iconBox: 'bg-tag-info/20 text-tag-info',
         title: 'text-content-primary',
         message: 'text-content-secondary',
-        cta: 'bg-tag-info hover:opacity-90 text-content-inverse',
+        cta: 'bg-tag-info hover:opacity-90 text-content-onColor',
         icon: Lock,
       }
     case 'warning':
@@ -42,7 +42,7 @@ const styles = computed(() => {
         iconBox: 'bg-status-warning/20 text-status-warning',
         title: 'text-content-primary',
         message: 'text-content-secondary',
-        cta: 'bg-status-warning hover:opacity-90 text-content-inverse',
+        cta: 'bg-status-warning hover:opacity-90 text-content-onColor',
         icon: AlertTriangle,
       }
   }

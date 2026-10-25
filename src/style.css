@@ -119,6 +119,7 @@
     --color-content-secondary: #6B5C5E;  /* Warm muted — not cold grey */
     --color-content-disabled:  #C4AAAC;  /* Warm disabled */
     --color-content-inverse:   #FFFFFF;
+    --color-content-on-color:  #FFFFFF;  /* Text on filled brand/status backgrounds */
     --color-content-link:      #E10210;
 
     /* ── Buttons ───────────────────────────────────────────────── */
@@ -194,7 +195,7 @@
    * ================================================================ */
   .dark {
     /* ── Brand colors -─────── */
-    --color-primary:          #E10210;   /* ScholarStack red */
+    --color-primary:          #F0303F;   
     --color-primary-light:    #FF3344;
     --color-primary-dark:     #A30109;
 
@@ -309,10 +310,11 @@
     --color-nav-indicator:    var(--color-highlight);
 
     /* ── Text ──────────────────────────────────────────────────── */
-    --color-content-primary:   #F8F0F0;  /* Fast Weiß, sehr gut lesbar */
-    --color-content-secondary: #C8A0A0;  /* Deutlich heller als vorher */
+    --color-content-primary:   #F8F0F0;  
+    --color-content-secondary: #E2D6D6;  
     --color-content-disabled:  #7A5060;
     --color-content-inverse:   #0A0608;
+    --color-content-on-color:  #FFFFFF;  /* Text on filled brand/status backgrounds */
     --color-content-link:      #FF4455;
 
     /* ── Buttons ───────────────────────────────────────────────── */
@@ -372,5 +374,11 @@
     --color-tag-accent:         #C084FC;
     --color-tag-accent-light:   #180828;
     --color-tag-accent-border:  #6D28D9;
+  }
+
+  /* Default text colour for everything that sets none itself */
+  body {
+    color: var(--color-content-primary);
+    background-color: var(--color-surface-page);
   }
 }
