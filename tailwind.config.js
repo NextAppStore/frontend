@@ -12,84 +12,85 @@ export default {
       colors: {
         // ── Brand colors ───────────────────────────────────────────
         primary: {
-          DEFAULT: 'var(--color-primary)',
-          light:   'var(--color-primary-light)',
-          dark:    'var(--color-primary-dark)',
+          DEFAULT: token('primary'),
+          light:   token('primary-light'),
+          dark:    token('primary-dark'),
         },
         secondary: {
-          DEFAULT: 'var(--color-secondary)',
-          light:   'var(--color-secondary-light)',
-          dark:    'var(--color-secondary-dark)',
+          DEFAULT: token('secondary'),
+          light:   token('secondary-light'),
+          dark:    token('secondary-dark'),
         },
         highlight: {
-          DEFAULT: 'var(--color-highlight)',
-          light:   'var(--color-highlight-light)',
-          dark:    'var(--color-highlight-dark)',
+          DEFAULT: token('highlight'),
+          light:   token('highlight-light'),
+          dark:    token('highlight-dark'),
         },
 
         // ── Surfaces ───────────────────────────────────────────────
         surface: {
-          page:    'var(--color-surface-page)',
-          card:    'var(--color-surface-card)',
-          sidebar: 'var(--color-surface-sidebar)',
-          input:   'var(--color-surface-input)',
-          overlay: 'var(--color-surface-overlay)',
-          hover:   'var(--color-surface-hover)',
+          page:    token('surface-page'),
+          card:    token('surface-card'),
+          sidebar: token('surface-sidebar'),
+          input:   token('surface-input'),
+          overlay: token('surface-overlay'),
+          hover:   token('surface-hover'),
         },
 
         // ── Text ───────────────────────────────────────────────────
         content: {
-          primary:   'var(--color-content-primary)',
-          secondary: 'var(--color-content-secondary)',
-          disabled:  'var(--color-content-disabled)',
-          inverse:   'var(--color-content-inverse)',
-          link:      'var(--color-content-link)',
+          primary:   token('content-primary'),
+          secondary: token('content-secondary'),
+          disabled:  token('content-disabled'),
+          inverse:   token('content-inverse'),
+          onColor:   token('content-on-color'),
+          link:      token('content-link'),
         },
 
         // ── Buttons ────────────────────────────────────────────────
         btn: {
-          primary:         'var(--color-btn-primary)',
-          primaryHover:    'var(--color-btn-primary-hover)',
-          primaryText:     'var(--color-btn-primary-text)',
-          secondary:       'var(--color-btn-secondary)',
-          secondaryHover:  'var(--color-btn-secondary-hover)',
-          secondaryText:   'var(--color-btn-secondary-text)',
-          ghost:           'var(--color-btn-ghost)',
-          ghostHover:      'var(--color-btn-ghost-hover)',
-          ghostText:       'var(--color-btn-ghost-text)',
+          primary:         token('btn-primary'),
+          primaryHover:    token('btn-primary-hover'),
+          primaryText:     token('btn-primary-text'),
+          secondary:       token('btn-secondary'),
+          secondaryHover:  token('btn-secondary-hover'),
+          secondaryText:   token('btn-secondary-text'),
+          ghost:           token('btn-ghost'),
+          ghostHover:      token('btn-ghost-hover'),
+          ghostText:       token('btn-ghost-text'),
         },
 
         // ── Cards / Tiles ──────────────────────────────────────────
         card: {
-          bg:      'var(--color-card-bg)',
-          tinted:  'var(--color-card-bg-tinted)',
-          border:  'var(--color-card-border)',
+          bg:      token('card-bg'),
+          tinted:  token('card-bg-tinted'),
+          border:  token('card-border'),
         },
 
         // ── Status / Feedback ──────────────────────────────────────
         status: {
-          success:      'var(--color-status-success)',
-          successLight: 'var(--color-status-success-light)',
-          error:        'var(--color-status-error)',
-          errorLight:   'var(--color-status-error-light)',
-          warning:      'var(--color-status-warning)',
-          warningLight: 'var(--color-status-warning-light)',
-          info:         'var(--color-status-info)',
-          infoLight:    'var(--color-status-info-light)',
+          success:      token('status-success'),
+          successLight: token('status-success-light'),
+          error:        token('status-error'),
+          errorLight:   token('status-error-light'),
+          warning:      token('status-warning'),
+          warningLight: token('status-warning-light'),
+          info:         token('status-info'),
+          infoLight:    token('status-info-light'),
         },
 
         // ── Resource progress bars ─────────────────────────────────
         resource: {
-          low:    'var(--color-resource-low)',
-          medium: 'var(--color-resource-medium)',
-          high:   'var(--color-resource-high)',
+          low:    token('resource-low'),
+          medium: token('resource-medium'),
+          high:   token('resource-high'),
         },
 
         // ── Borders ────────────────────────────────────────────────
         border: {
-          DEFAULT: 'var(--color-border)',
-          strong:  'var(--color-border-strong)',
-          focus:   'var(--color-border-focus)',
+          DEFAULT: token('border'),
+          strong:  token('border-strong'),
+          focus:   token('border-focus'),
         },
 
         // ── Tag / badge palette ────────────────────────────────────

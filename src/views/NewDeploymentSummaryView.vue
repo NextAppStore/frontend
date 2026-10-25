@@ -801,7 +801,7 @@ const handleBack = () => {
 
       <button @click="handleDeploy"
         :disabled="isLoadingVariables || isSubmitting || deploymentStore.isLoading"
-        class="flex items-center gap-3 px-10 py-3 rounded-full bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
+        class="flex items-center gap-3 px-10 py-3 rounded-full bg-btn-primary text-btn-primaryText font-bold hover:bg-btn-primaryHover transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
 
         <span v-if="isSubmitting || deploymentStore.isLoading" class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span>
         <span v-if="isSubmitting || deploymentStore.isLoading">{{ t('deployment.summary.creating') }}</span>

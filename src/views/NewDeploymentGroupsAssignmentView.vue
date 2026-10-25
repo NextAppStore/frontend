@@ -410,21 +410,21 @@ const handleBack = () => router.push({ name: 'deployment.config' })
             <button @click="setOneGroup" 
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
               :class="mode === 'one' 
-                ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+                ? 'bg-btn-primary text-btn-primaryText border-btn-primary shadow-lg'
               : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.one') }}
             </button>
             <button @click="setEachUser"
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
               :class="mode === 'eachUser'
-              ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+              ? 'bg-btn-primary text-btn-primaryText border-btn-primary shadow-lg'
               : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.eachUser') }}
             </button>
             <button @click="setCustom"
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
               :class="mode === 'custom'
-              ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+              ? 'bg-btn-primary text-btn-primaryText border-btn-primary shadow-lg'
               : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.custom') }}
             </button>
@@ -631,7 +631,7 @@ const handleBack = () => router.push({ name: 'deployment.config' })
           @click="handleNext"
           data-testid="next-btn"
           :disabled="unassignedStudents.length > 0 || (store.draft.assignments as string[][]).slice(0, groupCount).some((g: string[]) => !g || g.length === 0) || groupNames.slice(0, groupCount).some((name: string) => !name || name.trim() === '')"
-          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-btn-primary text-btn-primaryText font-bold hover:bg-btn-primaryHover transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
           {{ t('deployment.actions.next') }}
           <ArrowRight :size="20" />
         </button>

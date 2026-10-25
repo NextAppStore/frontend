@@ -487,7 +487,7 @@ onMounted(async () => {
           @click="handleNext"
           data-testid="btn-next"
           :disabled="credStore.isResolved && !credStore.hasCredential"
-          class="px-8 py-2.5 rounded-full bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-8 py-2.5 rounded-full bg-btn-primary text-btn-primaryText font-bold hover:bg-btn-primaryHover transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ t('deployment.actions.next') }}
         </button>
