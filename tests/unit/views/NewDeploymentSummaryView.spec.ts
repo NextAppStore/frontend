@@ -266,4 +266,32 @@ describe('NewDeploymentSummaryView.vue', () => {
     // Da es fehlgeschlagen ist, sollte nicht weitergeleitet werden
     expect(routerPushMock).not.toHaveBeenCalledWith({ name: 'deployments.list' })
   })
+
+  // ----------------------------------------------------------------
+  // HERKUNFTS-KENNZEICHEN
+  // ----------------------------------------------------------------
+  describe('Herkunft der Variablen', () => {
+    it('kennzeichnet jede Variable mit ihrer Quelle', async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      const badges = wrapper.findAll('[data-testid="variable-source-badge"]')
+
+      // Eine Packer- und eine Terraform-Variable; die Datei-Variable wird in
+      // der eigenen Upload-Karte gezeigt und zählt hier nicht mit.
+      expect(badges).toHaveLength(2)
+      expect(badges[0]?.text()).toBe('deployment.sourceLabels.packer')
+      expect(badges[1]?.text()).toBe('deployment.sourceLabels.terraform')
+    })
+
+    it('zeigt das Kennzeichen neben dem Variablennamen', async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      const row = wrapper.findAll('[data-testid="variable-source-badge"]')[0]?.element.parentElement
+
+      expect(row?.textContent).toContain('region')
+      expect(row?.textContent).toContain('deployment.sourceLabels.packer')
+    })
+  })
 })

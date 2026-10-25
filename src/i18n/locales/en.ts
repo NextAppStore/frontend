@@ -841,8 +841,9 @@ export default {
       unnamed: 'Unnamed',
       loading: 'Loading variables...',
       noVariables: 'This app requires no special variables.',
-      packerDesc: 'Image/Template Configuration',
-      terraformDesc: 'Infrastructure Configuration',
+      sectionTitle: 'Variables',
+      sectionDesc: 'Configuration for this environment',
+      imageGroup: 'Image',
       showInfo: 'Show info',
       markerErrorTitle: '⚠ @openstack marker faulty',
       markerErrorToast: '{count} faulty @openstack marker(s) — the affected variables will be rendered as free-text:\n{lines}',
@@ -867,6 +868,10 @@ export default {
       recommended: 'Recommended',
       recommendedHint: 'Value recommended by the app author. You can change it.'
     },
+    sourceLabels: {
+      packer: 'Packer',
+      terraform: 'Terraform',
+    },
     summary: {
       scopeLabel: "(Scope: {scope})",
       uploadedFiles: "Uploaded files",
@@ -885,10 +890,6 @@ export default {
       noUsersAssigned: 'No users assigned',
       variablesConfigTitle: 'Variables Configuration',
       editBtn: 'Edit',
-      packerVars: 'Packer Variables',
-      terraformVars: 'Terraform Variables',
-      noPackerVars: 'No Packer variables',
-      noTerraformVars: 'No Terraform variables',
       noFileUploaded: 'No file uploaded',
       submittedValue: 'Submitted value: {value}',
       creating: 'Creating...',

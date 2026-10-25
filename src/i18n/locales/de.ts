@@ -844,8 +844,9 @@ export default {
       unnamed: 'Unbenannt',
       loading: 'Lade Variablen...',
       noVariables: 'Diese App benötigt keine speziellen Variablen.',
-      packerDesc: 'Image/Template Konfiguration',
-      terraformDesc: 'Infrastruktur Konfiguration',
+      sectionTitle: 'Variablen',
+      sectionDesc: 'Konfiguration dieser Umgebung',
+      imageGroup: 'Image',
       showInfo: 'Info anzeigen',
       markerErrorTitle: '⚠ @openstack-Marker fehlerhaft',
       markerErrorToast: '{count} fehlerhafte(r) @openstack-Marker — die betroffenen Variablen werden als Free-Text gerendert:\n{lines}',
@@ -870,6 +871,10 @@ export default {
       recommended: 'Empfohlen',
       recommendedHint: 'Vom App-Entwickler empfohlener Wert. Kann angepasst werden.'
     },
+    sourceLabels: {
+      packer: 'Packer',
+      terraform: 'Terraform',
+    },
     summary: {
       scopeLabel: "(Scope: {scope})",
       uploadedFiles: "Hochgeladene Dateien",
@@ -888,10 +893,6 @@ export default {
       noUsersAssigned: 'Keine User zugewiesen',
       variablesConfigTitle: 'Variablen-Konfiguration',
       editBtn: 'Bearbeiten',
-      packerVars: 'Packer Variablen',
-      terraformVars: 'Terraform Variablen',
-      noPackerVars: 'Keine Packer Variablen',
-      noTerraformVars: 'Keine Terraform Variablen',
       noFileUploaded: 'Keine Datei hochgeladen',
       submittedValue: 'Wird übermittelt: {value}',
       creating: 'Wird erstellt...',

@@ -11,7 +11,7 @@ import {
   BarChart3,
   ArrowRight,
   ArrowLeft,
-  Box,
+  SlidersHorizontal,
   Layers
 } from 'lucide-vue-next'
 import type { AppVariable } from '@/types'
@@ -130,6 +130,20 @@ const terraformVars = computed(() => {
   })
   return result
 })
+
+/**
+ * What the recap actually renders. The two lists stay separate above because
+ * each resolves its values differently (Packer may be nested per template),
+ * but the user sees one — the same merge the variable step performs. Order is
+ * deliberately Packer first, so both steps list the variables alike.
+ *
+ * ``source`` rides along: this is the last screen before submitting, where
+ * a value has to stay traceable to the tool that will consume it.
+ */
+const allVars = computed(() => [
+  ...packerVars.value.map((v) => ({ ...v, source: 'packer' as const })),
+  ...terraformVars.value.map((v) => ({ ...v, source: 'terraform' as const })),
+])
 
 /**
  * Translate a backend submit-error into a user-facing toast string.
@@ -693,18 +707,33 @@ const handleBack = () => {
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- One list, mirroring step 3. The per-row badge carries what the
+               former two-card split conveyed. -->
           <div class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden">
             <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
-              <Box :size="18" class="text-tag-info" />
-              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.packerVars') }}</h4>
+              <SlidersHorizontal :size="18" class="text-tag-info" aria-hidden="true" />
+              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.variables.sectionTitle') }}</h4>
               <span class="ml-auto text-xs bg-tag-infoLight text-tag-info px-2 py-0.5 rounded-full font-bold">
-                {{ packerVars.length }}
+                {{ allVars.length }}
               </span>
             </div>
             <div class="p-4 space-y-2 max-h-64 overflow-y-auto">
-              <div v-for="item in packerVars" :key="item.label"
+              <div v-for="(item, index) in allVars" :key="`${index}-${item.label}`"
                 class="flex justify-between items-start gap-3 py-2 border-b border-card-border last:border-0">
-                <span class="text-sm font-semibold text-content-secondary flex-shrink-0">{{ item.label }}</span>
+                <span class="text-sm font-semibold text-content-secondary flex-shrink-0 flex items-center gap-1.5">
+                  {{ item.label }}
+                  <span
+                    data-testid="variable-source-badge"
+                    class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                    :class="item.source === 'packer'
+                      ? 'bg-tag-infoLight text-tag-info border-tag-infoBorder'
+                      : 'bg-tag-accentLight text-tag-accent border-tag-accentBorder'"
+                  >
+                    {{ item.source === 'packer'
+                      ? t('deployment.sourceLabels.packer')
+                      : t('deployment.sourceLabels.terraform') }}
+                  </span>
+                </span>
                 <span
                   class="text-sm text-content-primary font-medium text-right break-all"
                   :title="item.raw ? t('deployment.summary.submittedValue', { value: item.raw }) : undefined"
@@ -712,33 +741,8 @@ const handleBack = () => {
                   {{ item.value }}
                 </span>
               </div>
-              <p v-if="packerVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
-                {{ t('deployment.summary.noPackerVars') }}
-              </p>
-            </div>
-          </div>
-
-          <div class="bg-surface-card rounded-lg border-2 border-card-border overflow-hidden">
-            <div class="bg-surface-input px-4 py-2 border-b border-card-border flex items-center gap-2">
-              <Layers :size="18" class="text-tag-accent" />
-              <h4 class="font-bold text-content-primary text-sm">{{ t('deployment.summary.terraformVars') }}</h4>
-              <span class="ml-auto text-xs bg-tag-accentLight text-tag-accent px-2 py-0.5 rounded-full font-bold">
-                {{ terraformVars.length }}
-              </span>
-            </div>
-            <div class="p-4 space-y-2 max-h-64 overflow-y-auto">
-              <div v-for="item in terraformVars" :key="item.label"
-                class="flex justify-between items-start gap-3 py-2 border-b border-card-border last:border-0">
-                <span class="text-sm font-semibold text-content-secondary flex-shrink-0">{{ item.label }}</span>
-                <span
-                  class="text-sm text-content-primary font-medium text-right break-all"
-                  :title="item.raw ? t('deployment.summary.submittedValue', { value: item.raw }) : undefined"
-                >
-                  {{ item.value }}
-                </span>
-              </div>
-              <p v-if="terraformVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
-                {{ t('deployment.summary.noTerraformVars') }}
+              <p v-if="allVars.length === 0" class="text-sm text-content-disabled italic text-center py-4">
+                {{ t('deployment.variables.noVariables') }}
               </p>
             </div>
           </div>
