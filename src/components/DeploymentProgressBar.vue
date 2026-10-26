@@ -84,24 +84,3 @@ const getTextAlignmentClass = (step: number, total: number) => {
     <div class="h-6"></div>
   </div>
 </template>
-
-<style scoped>
-/* Scale the circle slightly instead of using Tailwind's animate-pulse (which
-   modulates opacity and half-hides the current step), so it stays fully visible.
-   transform-origin is centered so its position on the line doesn't wobble. */
-@keyframes step-pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
-  }
-  50% {
-    transform: scale(1.18);
-    box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
-  }
-}
-
-.animate-step-pulse {
-  animation: step-pulse 1.6s ease-in-out infinite;
-  transform-origin: center;
-}
-</style>

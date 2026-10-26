@@ -3,7 +3,7 @@ export default {
     login: {
       title: "Login",
       emailLabel: "E-Mail",
-      emailPlaceholder: "name@six7.de",
+      emailPlaceholder: "name{'@'}example.de",
       userLabel: "Benutzername",
       userPlaceholder: "dein.username",
       passwordLabel: "Passwort",
@@ -27,6 +27,7 @@ export default {
     help: "Hilfe",
     config: "Konfiguration",
     approvals: "Freigaben",
+    adminSettings: "Einstellungen",
     profile: "Profil",
     logout: "Abmelden",
     openSidebar: "Seitenleiste öffnen",
@@ -37,6 +38,7 @@ export default {
     back: "Zurück",
     close: "Schließen",
     cancel: "Abbrechen",
+    save: "Speichern",
   },
 
   // Fehlertexte, die greifen, wenn das Backend keine eigene Meldung liefert.
@@ -671,11 +673,11 @@ export default {
     title: "Profil",
     subtitle: "Persönliche Informationen & Kontoeinstellungen",
 
-    name: "Prof. Dr. Eichberg",
+    name: "Prof. Dr. Dozent",
     edit: "Profil bearbeiten",
 
     emailLabel: "E-Mail",
-    emailValue: "eichberg@six7.de",
+    emailValue: "dozent{'@'}example.de",
 
     roleLabel: "Rolle",
 
@@ -736,6 +738,35 @@ export default {
     emptyNoSubmissionsTitle: "Keine offenen Freigaben",
     emptyNoSubmissionsDesc: "Aktuell wartet keine App-Version auf eine Freigabe. Sobald jemand eine neue Version einreicht, erscheint sie hier.",
     emptyShowAll: "Alle Apps anzeigen",
+  },
+
+  AdminSettingsView: {
+    title: "Plattform-Einstellungen",
+    subtitle: "Globale Standardwerte für alle Deployments.",
+    status: {
+      loading: "Lädt …",
+      noneTitle: "Kein Standard-Netzwerk konfiguriert",
+      noneHint: "Deployments ohne eigene Netzwerk-Auswahl schlagen weiterhin fehl, bis ein Standard gesetzt ist.",
+      configured: "Standard-Netzwerk: {name}",
+      mode: "Modus: {mode}",
+      lastUpdated: "zuletzt geändert am {time}",
+    },
+    fields: {
+      networkLabel: "Standard-Netzwerk",
+      networkHint: "Wird für jede {'@'}openstack:network-Variable verwendet, die ein Nutzer beim Deploy leer lässt.",
+      modeLabel: "Wertformat",
+      modeHint: "Legt fest, ob Deployments die Netzwerk-ID oder den Namen erhalten — je danach, was die jeweilige App-Variable erwartet.",
+      modeId: "UUID",
+      modeName: "Name",
+    },
+    save: "Speichern",
+    saving: "Speichert …",
+    errors: {
+      missingSelection: "Bitte ein Netzwerk auswählen.",
+    },
+    toasts: {
+      saveSuccess: "Standard-Netzwerk gespeichert.",
+    },
   },
 
   deployment: {
@@ -848,8 +879,8 @@ export default {
       sectionDesc: 'Konfiguration dieser Umgebung',
       imageGroup: 'Image',
       showInfo: 'Info anzeigen',
-      markerErrorTitle: '⚠ @openstack-Marker fehlerhaft',
-      markerErrorToast: '{count} fehlerhafte(r) @openstack-Marker — die betroffenen Variablen werden als Free-Text gerendert:\n{lines}',
+      markerErrorTitle: "{'@'}openstack-Marker fehlerhaft",
+      markerErrorToast: "{count} fehlerhafte(r) {'@'}openstack-Marker — die betroffenen Variablen werden als Free-Text gerendert:\n{lines}",
       commaSeparated: 'Mehrere Werte mit Komma trennen',
       required: 'Pflichtfeld',
       activated: 'Aktiviert',
@@ -876,6 +907,7 @@ export default {
       terraform: 'Terraform',
     },
     summary: {
+      renameTitle: "Deployment-Namen ändern",
       scopeLabel: "(Scope: {scope})",
       uploadedFiles: "Hochgeladene Dateien",
       title: 'Empfohlene Konfiguration',

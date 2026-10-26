@@ -12,8 +12,11 @@ import {
   ArrowRight,
   ArrowLeft,
   SlidersHorizontal,
+  Pencil,
   Layers
 } from 'lucide-vue-next'
+import Modal from '@/components/ui/Modal.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 import type { AppVariable } from '@/types'
 import type { OsResourceType } from '@/api/openstack-resources.api'
 import { formatBytes } from '@/utils/format'
@@ -130,6 +133,27 @@ const terraformVars = computed(() => {
   })
   return result
 })
+
+/**
+ * Renaming from the recap. The suggested name is first seen here, so sending
+ * the user back through every wizard step just to change it is the long way
+ * round — the edit buttons next to each section already cover the cases where
+ * more than a name needs fixing.
+ */
+const isRenaming = ref(false)
+const nameDraft = ref('')
+
+const openRename = () => {
+  nameDraft.value = deploymentStore.draft.name || ''
+  isRenaming.value = true
+}
+
+const applyRename = () => {
+  const next = nameDraft.value.trim()
+  if (!next) return
+  deploymentStore.draft.name = next
+  isRenaming.value = false
+}
 
 /**
  * What the recap actually renders. The two lists stay separate above because
@@ -611,7 +635,19 @@ const handleBack = () => {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-surface-card rounded-lg p-4 border border-card-border">
             <p class="text-xs text-content-disabled mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.deploymentNameLabel') }}</p>
-            <p class="text-lg font-bold text-content-primary">{{ deploymentStore.draft.name || '-' }}</p>
+            <div class="flex items-start gap-2">
+              <p class="text-lg font-bold text-content-primary break-all">{{ deploymentStore.draft.name || '-' }}</p>
+              <button
+                type="button"
+                data-testid="summary-rename"
+                @click="openRename"
+                :title="t('deployment.summary.renameTitle')"
+                :aria-label="t('deployment.summary.renameTitle')"
+                class="ml-auto shrink-0 text-primary p-1.5 rounded-lg border border-card-border bg-surface-input hover:bg-surface-hover transition-colors"
+              >
+                <Pencil :size="14" />
+              </button>
+            </div>
           </div>
           <div class="bg-surface-card rounded-lg p-4 border border-card-border">
             <p class="text-xs text-content-disabled mb-1 uppercase tracking-wider font-semibold">{{ t('deployment.summary.appLabel') }}</p>
@@ -724,10 +760,7 @@ const handleBack = () => {
                   {{ item.label }}
                   <span
                     data-testid="variable-source-badge"
-                    class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border"
-                    :class="item.source === 'packer'
-                      ? 'bg-tag-infoLight text-tag-info border-tag-infoBorder'
-                      : 'bg-tag-accentLight text-tag-accent border-tag-accentBorder'"
+                    class="text-[9px] font-bold uppercase tracking-wider text-content-disabled"
                   >
                     {{ item.source === 'packer'
                       ? t('deployment.sourceLabels.packer')
@@ -808,6 +841,33 @@ const handleBack = () => {
         <span v-else>{{ t('deployment.actions.deploy') }}</span>
       </button>
     </div>
+
+    <Modal :show="isRenaming" @close="isRenaming = false">
+      <template #title>{{ t('deployment.summary.renameTitle') }}</template>
+      <input
+        v-model="nameDraft"
+        data-testid="summary-rename-input"
+        type="text"
+        :placeholder="t('deployment.config.namePlaceholder')"
+        @keyup.enter="applyRename"
+        class="w-full px-4 py-3 rounded-full border-2 border-border bg-surface-card text-content-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+      />
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <BaseButton variant="ghost" size="sm" @click="isRenaming = false">
+            {{ t('action.cancel') }}
+          </BaseButton>
+          <BaseButton
+            size="sm"
+            data-testid="summary-rename-save"
+            :disabled="!nameDraft.trim()"
+            @click="applyRename"
+          >
+            {{ t('action.save') }}
+          </BaseButton>
+        </div>
+      </template>
+    </Modal>
 
   </div>
 </template>
