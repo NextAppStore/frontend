@@ -3,7 +3,7 @@ export default {
     login: {
       title: "Login",
       emailLabel: "E-Mail",
-      emailPlaceholder: "name@six7.de",
+      emailPlaceholder: "name{'@'}example.de",
       userLabel: "Username",
       userPlaceholder: "your.username",
       passwordLabel: "Password",
@@ -669,11 +669,11 @@ export default {
     title: "User Profile",
     subtitle: "Personal information & account settings",
 
-    name: "Prof. Dr. Eichberg",
+    name: "Prof. Dr. Lecturer",
     edit: "Edit Profile",
 
     emailLabel: "E-Mail",
-    emailValue: "eichberg@six7.de",
+    emailValue: "lecturer{'@'}example.de",
 
     roleLabel: "Role",
 
@@ -749,7 +749,7 @@ export default {
     },
     fields: {
       networkLabel: "Default network",
-      networkHint: "Used for any @openstack:network variable a user leaves empty when deploying.",
+      networkHint: "Used for any {'@'}openstack:network variable a user leaves empty when deploying.",
       modeLabel: "Value format",
       modeHint: "Controls whether deployments receive the network ID or the name — depending on what the given app variable expects.",
       modeId: "UUID",
@@ -875,8 +875,8 @@ export default {
       sectionDesc: 'Configuration for this environment',
       imageGroup: 'Image',
       showInfo: 'Show info',
-      markerErrorTitle: '⚠ @openstack marker faulty',
-      markerErrorToast: '{count} faulty @openstack marker(s) — the affected variables will be rendered as free-text:\n{lines}',
+      markerErrorTitle: "{'@'}openstack marker faulty",
+      markerErrorToast: "{count} faulty {'@'}openstack marker(s) — the affected variables will be rendered as free-text:\n{lines}",
       commaSeparated: 'Separate multiple values with commas',
       required: 'Required',
       activated: 'Activated',

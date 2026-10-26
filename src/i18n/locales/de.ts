@@ -3,7 +3,7 @@ export default {
     login: {
       title: "Login",
       emailLabel: "E-Mail",
-      emailPlaceholder: "name@six7.de",
+      emailPlaceholder: "name{'@'}example.de",
       userLabel: "Benutzername",
       userPlaceholder: "dein.username",
       passwordLabel: "Passwort",
@@ -672,11 +672,11 @@ export default {
     title: "Profil",
     subtitle: "Persönliche Informationen & Kontoeinstellungen",
 
-    name: "Prof. Dr. Eichberg",
+    name: "Prof. Dr. Dozent",
     edit: "Profil bearbeiten",
 
     emailLabel: "E-Mail",
-    emailValue: "eichberg@six7.de",
+    emailValue: "dozent{'@'}example.de",
 
     roleLabel: "Rolle",
 
@@ -752,7 +752,7 @@ export default {
     },
     fields: {
       networkLabel: "Standard-Netzwerk",
-      networkHint: "Wird für jede @openstack:network-Variable verwendet, die ein Nutzer beim Deploy leer lässt.",
+      networkHint: "Wird für jede {'@'}openstack:network-Variable verwendet, die ein Nutzer beim Deploy leer lässt.",
       modeLabel: "Wertformat",
       modeHint: "Legt fest, ob Deployments die Netzwerk-ID oder den Namen erhalten — je danach, was die jeweilige App-Variable erwartet.",
       modeId: "UUID",
@@ -878,8 +878,8 @@ export default {
       sectionDesc: 'Konfiguration dieser Umgebung',
       imageGroup: 'Image',
       showInfo: 'Info anzeigen',
-      markerErrorTitle: '⚠ @openstack-Marker fehlerhaft',
-      markerErrorToast: '{count} fehlerhafte(r) @openstack-Marker — die betroffenen Variablen werden als Free-Text gerendert:\n{lines}',
+      markerErrorTitle: "{'@'}openstack-Marker fehlerhaft",
+      markerErrorToast: "{count} fehlerhafte(r) {'@'}openstack-Marker — die betroffenen Variablen werden als Free-Text gerendert:\n{lines}",
       commaSeparated: 'Mehrere Werte mit Komma trennen',
       required: 'Pflichtfeld',
       activated: 'Aktiviert',
