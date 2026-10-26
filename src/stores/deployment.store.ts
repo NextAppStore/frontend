@@ -8,7 +8,7 @@ import { appApi } from '@/api/app.api'
 import { useAppStore } from './app.store'
 import { useAuthStore } from './auth.store'
 import { runRequest } from './_request'
-import { formatDate } from '@/utils/format'
+import { suggestDeploymentName } from '@/utils/deployment-name'
 
 import type {
   Deployment,
@@ -282,7 +282,7 @@ export const useDeploymentStore = defineStore('deployment', {
         if (!releaseTag) return { ready: false, reason: 'noVersion' }
         this.draft.releaseTag = releaseTag
 
-        this.draft.name = `${appName} ${formatDate(new Date())}`
+        this.draft.name = suggestDeploymentName(appName)
 
         // Same dedup key as ``NewDeploymentVariableView``: a Packer variable is
         // identified by its template, a Terraform one by its bare name.

@@ -1029,7 +1029,7 @@ watch(
           <div
             v-if="allPreconfigured"
             data-testid="variables-all-preconfigured"
-            class="order-2 text-center py-6 px-4 text-sm text-tag-info bg-tag-infoLight/70 rounded-lg border border-dashed border-tag-infoBorder"
+            class="order-2 text-center py-6 px-4 text-sm text-tag-info"
           >
             {{ t('deployment.variables.allPreconfigured') }}
           </div>

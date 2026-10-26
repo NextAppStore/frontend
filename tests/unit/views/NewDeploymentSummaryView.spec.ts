@@ -111,6 +111,9 @@ describe('NewDeploymentSummaryView.vue', () => {
     return mount(DeploymentSummary, {
       global: {
         plugins: [pinia],
+        // ``Modal`` greift für das Aria-Label seines Schließen-Knopfs auf das
+        // globale ``$t`` zu, das der ``useI18n``-Mock oben nicht abdeckt.
+        mocks: { $t: (key: string) => key },
         stubs: {
           DeploymentProgressBar: true,
           BarChart3: true,
@@ -265,6 +268,67 @@ describe('NewDeploymentSummaryView.vue', () => {
     
     // Da es fehlgeschlagen ist, sollte nicht weitergeleitet werden
     expect(routerPushMock).not.toHaveBeenCalledWith({ name: 'deployments.list' })
+  })
+
+  // ----------------------------------------------------------------
+  // UMBENENNEN (Issue #37)
+  // ----------------------------------------------------------------
+  describe('Deployment umbenennen', () => {
+    const openDialog = async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+      await wrapper.find('[data-testid="summary-rename"]').trigger('click')
+      return wrapper
+    }
+
+    it('öffnet den Dialog erst auf Klick', async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="summary-rename-input"]').exists()).toBe(false)
+
+      await wrapper.find('[data-testid="summary-rename"]').trigger('click')
+
+      expect(wrapper.find('[data-testid="summary-rename-input"]').exists()).toBe(true)
+    })
+
+    it('übernimmt den neuen Namen in den Draft', async () => {
+      const wrapper = await openDialog()
+
+      await wrapper.find('[data-testid="summary-rename-input"]').setValue('ubuntu-app-neu')
+      await wrapper.find('[data-testid="summary-rename-save"]').trigger('click')
+
+      expect(useDeploymentStore().draft.name).toBe('ubuntu-app-neu')
+      expect(wrapper.find('[data-testid="summary-rename-input"]').exists()).toBe(false)
+    })
+
+    it('schneidet umschließende Leerzeichen ab', async () => {
+      const wrapper = await openDialog()
+
+      await wrapper.find('[data-testid="summary-rename-input"]').setValue('  mit-rand  ')
+      await wrapper.find('[data-testid="summary-rename-save"]').trigger('click')
+
+      expect(useDeploymentStore().draft.name).toBe('mit-rand')
+    })
+
+    it('lässt einen leeren Namen nicht zu', async () => {
+      const wrapper = await openDialog()
+
+      await wrapper.find('[data-testid="summary-rename-input"]').setValue('   ')
+      await wrapper.find('[data-testid="summary-rename-save"]').trigger('click')
+
+      // Der Draft behält den ursprünglichen Namen, der Dialog bleibt offen.
+      expect(useDeploymentStore().draft.name).toBe('My Deployment')
+      expect(wrapper.find('[data-testid="summary-rename-input"]').exists()).toBe(true)
+    })
+
+    it('zeigt beim Öffnen den aktuellen Namen vor', async () => {
+      const wrapper = await openDialog()
+
+      expect(
+        (wrapper.find('[data-testid="summary-rename-input"]').element as HTMLInputElement).value,
+      ).toBe('My Deployment')
+    })
   })
 
   // ----------------------------------------------------------------
