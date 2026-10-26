@@ -27,6 +27,7 @@ export default {
     help: "Hilfe",
     config: "Konfiguration",
     approvals: "Freigaben",
+    adminSettings: "Einstellungen",
     profile: "Profil",
     logout: "Abmelden",
     openSidebar: "Seitenleiste öffnen",
@@ -736,6 +737,35 @@ export default {
     emptyNoSubmissionsTitle: "Keine offenen Freigaben",
     emptyNoSubmissionsDesc: "Aktuell wartet keine App-Version auf eine Freigabe. Sobald jemand eine neue Version einreicht, erscheint sie hier.",
     emptyShowAll: "Alle Apps anzeigen",
+  },
+
+  AdminSettingsView: {
+    title: "Plattform-Einstellungen",
+    subtitle: "Globale Standardwerte für alle Deployments.",
+    status: {
+      loading: "Lädt …",
+      noneTitle: "Kein Standard-Netzwerk konfiguriert",
+      noneHint: "Deployments ohne eigene Netzwerk-Auswahl schlagen weiterhin fehl, bis ein Standard gesetzt ist.",
+      configured: "Standard-Netzwerk: {name}",
+      mode: "Modus: {mode}",
+      lastUpdated: "zuletzt geändert am {time}",
+    },
+    fields: {
+      networkLabel: "Standard-Netzwerk",
+      networkHint: "Wird für jede @openstack:network-Variable verwendet, die ein Nutzer beim Deploy leer lässt.",
+      modeLabel: "Wertformat",
+      modeHint: "Legt fest, ob Deployments die Netzwerk-ID oder den Namen erhalten — je danach, was die jeweilige App-Variable erwartet.",
+      modeId: "UUID",
+      modeName: "Name",
+    },
+    save: "Speichern",
+    saving: "Speichert …",
+    errors: {
+      missingSelection: "Bitte ein Netzwerk auswählen.",
+    },
+    toasts: {
+      saveSuccess: "Standard-Netzwerk gespeichert.",
+    },
   },
 
   deployment: {
