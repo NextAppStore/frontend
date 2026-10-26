@@ -38,6 +38,7 @@ export default {
     back: "Back",
     close: "Close",
     cancel: "Cancel",
+    save: "Save",
   },
 
   // Error texts used when the backend provides no message of its own. They
@@ -903,6 +904,7 @@ export default {
       terraform: 'Terraform',
     },
     summary: {
+      renameTitle: "Rename deployment",
       scopeLabel: "(Scope: {scope})",
       uploadedFiles: "Uploaded files",
       title: 'Recommended Configuration',

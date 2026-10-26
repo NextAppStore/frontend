@@ -78,7 +78,9 @@ describe('deployment.store — prepareQuickDeploy', () => {
     expect(store.draft.groupMode).toBe('one')
     expect(store.draft.groupCount).toBe(1)
     expect(store.draft.assignments).toEqual([['kc-lecturer-1']])
-    expect(store.draft.name).toContain('Jupyter-Notebook')
+    // Slug plus kurzem Zufallsanhängsel — das frühere Datum im Namen ließ
+    // zwei Deployments derselben App am selben Tag gleich heißen (Issue #37).
+    expect(store.draft.name).toMatch(/^jupyter-notebook-[a-z2-9]{4}$/)
   })
 
   it('nimmt die übergebenen Teilnehmer statt des Dozenten', async () => {
@@ -205,7 +207,7 @@ describe('deployment.store — prepareQuickDeploy', () => {
     // App, version and name survive, so step 1 opens prefilled.
     expect(store.draft.appId).toBe('app-1')
     expect(store.draft.releaseTag).toBe('v2.0.0')
-    expect(store.draft.name).toContain('App')
+    expect(store.draft.name).toMatch(/^app-[a-z2-9]{4}$/)
     // Membership must NOT be prefilled on a fallback: the config step resolves
     // its member list through a view-local cache and would show "0 selected"
     // while the draft silently held one.

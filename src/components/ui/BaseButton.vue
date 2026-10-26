@@ -14,11 +14,16 @@
  *
  * Disabled: all variants drop the hover effect and switch to
  * ``opacity-50 + cursor-not-allowed``, set centrally here.
+ *
+ * Sizes — ``md`` is the page-level default; ``sm`` is for confined spaces
+ * such as a modal footer, where the full-size button dominates the dialog.
  */
 withDefaults(defineProps<{
   variant?: 'primary' | 'yellow' | 'green' | 'red' | 'ghost'
+  size?: 'sm' | 'md'
 }>(), {
   variant: 'primary',
+  size: 'md',
 })
 </script>
 
@@ -26,7 +31,8 @@ withDefaults(defineProps<{
   <button
     :class="[
       'inline-flex items-center justify-center gap-2',
-      'px-5 py-2.5 rounded-xl font-medium text-sm transition duration-150 shadow-sm',
+      'rounded-xl font-medium transition duration-150 shadow-sm',
+      size === 'sm' ? 'px-3.5 py-1.5 text-xs' : 'px-5 py-2.5 text-sm',
       'focus:outline-none focus:ring-2 focus:ring-offset-2',
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:!bg-current',
       // ``primary`` and ``yellow`` share the same style; ``yellow`` is kept as an alias.

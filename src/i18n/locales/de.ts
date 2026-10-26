@@ -38,6 +38,7 @@ export default {
     back: "Zurück",
     close: "Schließen",
     cancel: "Abbrechen",
+    save: "Speichern",
   },
 
   // Fehlertexte, die greifen, wenn das Backend keine eigene Meldung liefert.
@@ -906,6 +907,7 @@ export default {
       terraform: 'Terraform',
     },
     summary: {
+      renameTitle: "Deployment-Namen ändern",
       scopeLabel: "(Scope: {scope})",
       uploadedFiles: "Hochgeladene Dateien",
       title: 'Empfohlene Konfiguration',
