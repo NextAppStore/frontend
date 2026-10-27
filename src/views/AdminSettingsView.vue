@@ -2,7 +2,12 @@
 /**
  * Admin-only global platform settings.
  *
- * Currently a single setting: the default OpenStack network used as a
+ * Two sections:
+ *   * Default network (below) — stored via the backend.
+ *   * Appearance — ``AccentColorSettings``; the accent itself is configured
+ *     via the ``VITE_ACCENT_COLOR`` env, so that section is preview-only.
+ *
+ * Default network: the default OpenStack network used as a
  * fallback for any ``@openstack:network``-marked deploy variable a user
  * leaves empty (backend: ``_apply_default_network`` in
  * ``deployments.py``). The picker always runs in ``osMode="id"`` so the
@@ -19,6 +24,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import Card from '@/components/ui/Card.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import OpenStackResourcePicker from '@/components/OpenStackResourcePicker.vue'
+import AccentColorSettings from '@/components/AccentColorSettings.vue'
 import { useAdminSettingsStore } from '@/stores/admin-settings.store'
 import { useToast } from '@/composables/useToast'
 import { extractErrorMessage } from '@/utils/http-error'
@@ -154,11 +160,13 @@ const handleSave = async () => {
         </div>
 
         <div class="flex justify-end">
-          <BaseButton :disabled="!canSave || isSaving" @click="handleSave">
+          <BaseButton data-testid="admin-settings-save" :disabled="!canSave || isSaving" @click="handleSave">
             {{ isSaving ? t('AdminSettingsView.saving') : t('AdminSettingsView.save') }}
           </BaseButton>
         </div>
       </div>
     </Card>
+
+    <AccentColorSettings class="mt-10" />
   </div>
 </template>

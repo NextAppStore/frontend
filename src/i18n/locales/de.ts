@@ -1255,4 +1255,19 @@ export default {
     enterValue: 'Wert eingeben...',
   },
 
+  AccentColorSettings: {
+    title: 'Erscheinungsbild',
+    accentLabel: 'Akzentfarbe',
+    accentHint: 'Färbt Buttons, Links, Navigation und Hervorhebungen — im hellen und im dunklen Modus.',
+    sliderLabel: 'Farbton',
+    previewNote: 'Vorschau aktiv — gilt nur in diesem Tab bis zum Neuladen.',
+    resetBtn: 'Zurücksetzen',
+    defaultBtn: 'Standard (ScholarStack-Rot)',
+    persistNote: 'Dauerhaft und für alle Nutzer wird die Farbe über die Umgebungsvariable des Frontend-Containers gesetzt. Diese Zeile in die Konfiguration eintragen und den Container neu starten:',
+    copyBtn: 'Kopieren',
+    copySuccess: 'In die Zwischenablage kopiert.',
+    copyError: 'Kopieren fehlgeschlagen.',
+    configuredLabel: 'Aktuell konfiguriert: {color}',
+  },
+
 };

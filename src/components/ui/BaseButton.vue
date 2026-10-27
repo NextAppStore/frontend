@@ -34,16 +34,19 @@ withDefaults(defineProps<{
       'rounded-xl font-medium transition duration-150 shadow-sm',
       size === 'sm' ? 'px-3.5 py-1.5 text-xs' : 'px-5 py-2.5 text-sm',
       'focus:outline-none focus:ring-2 focus:ring-offset-2',
-      'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:!bg-current',
+      'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
       // ``primary`` and ``yellow`` share the same style; ``yellow`` is kept as an alias.
+      // ``disabled:hover:!…`` repeats each variant's resting colours, so hovering
+      // a disabled button changes nothing (a generic ``bg-current`` would paint
+      // the background in the text colour and hide the label).
       (variant === 'primary' || variant === 'yellow')
-        ? 'bg-btn-primary text-btn-primaryText hover:bg-btn-primaryHover focus:ring-primary/60'
+        ? 'bg-btn-primary text-btn-primaryText hover:bg-btn-primaryHover focus:ring-primary/60 disabled:hover:!bg-btn-primary'
         : variant === 'green'
-        ? 'bg-btn-secondary text-btn-secondaryText hover:bg-btn-secondaryHover focus:ring-primary/60 border border-border-strong'
+        ? 'bg-btn-secondary text-btn-secondaryText hover:bg-btn-secondaryHover focus:ring-primary/60 border border-border-strong disabled:hover:!bg-btn-secondary'
         : variant === 'red'
-        ? 'bg-status-errorLight text-status-error hover:bg-status-error hover:text-content-onColor focus:ring-status-error/60'
+        ? 'bg-status-errorLight text-status-error hover:bg-status-error hover:text-content-onColor focus:ring-status-error/60 disabled:hover:!bg-status-errorLight disabled:hover:!text-status-error'
         : variant === 'ghost'
-        ? 'bg-btn-ghost text-btn-ghostText hover:bg-btn-ghostHover border border-border focus:ring-primary/60 shadow-none'
+        ? 'bg-btn-ghost text-btn-ghostText hover:bg-btn-ghostHover border border-border focus:ring-primary/60 shadow-none disabled:hover:!bg-btn-ghost'
         : ''
     ]"
   >

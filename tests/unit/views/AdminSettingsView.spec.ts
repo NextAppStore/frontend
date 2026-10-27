@@ -64,6 +64,8 @@ describe('AdminSettingsView.vue', () => {
             props: ['modelValue'],
             template: '<input class="stub-picker" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
           },
+          // Appearance section has its own spec (AccentColorSettings.spec.ts).
+          AccentColorSettings: true,
         },
       },
     })
@@ -97,12 +99,9 @@ describe('AdminSettingsView.vue', () => {
     expect(wrapper.find('.stub-picker').attributes('value')).toBe('net-1')
   })
 
-  const findSaveButton = (wrapper: ReturnType<typeof mountComponent>) => {
-    const buttons = wrapper.findAll('button')
-    const last = buttons[buttons.length - 1]
-    if (!last) throw new Error('save button not found')
-    return last
-  }
+  // By test id, not position — the page has more sections below the form.
+  const findSaveButton = (wrapper: ReturnType<typeof mountComponent>) =>
+    wrapper.get('[data-testid="admin-settings-save"]')
 
   it('saves the selected network and shows a success toast', async () => {
     mockGetDisplayName.mockReturnValue({ name: 'campus-net', known: true })

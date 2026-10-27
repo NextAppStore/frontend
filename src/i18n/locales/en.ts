@@ -1253,4 +1253,19 @@ export default {
     enterValue: 'Enter value...',
   },
 
+  AccentColorSettings: {
+    title: 'Appearance',
+    accentLabel: 'Accent color',
+    accentHint: 'Colors buttons, links, navigation and highlights — in light and dark mode.',
+    sliderLabel: 'Hue',
+    previewNote: 'Preview active — applies only to this tab until reload.',
+    resetBtn: 'Reset',
+    defaultBtn: 'Default (ScholarStack red)',
+    persistNote: 'The color is set permanently and for all users via the frontend container\'s environment variable. Add this line to the configuration and restart the container:',
+    copyBtn: 'Copy',
+    copySuccess: 'Copied to clipboard.',
+    copyError: 'Copy failed.',
+    configuredLabel: 'Currently configured: {color}',
+  },
+
 };
