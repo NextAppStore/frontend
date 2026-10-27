@@ -4,10 +4,11 @@ import App from '@/App.vue'
 import router from '@/router/index'
 import i18n from './i18n'
 import { useAuthStore } from '@/stores/auth.store'
-
-import '@/style.css'
 import { initAccentColor } from '@/composables/useAccentColor'
 
+import '@/style.css'
+
+// Before mount, so the first paint already uses the configured accent.
 initAccentColor()
 
 const app = createApp(App)
