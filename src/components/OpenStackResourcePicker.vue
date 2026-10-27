@@ -843,7 +843,7 @@ onBeforeUnmount(() => {
                   : 'bg-surface-card border-border'
               "
             >
-              <Check v-if="isSelected(item)" :size="12" class="text-content-inverse" />
+              <Check v-if="isSelected(item)" :size="12" class="text-content-onColor" />
             </div>
 
             <div class="flex-grow min-w-0">

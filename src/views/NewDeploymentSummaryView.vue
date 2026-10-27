@@ -622,7 +622,7 @@ const handleBack = () => {
       <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-primary text-content-inverse flex items-center justify-center font-bold text-sm">1</div>
+            <div class="w-8 h-8 rounded-full bg-primary text-content-onColor flex items-center justify-center font-bold text-sm">1</div>
             <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.baseConfigTitle') }}</h3>
           </div>
           <button @click="handleEditBaseConfig"
@@ -684,7 +684,7 @@ const handleBack = () => {
       <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-tag-info text-content-inverse flex items-center justify-center font-bold text-sm">2</div>
+            <div class="w-8 h-8 rounded-full bg-tag-info text-content-onColor flex items-center justify-center font-bold text-sm">2</div>
             <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.teamAssignmentTitle') }}</h3>
           </div>
           <button @click="handleEditTeams"
@@ -731,7 +731,7 @@ const handleBack = () => {
       <div class="bg-surface-input rounded-xl p-6 border-2 border-card-border">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-tag-accent text-content-inverse flex items-center justify-center font-bold text-sm">3</div>
+            <div class="w-8 h-8 rounded-full bg-tag-accent text-content-onColor flex items-center justify-center font-bold text-sm">3</div>
             <h3 class="text-xl font-bold text-content-primary">{{ t('deployment.summary.variablesConfigTitle') }}</h3>
           </div>
           <button @click="handleCustomize"
@@ -834,7 +834,7 @@ const handleBack = () => {
 
       <button @click="handleDeploy"
         :disabled="isLoadingVariables || isSubmitting || deploymentStore.isLoading"
-        class="flex items-center gap-3 px-10 py-3 rounded-full bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
+        class="flex items-center gap-3 px-10 py-3 rounded-full bg-btn-primary text-btn-primaryText font-bold hover:bg-btn-primaryHover transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
 
         <span v-if="isSubmitting || deploymentStore.isLoading" class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span>
         <span v-if="isSubmitting || deploymentStore.isLoading">{{ t('deployment.summary.creating') }}</span>

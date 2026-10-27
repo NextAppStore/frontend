@@ -228,7 +228,7 @@ const navItems = computed(() => [
               @click="userMenuOpen = !userMenuOpen"
               class="user-menu-btn flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors"
             >
-              <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-semibold text-content-inverse">
+              <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-semibold text-content-onColor">
                 {{ userInitial }}
               </div>
               <span class="text-sm max-w-24 truncate user-menu-name">{{ userName }}</span>
@@ -338,7 +338,7 @@ const navItems = computed(() => [
   top: 50%;
   transform: translateY(-50%);
   background: var(--color-surface-sidebar);
-  color: var(--color-content-inverse);
+  color: var(--color-content-primary);
   font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
@@ -407,7 +407,7 @@ const navItems = computed(() => [
 }
 .lang-active {
   background: var(--color-primary);
-  color: var(--color-content-inverse);
+  color: var(--color-content-on-color);
 }
 .lang-inactive {
   color: var(--color-nav-text);

@@ -379,7 +379,7 @@ const handleBack = () => router.push({ name: 'deployment.config' })
       <div class="p-8 pb-6 bg-surface-card border-b-2 border-card-border">
         <div class="flex items-center gap-3 mb-4">
           <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-            <Users :size="28" class="text-content-inverse" />
+            <Users :size="28" class="text-content-onColor" />
           </div>
           <h1 class="text-3xl font-bold text-content-primary">
             {{ t('deployment.title') }}
@@ -410,21 +410,21 @@ const handleBack = () => router.push({ name: 'deployment.config' })
             <button @click="setOneGroup" 
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
               :class="mode === 'one' 
-                ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+                ? 'bg-btn-primary text-btn-primaryText border-btn-primary shadow-lg'
               : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.one') }}
             </button>
             <button @click="setEachUser"
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
               :class="mode === 'eachUser'
-              ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+              ? 'bg-btn-primary text-btn-primaryText border-btn-primary shadow-lg'
               : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.eachUser') }}
             </button>
             <button @click="setCustom"
               class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm border-2"
               :class="mode === 'custom'
-              ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-lg'
+              ? 'bg-btn-primary text-btn-primaryText border-btn-primary shadow-lg'
               : 'bg-surface-card text-content-secondary border-card-border hover:border-primary/30 hover:bg-primary/5'">
               {{ t('deployment.groups.custom') }}
             </button>
@@ -468,7 +468,7 @@ const handleBack = () => router.push({ name: 'deployment.config' })
         <!-- Info Banner -->
         <div class="mt-4 bg-tag-infoLight border-2 border-tag-infoBorder rounded-xl p-4 flex items-start gap-3">
           <div class="w-8 h-8 rounded-full bg-tag-info flex items-center justify-center flex-shrink-0 mt-0.5">
-            <GripVertical :size="16" class="text-content-inverse" />
+            <GripVertical :size="16" class="text-content-onColor" />
           </div>
           <div>
             <p class="font-semibold text-content-primary mb-1">{{ t('deployment.assignment.dragDropTitle') }}</p>
@@ -631,7 +631,7 @@ const handleBack = () => router.push({ name: 'deployment.config' })
           @click="handleNext"
           data-testid="next-btn"
           :disabled="unassignedStudents.length > 0 || (store.draft.assignments as string[][]).slice(0, groupCount).some((g: string[]) => !g || g.length === 0) || groupNames.slice(0, groupCount).some((name: string) => !name || name.trim() === '')"
-          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+          class="flex items-center gap-2 px-8 py-3 rounded-xl bg-btn-primary text-btn-primaryText font-bold hover:bg-btn-primaryHover transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
           {{ t('deployment.actions.next') }}
           <ArrowRight :size="20" />
         </button>

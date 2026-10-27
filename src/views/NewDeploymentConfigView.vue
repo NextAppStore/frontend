@@ -375,7 +375,7 @@ onMounted(async () => {
                   <div class="w-6 h-6 flex items-center justify-center rounded border transition-colors"
                        :class="isCourseSelected(course.courseId) ? 'bg-status-success border-status-success' : 'border-border bg-surface-card'"
                   >
-                     <Check v-if="isCourseSelected(course.courseId)" :size="16" class="text-content-inverse" />
+                     <Check v-if="isCourseSelected(course.courseId)" :size="16" class="text-content-onColor" />
                   </div>
                   <div class="flex-grow">
                     <div class="font-semibold text-content-primary">{{ course.name }}</div>
@@ -414,7 +414,7 @@ onMounted(async () => {
                   <div class="w-6 h-6 flex items-center justify-center rounded border transition-colors"
                        :class="store.draft.studentIds.includes(student.keycloak_id) ? 'bg-status-success border-status-success' : 'border-border bg-surface-card'"
                   >
-                     <Check v-if="store.draft.studentIds.includes(student.keycloak_id)" :size="16" class="text-content-inverse" />
+                     <Check v-if="store.draft.studentIds.includes(student.keycloak_id)" :size="16" class="text-content-onColor" />
                   </div>
                   <span class="text-content-primary font-medium">
                     {{ (student.firstName || student.lastName) 
@@ -487,7 +487,7 @@ onMounted(async () => {
           @click="handleNext"
           data-testid="btn-next"
           :disabled="credStore.isResolved && !credStore.hasCredential"
-          class="px-8 py-2.5 rounded-full bg-btn-primary text-btn-primary-text font-bold hover:bg-btn-primaryHover transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-8 py-2.5 rounded-full bg-btn-primary text-btn-primaryText font-bold hover:bg-btn-primaryHover transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ t('deployment.actions.next') }}
         </button>

@@ -43,7 +43,7 @@ onMounted(() => {
     <button
       @click="loginWithKeycloak"
       type="button"
-      class="w-full bg-primary hover:bg-primary/90 text-content-inverse py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition"
+      class="w-full bg-primary hover:bg-primary/90 text-content-onColor py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition"
     >
       <LogIn :size="20" />
       {{ $t('auth.login.keycloakButton') }}

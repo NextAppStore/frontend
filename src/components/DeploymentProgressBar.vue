@@ -59,8 +59,8 @@ const getTextAlignmentClass = (step: number, total: number) => {
               currentStep >= item.step
                 ? 'border-status-success text-status-success shadow-[0_0_10px_rgba(16,185,129,0.4)]'
                 : 'border-border text-content-disabled',
-              currentStep > item.step ? '!bg-status-success !text-content-inverse' : '',
-              currentStep === item.step ? 'text-status-success' : ''
+              currentStep > item.step ? '!bg-status-success !text-content-onColor' : '',
+              currentStep === item.step ? 'text-status-success animate-step-pulse' : ''
             ]"
           >
             <Check v-if="currentStep > item.step" :size="16" />
