@@ -186,7 +186,7 @@ Bestand `ui/`: `BaseButton` (`primary`\|`yellow`\|`green`\|`red`\|`ghost`), `Bas
 
 Fachlich: `CredentialMissingBanner`, `DeploymentProgressBar`, `FileDropZone`,
 `InfrastructureVmCard`, `InfrastructureVmDrawer`, `MarkdownEditor`, `MarkdownRenderer`,
-`OpenStackResourcePicker`, `RoleGate`, `VariableInput`.
+`OpenStackResourcePicker`, `RoleGate`, `ScholarStackLogo`, `VariableInput`.
 
 Neue `ui/`-Komponente nur, wenn das Muster **mindestens dreimal** im Code steht, keine
 bestehende es mit einer Prop abdeckt und sie ohne Store auskommt. Sonst: bestehende erweitern.

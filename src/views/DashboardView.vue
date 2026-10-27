@@ -5,10 +5,6 @@ import {
   BarChart3, Layers, GraduationCap, ArrowRight,
   XCircle, Loader2, AlertCircle, Rocket, BookOpen
 } from 'lucide-vue-next'
-// Rein dekoratives Markenzeichen im Hero — die freigestellte Variante ohne
-// Schriftzug, damit die Grafik in jeder Größe lesbar bleibt.
-import logoMark from '@/assets/ScholarStackLogo.png'
-import logoMarkDark from '@/assets/ScholarStackLogo-Hell.png'
 import { useDashboard } from '@/composables/useDashboard'
 import { useQuotas } from '@/composables/useQuotas'
 import { useOpenStackCredentialsStore } from '@/stores/openstack-credentials.store'
@@ -16,8 +12,8 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useDeploymentStore } from '@/stores/deployment.store'
 import { useRole } from '@/composables/useRole'
 import { formatDateTime } from '@/utils/format'
-import { useColorScheme } from '@/composables/useColorScheme'
 import CredentialMissingBanner from '@/components/CredentialMissingBanner.vue'
+import ScholarStackLogo from '@/components/ScholarStackLogo.vue'
 
 const { stats, fetchStats } = useDashboard()
 const { formattedQuotas, loading: quotasLoading, needsCredentials, hasCachedQuotas, fetchQuotas, getColorClass } = useQuotas()
@@ -26,14 +22,6 @@ const authStore = useAuthStore()
 const deploymentStore = useDeploymentStore()
 const { t } = useI18n()
 const { isStaff } = useRole()
-const { scheme } = useColorScheme()
-
-const isDark = computed(() => {
-  void scheme.value
-  return document.documentElement.classList.contains('dark')
-})
-
-const activeLogo = computed(() => isDark.value ? logoMarkDark : logoMark)
 
 /** Die fünf jüngsten Deployments, absteigend nach Anlagedatum. */
 const recentDeployments = computed(() =>
@@ -143,7 +131,7 @@ onMounted(() => {
         <span class="mark-orbit" />
         <span class="mark-plate mark-plate--top" />
         <span class="mark-plate mark-plate--bottom" />
-        <img :src="activeLogo" alt="" />
+        <ScholarStackLogo />
       </div>
     </div>
 
@@ -473,11 +461,11 @@ onMounted(() => {
   pointer-events: none;
 }
 
-.hero-mark img {
+.hero-mark svg {
   position: relative;
   z-index: 3;
   display: block;
-  width: 72%;
+  width: 58%;
   height: auto;
   filter: drop-shadow(0 18px 30px var(--color-dash-mark-drop-shadow));
   animation: mark-float 7s ease-in-out infinite;
@@ -552,7 +540,7 @@ onMounted(() => {
 
 /* Bewegung ist Zierde, kein Inhalt — wer sie abbestellt hat, bekommt sie nicht. */
 @media (prefers-reduced-motion: reduce) {
-  .hero-mark img,
+  .hero-mark svg,
   .mark-orbit {
     animation: none;
   }
