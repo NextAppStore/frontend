@@ -7,102 +7,108 @@
    * Design Tokens — Light Mode
    * ================================================================ */
   :root {
+    /* ── Brand / accent ────────────────────────────────────────────
+     * The single source for every accent-coloured value in both modes:
+     * tints, shades and transparent variants below are derived from it
+     * via color-mix(), so changing this one value re-colours the app.
+     * Status colours (error, resource-high …) stay fixed on purpose */
+    --color-brand:            #E10210;   /* ScholarStack red */
+    --color-brand-shade:      color-mix(in srgb, var(--color-brand) 47%, black);  /* tinted shadows */
+
     /* ── Brand colors ──────────────────────────────────────────── */
-    --color-primary:          #E10210;   /* ScholarStack red */
-    --color-primary-light:    #FF3344;
-    --color-primary-dark:     #A30109;
+    --color-primary:          var(--color-brand);
+    --color-primary-light:    color-mix(in srgb, var(--color-brand) 80%, white);
+    --color-primary-dark:     color-mix(in srgb, var(--color-brand) 72%, black);
 
-    --color-secondary:        #8B0008;   /* Deep red — sidebar accent */
-    --color-secondary-light:  #B5101F;
-    --color-secondary-dark:   #5C0005;
+    --color-secondary:        color-mix(in srgb, var(--color-brand) 62%, black);   /* Deep red — sidebar accent */
+    --color-secondary-light:  color-mix(in srgb, var(--color-brand) 80%, black);
+    --color-secondary-dark:   color-mix(in srgb, var(--color-brand) 41%, black);
 
-    --color-highlight:        #E10210;   /* CTA gradient, hero banner */
-    --color-highlight-light:  #FF3344;
-    --color-highlight-dark:   #A30109;
+    --color-highlight:        var(--color-primary);   /* CTA gradient, hero banner */
+    --color-highlight-light:  var(--color-primary-light);
+    --color-highlight-dark:   var(--color-primary-dark);
 
     /* ── Surfaces —────────────────────── */
-    --color-surface-page:     #FFFCFC;   
+    --color-surface-page:     color-mix(in srgb, var(--color-brand) 1%, white);   
     --color-surface-card:     #FFFFFF;   
     --color-surface-sidebar:  #FFFFFF;   
-    --color-surface-sidebar-grad: linear-gradient(180deg, #ffffff 0%, #fdf5f5 45%, #f9e7e8 100%);
-    --color-surface-header:   linear-gradient(90deg, #ffffff 0%, #fffafa 50%, #fdeff0 100%);
-    --color-surface-input:    #FDF0F0;   /* Warm rose form fields */
+    --color-surface-sidebar-grad: linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--color-brand) 4%, white) 45%, color-mix(in srgb, var(--color-brand) 9%, white) 100%);
+    --color-surface-header:   linear-gradient(90deg, #ffffff 0%, color-mix(in srgb, var(--color-brand) 2%, white) 50%, color-mix(in srgb, var(--color-brand) 6%, white) 100%);
+    --color-surface-input:    color-mix(in srgb, var(--color-brand) 6%, white);   /* Warm rose form fields */
     --color-surface-overlay:  #FFFFFF;   /* Modals, drawers */
-    --color-surface-hover:    #FDE8E8;   /* Row hover — visible rose tint */
-    --color-sidebar-border:   #f2dcdd;
-    --color-header-border:    linear-gradient(90deg, #E10210 0%, rgba(225, 2, 16, 0.35) 38%, rgba(225, 2, 16, 0) 78%);
-    --color-hero-bg:          linear-gradient(135deg, #c0392b 0%, #96000a 60%, #6b0007 100%);
-    --color-hero-bg-light:    linear-gradient(135deg, #fff0f0 0%, #fde0e0 40%, #f5c6c6 100%);
+    --color-surface-hover:    color-mix(in srgb, var(--color-brand) 9%, white);   /* Row hover — visible rose tint */
+    --color-sidebar-border:   color-mix(in srgb, var(--color-brand) 14%, white);
+    --color-header-border:    linear-gradient(90deg, var(--color-brand) 0%, color-mix(in srgb, var(--color-brand) 35%, transparent) 38%, color-mix(in srgb, var(--color-brand) 0%, transparent) 78%);
 
     /* ── Mesh background (dashboard page bg) ───────────────────────── */
-    --color-mesh-spot-1:      rgba(225, 2, 16, 0.015);
-    --color-mesh-spot-2:      rgba(225, 2, 16, 0.02);
+    --color-mesh-spot-1:      color-mix(in srgb, var(--color-brand) 1.5%, transparent);
+    --color-mesh-spot-2:      color-mix(in srgb, var(--color-brand) 2%, transparent);
     --color-mesh-spot-3:      rgba(255, 255, 255, 0.80);
-    --color-mesh-spot-4:      rgba(225, 2, 16, 0.01);
+    --color-mesh-spot-4:      color-mix(in srgb, var(--color-brand) 1%, transparent);
 
     /* ── Dashboard — Hero ──────────────────────────────────────────── */
-    --color-dash-hero-bg:         linear-gradient(120deg, #fff7f7 0%, #fdedee 55%, #fbe1e3 100%);
-    --color-dash-hero-border:     #f7dcde;
-    --color-dash-hero-shadow:     rgba(107, 1, 6, 0.30);
-    --color-dash-hero-shape:      rgba(225, 2, 16, 0.05);
-    --color-dash-hero-greeting:   #C10612;
+    --color-dash-hero-bg:         linear-gradient(120deg, color-mix(in srgb, var(--color-brand) 3%, white) 0%, color-mix(in srgb, var(--color-brand) 7%, white) 55%, color-mix(in srgb, var(--color-brand) 12%, white) 100%);
+    --color-dash-hero-border:     color-mix(in srgb, var(--color-brand) 14%, white);
+    --color-dash-hero-shadow:     color-mix(in srgb, var(--color-brand-shade) 30%, transparent);
+    --color-dash-hero-shape:      color-mix(in srgb, var(--color-brand) 5%, transparent);
+    --color-dash-hero-greeting:   color-mix(in srgb, var(--color-brand) 86%, black);
     --color-dash-hero-name:       var(--color-content-primary);
     --color-dash-hero-sub:        var(--color-content-secondary);
     --color-dash-cta-ghost-bg:    rgba(255, 255, 255, 0.78);
-    --color-dash-cta-ghost-border: #f0c9cc;
-    --color-dash-cta-ghost-text:  #B00410;
+    --color-dash-cta-ghost-border: color-mix(in srgb, var(--color-brand) 21%, white);
+    --color-dash-cta-ghost-text:  color-mix(in srgb, var(--color-brand) 78%, black);
     --color-dash-cta-ghost-border-hover: var(--color-border-focus);
 
     /* ── Dashboard — KPI cards ─────────────────────────────────────── */
-    --color-dash-kpi-bg:          linear-gradient(180deg, #ffffff 0%, #fffbfb 100%);
-    --color-dash-kpi-border:      #f7e6e7;
-    --color-dash-kpi-shadow:      rgba(107, 1, 6, 0.16);
-    --color-dash-kpi-border-hover: #f0c9cc;
+    --color-dash-kpi-bg:          linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--color-brand) 2%, white) 100%);
+    --color-dash-kpi-border:      color-mix(in srgb, var(--color-brand) 10%, white);
+    --color-dash-kpi-shadow:      color-mix(in srgb, var(--color-brand-shade) 16%, transparent);
+    --color-dash-kpi-border-hover: color-mix(in srgb, var(--color-brand) 21%, white);
     --color-dash-kpi-num:         var(--color-content-primary);
     --color-dash-kpi-lbl:         #848A95;
     --color-dash-kpi-arrow:       #C9CED6;
-    --color-dash-kpi-arrow-hover: #B00410;
-    --color-dash-kpi-icon-border: #f3e0e1;
-    --color-dash-kpi-icon-red:    #B00410;
+    --color-dash-kpi-arrow-hover: color-mix(in srgb, var(--color-brand) 78%, black);
+    --color-dash-kpi-icon-border: color-mix(in srgb, var(--color-brand) 12%, white);
+    --color-dash-kpi-icon-red:    color-mix(in srgb, var(--color-brand) 78%, black);
     --color-dash-kpi-icon-stone:  #353B45;
     --color-dash-kpi-icon-amber:  #c2711a;
 
     /* ── Dashboard — Panels / Quota rows ───────────────────────────── */
-    --color-dash-panel-bg:        linear-gradient(180deg, #ffffff 0%, #fffcfc 100%);
-    --color-dash-panel-border:    #f7e6e7;
-    --color-dash-panel-shadow:    rgba(107, 1, 6, 0.16);
-    --color-dash-panel-head-bg:   linear-gradient(90deg, rgba(225, 2, 16, 0.05) 0%, rgba(225, 2, 16, 0) 60%);
+    --color-dash-panel-bg:        linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--color-brand) 1%, white) 100%);
+    --color-dash-panel-border:    color-mix(in srgb, var(--color-brand) 10%, white);
+    --color-dash-panel-shadow:    color-mix(in srgb, var(--color-brand-shade) 16%, transparent);
+    --color-dash-panel-head-bg:   linear-gradient(90deg, color-mix(in srgb, var(--color-brand) 5%, transparent) 0%, color-mix(in srgb, var(--color-brand) 0%, transparent) 60%);
     --color-dash-panel-head-title: var(--color-content-primary);
-    --color-dash-quota-border:    #f7eeee;
-    --color-dash-quota-icon-bg:   linear-gradient(135deg, rgba(225, 2, 16, 0.10) 0%, rgba(225, 2, 16, 0.03) 100%);
-    --color-dash-quota-icon-text: #B00410;
+    --color-dash-quota-border:    color-mix(in srgb, var(--color-brand) 7%, white);
+    --color-dash-quota-icon-bg:   linear-gradient(135deg, color-mix(in srgb, var(--color-brand) 10%, transparent) 0%, color-mix(in srgb, var(--color-brand) 3%, transparent) 100%);
+    --color-dash-quota-icon-text: color-mix(in srgb, var(--color-brand) 78%, black);
     --color-dash-quota-label:     #3A404A;
-    --color-dash-quota-track-bg:  linear-gradient(90deg, #f6ecec 0%, #f1e2e3 100%);
+    --color-dash-quota-track-bg:  linear-gradient(90deg, color-mix(in srgb, var(--color-brand) 7%, white) 0%, color-mix(in srgb, var(--color-brand) 11%, white) 100%);
     --color-dash-quota-val:       var(--color-content-secondary);
 
     /* ── Dashboard — Activity / Deployments list ───────────────────── */
-    --color-dash-activity-row-hover: linear-gradient(90deg, rgba(225, 2, 16, 0.06) 0%, rgba(225, 2, 16, 0.01) 100%);
+    --color-dash-activity-row-hover: linear-gradient(90deg, color-mix(in srgb, var(--color-brand) 6%, transparent) 0%, color-mix(in srgb, var(--color-brand) 1%, transparent) 100%);
     --color-dash-activity-name:   #3A404A;
     --color-dash-activity-time:   #848A95;
-    --color-dash-activity-arrow-hover: #B00410;
-    --color-dash-activity-all-border: #f7eeee;
-    --color-dash-activity-all-text: #B00410;
-    --color-dash-activity-all-hover: rgba(225, 2, 16, 0.04);
-    --color-dash-empty-icon-bg:   linear-gradient(135deg, rgba(225, 2, 16, 0.12) 0%, rgba(225, 2, 16, 0.03) 100%);
-    --color-dash-empty-icon-text: #B00410;
+    --color-dash-activity-arrow-hover: color-mix(in srgb, var(--color-brand) 78%, black);
+    --color-dash-activity-all-border: color-mix(in srgb, var(--color-brand) 7%, white);
+    --color-dash-activity-all-text: color-mix(in srgb, var(--color-brand) 78%, black);
+    --color-dash-activity-all-hover: color-mix(in srgb, var(--color-brand) 4%, transparent);
+    --color-dash-empty-icon-bg:   linear-gradient(135deg, color-mix(in srgb, var(--color-brand) 12%, transparent) 0%, color-mix(in srgb, var(--color-brand) 3%, transparent) 100%);
+    --color-dash-empty-icon-text: color-mix(in srgb, var(--color-brand) 78%, black);
     --color-dash-kpi-icon-wrap-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 100%);
 
     /* ── Dashboard — Hero mark decoration ──────────────────────────── */
-    --color-dash-hero-overlay:    rgba(225, 2, 16, 0.12);
+    --color-dash-hero-overlay:    color-mix(in srgb, var(--color-brand) 12%, transparent);
     --color-dash-hero-cta-shadow: color-mix(in srgb, var(--color-primary) 85%, transparent);
     --color-dash-hero-cta-shadow-hover: color-mix(in srgb, var(--color-primary) 90%, transparent);
-    --color-dash-mark-drop-shadow: rgba(225, 2, 16, 0.38);
-    --color-dash-mark-halo-inner: rgba(225, 2, 16, 0.20);
-    --color-dash-mark-halo-outer: rgba(225, 2, 16, 0.07);
-    --color-dash-mark-ring:       rgba(225, 2, 16, 0.16);
-    --color-dash-mark-orbit:      rgba(225, 2, 16, 0.22);
-    --color-dash-mark-plate:      rgba(225, 2, 16, 0.16);
-    --color-dash-mark-plate-outer: rgba(225, 2, 16, 0.03);
+    --color-dash-mark-drop-shadow: color-mix(in srgb, var(--color-brand) 38%, transparent);
+    --color-dash-mark-halo-inner: color-mix(in srgb, var(--color-brand) 20%, transparent);
+    --color-dash-mark-halo-outer: color-mix(in srgb, var(--color-brand) 7%, transparent);
+    --color-dash-mark-ring:       color-mix(in srgb, var(--color-brand) 16%, transparent);
+    --color-dash-mark-orbit:      color-mix(in srgb, var(--color-brand) 22%, transparent);
+    --color-dash-mark-plate:      color-mix(in srgb, var(--color-brand) 16%, transparent);
+    --color-dash-mark-plate-outer: color-mix(in srgb, var(--color-brand) 3%, transparent);
 
     /* ── Dashboard — KPI accent colors ─────────────────────────────── */
     --color-dash-kpi-stone-from:  #5C6370;
@@ -111,8 +117,8 @@
     --color-dash-kpi-amber-from:  #E48C2A;
     --color-dash-kpi-amber-to:    #c2711a;
     --color-dash-kpi-amber-glow:  rgba(228, 140, 42, 0.16);
-    --color-dash-kpi-red-glow:    rgba(225, 2, 16, 0.14);
-    --color-dash-quota-track-shadow: rgba(107, 1, 6, 0.07);
+    --color-dash-kpi-red-glow:    color-mix(in srgb, var(--color-brand) 14%, transparent);
+    --color-dash-quota-track-shadow: color-mix(in srgb, var(--color-brand-shade) 7%, transparent);
 
     /* ── Text ──────────────────────────────────────────────────── */
     --color-content-primary:   #1A1014;  /* Deep warm anthracite */
@@ -120,24 +126,23 @@
     --color-content-disabled:  #A9AFB8;  /* Neutral disabled */
     --color-content-inverse:   #FFFFFF;
     --color-content-on-color:  #FFFFFF;  /* Text on filled brand/status backgrounds */
-    --color-content-link:      #E10210;
+    --color-content-link:      var(--color-primary);
 
     /* ── Buttons ───────────────────────────────────────────────── */
-    --color-btn-primary:       #E10210;
-    --color-btn-primary-hover: #A30109;
+    --color-btn-primary:       var(--color-brand);
+    --color-btn-primary-hover: color-mix(in srgb, var(--color-brand) 72%, black);
     --color-btn-primary-text:  #FFFFFF;
-    --color-btn-secondary:     #FCE4E5;
-    --color-btn-secondary-hover: #F8CACB;
-    --color-btn-secondary-text:  #A30109;
+    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 11%, white);
+    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 21%, white);
+    --color-btn-secondary-text:  color-mix(in srgb, var(--color-brand) 72%, black);
     --color-btn-ghost:         transparent;
-    --color-btn-ghost-hover:   #FCE4E5;
-    --color-btn-ghost-text:    #E10210;
+    --color-btn-ghost-hover:   color-mix(in srgb, var(--color-brand) 11%, white);
+    --color-btn-ghost-text:    var(--color-primary);
 
     /* ── Cards / Tiles ─────────────────────────────────────────── */
     --color-card-bg:           #FFFFFF;
-    --color-card-bg-tinted:    #FFF0F0;  /* Warm rose hero cards */
-    --color-card-border:       #EEE0E0;  /* Warm rose-grey border */
-    --color-card-shadow:       rgba(180, 40, 50, 0.06);  /* Red-tinted shadow */
+    --color-card-bg-tinted:    color-mix(in srgb, var(--color-brand) 6%, white);  /* Warm rose hero cards */
+    --color-card-border:       color-mix(in srgb, var(--color-brand) 12%, white);  /* Warm rose-grey border */
 
     /* ── Status / Feedback ─────────────────────────────────────── */
     --color-status-success:       #16A34A;
@@ -155,16 +160,16 @@
     --color-resource-high:    #E10210;
 
     /* ── Borders ───────────────────────────────────────────────── */
-    --color-border:           #F0D4D4;   /* Warm rose-tinted border */
-    --color-border-strong:    #E0B8B8;
-    --color-border-focus:     #E10210;
+    --color-border:           color-mix(in srgb, var(--color-brand) 17%, white);   /* Warm rose-tinted border */
+    --color-border-strong:    color-mix(in srgb, var(--color-brand) 28%, white);
+    --color-border-focus:     var(--color-brand);
 
     /* ── Navigation ────────────────────────────────────────────── */
     --color-nav-text:         rgba(38, 30, 30, 0.70);
     --color-nav-text-hover:   rgba(38, 30, 30, 0.95);
-    --color-nav-text-active:  #A30109;
-    --color-nav-bg-hover:     rgba(225, 2, 16, 0.07);
-    --color-nav-bg-active:    rgba(225, 2, 16, 0.10);
+    --color-nav-text-active:  color-mix(in srgb, var(--color-brand) 72%, black);
+    --color-nav-bg-hover:     color-mix(in srgb, var(--color-brand) 7%, transparent);
+    --color-nav-bg-active:    color-mix(in srgb, var(--color-brand) 10%, transparent);
     --color-nav-indicator:    var(--color-primary);
 
     /* ── Tag / badge palette (neutral semantic roles) ──────────── */
@@ -195,17 +200,20 @@
    * ================================================================ */
   .dark {
     /* ── Brand colors -─────── */
-    --color-primary:          #F0303F;   
-    --color-primary-light:    #FF3344;
-    --color-primary-dark:     #A30109;
+    /* Text-on-dark variant: lifts the accent to a readable lightness
+     * (OKLCH L ≥ 0.63) whatever hue is configured; the default red
+     * lands close to the former hand-tuned #F0303F. */
+    --color-primary:          oklch(from var(--color-brand) max(l, 0.63) c h);
+    --color-primary-light:    color-mix(in srgb, var(--color-brand) 80%, white);
+    --color-primary-dark:     color-mix(in srgb, var(--color-brand) 72%, black);
 
-    --color-secondary:        #CC0010;
-    --color-secondary-light:  #E03040;
-    --color-secondary-dark:   #8B0008;
+    --color-secondary:        color-mix(in srgb, var(--color-brand) 90%, black);
+    --color-secondary-light:  color-mix(in srgb, var(--color-brand) 81%, white);
+    --color-secondary-dark:   color-mix(in srgb, var(--color-brand) 62%, black);
 
-    --color-highlight:        #FF1525;
-    --color-highlight-light:  #FF5060;
-    --color-highlight-dark:   #CC0010;
+    --color-highlight:        var(--color-primary);
+    --color-highlight-light:  var(--color-primary-light);
+    --color-highlight-dark:   color-mix(in srgb, var(--color-brand) 90%, black);
 
     /* ── Surfaces — dunkles Blaugrau  ───────────────── */
     --color-surface-page:     #0A1018;
@@ -217,15 +225,13 @@
     --color-surface-overlay:  #0F161F;
     --color-surface-hover:    #1A2535;
     --color-sidebar-border:   transparent;
-    --color-header-border:    linear-gradient(90deg, #E10210 0%, rgba(225, 2, 16, 0.35) 38%, rgba(225, 2, 16, 0) 78%);
-    --color-hero-bg:          linear-gradient(135deg, #c0392b 0%, #96000a 60%, #6b0007 100%);
-    --color-hero-bg-light:    linear-gradient(135deg, #3a0008 0%, #2a0005 100%);
+    --color-header-border:    linear-gradient(90deg, var(--color-brand) 0%, color-mix(in srgb, var(--color-brand) 35%, transparent) 38%, color-mix(in srgb, var(--color-brand) 0%, transparent) 78%);
 
     /* ── Mesh background (dashboard page bg) ───────────────────────── */
-    --color-mesh-spot-1:      rgba(225, 2, 16, 0.25);
-    --color-mesh-spot-2:      rgba(200, 0, 20, 0.15);
+    --color-mesh-spot-1:      color-mix(in srgb, var(--color-brand) 25%, transparent);
+    --color-mesh-spot-2:      color-mix(in srgb, var(--color-brand) 15%, transparent);
     --color-mesh-spot-3:      rgba(30, 18, 20, 0);
-    --color-mesh-spot-4:      rgba(225, 2, 16, 0.06);
+    --color-mesh-spot-4:      color-mix(in srgb, var(--color-brand) 6%, transparent);
 
     /* ── Dashboard — Hero ──────────────────────────────────────────── */
     --color-dash-hero-bg:         linear-gradient(120deg, #0d1520 0%, #111820 55%, #141520 100%);
@@ -258,38 +264,38 @@
     --color-dash-panel-bg:        linear-gradient(180deg, #0f161f 0%, #0d1420 100%);
     --color-dash-panel-border:    var(--color-card-border);
     --color-dash-panel-shadow:    rgba(0, 0, 0, 0.40);
-    --color-dash-panel-head-bg:   linear-gradient(90deg, rgba(225, 2, 16, 0.10) 0%, rgba(225, 2, 16, 0) 60%);
+    --color-dash-panel-head-bg:   linear-gradient(90deg, color-mix(in srgb, var(--color-brand) 10%, transparent) 0%, color-mix(in srgb, var(--color-brand) 0%, transparent) 60%);
     --color-dash-panel-head-title: var(--color-content-primary);
     --color-dash-quota-border:    var(--color-border);
-    --color-dash-quota-icon-bg:   linear-gradient(135deg, rgba(225, 2, 16, 0.18) 0%, rgba(225, 2, 16, 0.06) 100%);
+    --color-dash-quota-icon-bg:   linear-gradient(135deg, color-mix(in srgb, var(--color-brand) 18%, transparent) 0%, color-mix(in srgb, var(--color-brand) 6%, transparent) 100%);
     --color-dash-quota-icon-text: var(--color-content-link);
     --color-dash-quota-label:     var(--color-content-secondary);
     --color-dash-quota-track-bg:  linear-gradient(90deg, #1a2535 0%, #162030 100%);
     --color-dash-quota-val:       #7A8494;
 
     /* ── Dashboard — Activity / Deployments list ───────────────────── */
-    --color-dash-activity-row-hover: linear-gradient(90deg, rgba(225, 2, 16, 0.10) 0%, rgba(225, 2, 16, 0.02) 100%);
+    --color-dash-activity-row-hover: linear-gradient(90deg, color-mix(in srgb, var(--color-brand) 10%, transparent) 0%, color-mix(in srgb, var(--color-brand) 2%, transparent) 100%);
     --color-dash-activity-name:   var(--color-content-secondary);
     --color-dash-activity-time:   #5A6474;
     --color-dash-activity-arrow-hover: var(--color-content-link);
     --color-dash-activity-all-border: var(--color-border);
     --color-dash-activity-all-text: var(--color-content-link);
-    --color-dash-activity-all-hover: rgba(225, 2, 16, 0.08);
-    --color-dash-empty-icon-bg:   linear-gradient(135deg, rgba(225, 2, 16, 0.20) 0%, rgba(225, 2, 16, 0.06) 100%);
+    --color-dash-activity-all-hover: color-mix(in srgb, var(--color-brand) 8%, transparent);
+    --color-dash-empty-icon-bg:   linear-gradient(135deg, color-mix(in srgb, var(--color-brand) 20%, transparent) 0%, color-mix(in srgb, var(--color-brand) 6%, transparent) 100%);
     --color-dash-empty-icon-text: var(--color-content-link);
     --color-dash-kpi-icon-wrap-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
 
     /* ── Dashboard — Hero mark decoration ──────────────────────────── */
-    --color-dash-hero-overlay:    rgba(225, 2, 16, 0.18);
+    --color-dash-hero-overlay:    color-mix(in srgb, var(--color-brand) 18%, transparent);
     --color-dash-hero-cta-shadow: color-mix(in srgb, var(--color-primary) 70%, transparent);
     --color-dash-hero-cta-shadow-hover: color-mix(in srgb, var(--color-primary) 80%, transparent);
-    --color-dash-mark-drop-shadow: rgba(225, 2, 16, 0.50);
-    --color-dash-mark-halo-inner: rgba(225, 2, 16, 0.30);
-    --color-dash-mark-halo-outer: rgba(225, 2, 16, 0.10);
-    --color-dash-mark-ring:       rgba(225, 2, 16, 0.22);
-    --color-dash-mark-orbit:      rgba(225, 2, 16, 0.28);
-    --color-dash-mark-plate:      rgba(225, 2, 16, 0.22);
-    --color-dash-mark-plate-outer: rgba(225, 2, 16, 0.06);
+    --color-dash-mark-drop-shadow: color-mix(in srgb, var(--color-brand) 50%, transparent);
+    --color-dash-mark-halo-inner: color-mix(in srgb, var(--color-brand) 30%, transparent);
+    --color-dash-mark-halo-outer: color-mix(in srgb, var(--color-brand) 10%, transparent);
+    --color-dash-mark-ring:       color-mix(in srgb, var(--color-brand) 22%, transparent);
+    --color-dash-mark-orbit:      color-mix(in srgb, var(--color-brand) 28%, transparent);
+    --color-dash-mark-plate:      color-mix(in srgb, var(--color-brand) 22%, transparent);
+    --color-dash-mark-plate-outer: color-mix(in srgb, var(--color-brand) 6%, transparent);
 
     /* ── Dashboard — KPI accent colors ─────────────────────────────── */
     --color-dash-kpi-stone-from:  #7E8796;
@@ -298,7 +304,7 @@
     --color-dash-kpi-amber-from:  #F09D3A;
     --color-dash-kpi-amber-to:    #d4832a;
     --color-dash-kpi-amber-glow:  rgba(240, 157, 58, 0.20);
-    --color-dash-kpi-red-glow:    rgba(225, 2, 16, 0.22);
+    --color-dash-kpi-red-glow:    color-mix(in srgb, var(--color-brand) 22%, transparent);
     --color-dash-quota-track-shadow: rgba(0, 0, 0, 0.20);
 
     /* ── Navigation ────────────────────────────────────────────── */
@@ -306,7 +312,7 @@
     --color-nav-text-hover:   rgba(255, 255, 255, 1);
     --color-nav-text-active:  #FFFFFF;
     --color-nav-bg-hover:     rgba(255, 255, 255, 0.10);
-    --color-nav-bg-active:    rgba(225, 2, 16, 0.25);
+    --color-nav-bg-active:    color-mix(in srgb, var(--color-brand) 25%, transparent);
     --color-nav-indicator:    var(--color-highlight);
 
     /* ── Text ──────────────────────────────────────────────────── */
@@ -315,24 +321,23 @@
     --color-content-disabled:  #6B7585;
     --color-content-inverse:   #0A0608;
     --color-content-on-color:  #FFFFFF;  /* Text on filled brand/status backgrounds */
-    --color-content-link:      #FF4455;
+    --color-content-link:      oklch(from var(--color-brand) max(l, 0.68) c h);
 
     /* ── Buttons ───────────────────────────────────────────────── */
-    --color-btn-primary:       #E8192C;
-    --color-btn-primary-hover: #B5101F;
+    --color-btn-primary:       var(--color-brand);
+    --color-btn-primary-hover: color-mix(in srgb, var(--color-brand) 80%, black);
     --color-btn-primary-text:  #FFFFFF;
-    --color-btn-secondary:     #2A0D14;
-    --color-btn-secondary-hover: #3A1220;
+    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 15%, var(--color-surface-card));
+    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 22%, var(--color-surface-card));
     --color-btn-secondary-text:  #FFFFFF;
     --color-btn-ghost:         transparent;
     --color-btn-ghost-hover:   #1A2535;
-    --color-btn-ghost-text:    #FF4455;
+    --color-btn-ghost-text:    var(--color-content-link);
 
     /* ── Cards / Tiles ─────────────────────────────────────────── */
     --color-card-bg:           #0F161F;
     --color-card-bg-tinted:    #131C28;
     --color-card-border:       #1E2D40;
-    --color-card-shadow:       rgba(0, 0, 0, 0.5);
 
     /* ── Status / Feedback ─────────────────────────────────────── */
     --color-status-success:       #4ADE80;
@@ -352,7 +357,7 @@
     /* ── Borders ───────────────────────────────────────────────── */
     --color-border:           #1E2D40;
     --color-border-strong:    #2A3D54;
-    --color-border-focus:     #E10210;
+    --color-border-focus:     var(--color-brand);
 
     /* ── Tag / badge palette — dark mode ──────────────────────── */
     --color-tag-info:           #60A5FA;

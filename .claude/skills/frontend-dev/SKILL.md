@@ -214,6 +214,13 @@ Variablen nur auf Utility-Klassen ab.
 **Farbe ändern = Wert in `style.css` ändern.** Nie Klassen tauschen, um einen Farbton zu
 korrigieren — der Wert wirkt sofort überall.
 
+**Akzentfarbe nur über `--color-brand`.** Alle akzentgefärbten Werte (Primary, Buttons,
+Links, Navigation, rosa Flächen, Dashboard-Tönungen) werden per `color-mix()` bzw.
+`oklch(from …)` aus `--color-brand` abgeleitet — in hell **und** dunkel. Neue Akzent-Werte
+ebenso ableiten, nie das Rot (`#E10210`, `rgba(225, 2, 16, …)`) fest eintragen, sonst
+bleibt die Stelle bei einem anderen Akzent rot. Ausnahme: Statusfarben (`status-*`,
+`resource-*`) bleiben fest.
+
 - **Klassennamen sind camelCase** wie die Config-Keys: `text-btn-primaryText`, nicht
   `text-btn-primary-text`. Eine falsch geschriebene Klasse erzeugt Tailwind **still nicht** —
   das Element erbt dann einfach eine fremde Farbe.
