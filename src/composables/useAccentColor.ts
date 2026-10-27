@@ -13,7 +13,7 @@
  * Every property set here is tracked so ``clearAccentColor`` can remove it.
  */
 import { env } from '@/env'
-import { contrastRatio, darken, lighten, rgba } from '@/utils/color'
+import { contrastRatio, darken, hexToRgb, lighten, rgba } from '@/utils/color'
 
 export const DEFAULT_ACCENT = '#E10210'
 
@@ -24,8 +24,9 @@ export const DEFAULT_ACCENT = '#E10210'
  *  (``VITE_ACCENT_COLOR="#0052CC"``) and compose's list syntax keeps them. */
 export function resolveAccentColor(raw: string | undefined | null): string {
   const value = (raw ?? '').trim().replace(/^(["'])(.*)\1$/, '$2').trim()
-  const digits = /^#?([0-9a-f]{6})$/i.exec(value)?.[1]
-  return digits ? `#${digits.toUpperCase()}` : DEFAULT_ACCENT
+  // hexToRgb is the single definition of "valid hex"; only normalize here.
+  if (!hexToRgb(value)) return DEFAULT_ACCENT
+  return `#${value.replace(/^#/, '').toUpperCase()}`
 }
 
 // Card surfaces from style.css (``--color-surface-card``) — the backgrounds

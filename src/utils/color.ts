@@ -3,7 +3,7 @@
  * contrast. Hex output is always ``#RRGGBB``.
  */
 
-interface Rgb {
+export interface Rgb {
   r: number
   g: number
   b: number
@@ -43,6 +43,8 @@ export function darken(hex: string, amount: number): string {
   return rgbToHex({ r: mix(rgb.r), g: mix(rgb.g), b: mix(rgb.b) })
 }
 
+/** ``rgba()`` string for ``hex`` with ``alpha`` (0–1). Unlike lighten/darken,
+ *  invalid input yields black — callers pass already validated colors. */
 export function rgba(hex: string, alpha: number): string {
   const rgb = hexToRgb(hex) ?? { r: 0, g: 0, b: 0 }
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`
