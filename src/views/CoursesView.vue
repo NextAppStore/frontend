@@ -156,7 +156,7 @@ const goToDetail = (courseId: string) => {
           </button>
 
           <div class="flex items-center gap-4 mb-4">
-            <div class="bg-surface-input p-3 rounded-lg text-tag-info group-hover:text-primary transition-colors flex items-center justify-center w-[56px] h-[56px] flex-shrink-0 border border-card-border">
+            <div class="bg-surface-input p-3 rounded-lg text-content-primary group-hover:text-primary transition-colors flex items-center justify-center w-[56px] h-[56px] flex-shrink-0 border border-card-border">
               <GraduationCap :size="32" />
             </div>
             <h3 class="font-bold text-xl text-content-primary leading-tight pr-10">
