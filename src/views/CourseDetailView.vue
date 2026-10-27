@@ -249,8 +249,8 @@ const roleClass = (role: string | undefined) => {
 
     <div v-else-if="courseStore.currentCourse" class="space-y-6">
       <div class="flex items-start gap-5 border-b border-card-border pb-6">
-        <div class="w-14 h-14 bg-tag-infoLight rounded-xl flex items-center justify-center flex-shrink-0">
-          <GraduationCap :size="28" class="text-tag-info" />
+        <div class="w-14 h-14 bg-surface-input border border-card-border rounded-xl flex items-center justify-center flex-shrink-0">
+          <GraduationCap :size="28" class="text-content-primary" />
         </div>
         <div class="flex-grow">
           <div v-if="!isEditingName" class="flex items-center gap-3">
