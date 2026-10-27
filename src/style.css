@@ -11,8 +11,7 @@
      * The single source for every accent-coloured value in both modes:
      * tints, shades and transparent variants below are derived from it
      * via color-mix(), so changing this one value re-colours the app.
-     * Status colours (error, resource-high …) stay fixed on purpose — an
-     * error must look like an error whatever the accent is. */
+     * Status colours (error, resource-high …) stay fixed on purpose */
     --color-brand:            #E10210;   /* ScholarStack red */
     --color-brand-shade:      color-mix(in srgb, var(--color-brand) 47%, black);  /* tinted shadows */
 
