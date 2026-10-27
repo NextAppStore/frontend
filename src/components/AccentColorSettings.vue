@@ -80,15 +80,15 @@ async function copyEnvLine() {
          picker below is only a preview and nothing here is saved. -->
     <div
       data-testid="accent-persist-note"
-      class="mb-6 flex items-start gap-3 rounded-xl border-2 border-tag-infoBorder bg-tag-infoLight p-5"
+      class="mb-6 flex items-start gap-3 rounded-xl border-2 border-primary/60 bg-primary/10 p-5 shadow-sm"
     >
-      <Info :size="22" class="mt-0.5 flex-shrink-0 text-tag-info" aria-hidden="true" />
+      <Info :size="22" class="mt-0.5 flex-shrink-0 text-primary" aria-hidden="true" />
       <div class="flex-1 min-w-0 space-y-3">
         <p class="text-sm font-semibold text-content-primary">{{ t('AccentColorSettings.persistNote') }}</p>
         <div class="flex items-center gap-2">
           <code
             data-testid="accent-env-line"
-            class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-surface-card border border-tag-infoBorder text-sm font-mono text-content-primary break-all"
+            class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-surface-card border border-primary/40 text-sm font-mono text-content-primary break-all"
           >{{ envLine }}</code>
           <BaseButton variant="ghost" data-testid="accent-copy" :title="t('AccentColorSettings.copyBtn')" @click="copyEnvLine">
             <Copy :size="16" />
