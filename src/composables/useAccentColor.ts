@@ -1,211 +1,184 @@
-// TODO: replace this stub with a real API call once the backend
-//       exposes a tenant-settings endpoint (e.g. GET /api/tenant/settings).
-//       The rest of this file requires no changes — just swap the resolved
-//       value of `fetchAccentColor` below.
-const DEFAULT_ACCENT = '#E10210'
+/**
+ * Tenant accent color theming.
+ *
+ * The accent is configured per deployment via the runtime env variable
+ * ``VITE_ACCENT_COLOR`` (``#RRGGBB``, see ``src/env.ts`` / ``env-config.js``),
+ * so it is the same for every user and survives reloads without a backend.
+ *
+ * ``style.css`` is the source of truth for the default ScholarStack red:
+ * with the default accent nothing is written inline, so the light/dark values
+ * defined there apply untouched. Only a custom accent overrides variables on
+ * ``<html>`` — and only those that are actually used and not already derived
+ * from another overridden variable in style.css (``var()`` / ``color-mix``).
+ * Every property set here is tracked so ``clearAccentColor`` can remove it.
+ */
+import { env } from '@/env'
+import { contrastRatio, darken, lighten, rgba } from '@/utils/color'
 
-async function fetchAccentColor(): Promise<string> {
-  // Stub: return the current ScholarStack red until the backend is ready.
-  return DEFAULT_ACCENT
+export const DEFAULT_ACCENT = '#E10210'
+
+/** Normalizes a configured value to ``#RRGGBB``; anything invalid or empty
+ *  falls back to ``DEFAULT_ACCENT`` so a typo in the env never breaks the UI.
+ *  Accepts the value with or without ``#`` and with surrounding quotes —
+ *  ``#`` starts a comment in .env files and YAML, so it is usually quoted
+ *  (``VITE_ACCENT_COLOR="#0052CC"``) and compose's list syntax keeps them. */
+export function resolveAccentColor(raw: string | undefined | null): string {
+  const value = (raw ?? '').trim().replace(/^(["'])(.*)\1$/, '$2').trim()
+  const digits = /^#?([0-9a-f]{6})$/i.exec(value)?.[1]
+  return digits ? `#${digits.toUpperCase()}` : DEFAULT_ACCENT
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const clean = hex.replace('#', '')
-  if (clean.length !== 6) return null
-  return {
-    r: parseInt(clean.slice(0, 2), 16),
-    g: parseInt(clean.slice(2, 4), 16),
-    b: parseInt(clean.slice(4, 6), 16),
+// Card surfaces from style.css (``--color-surface-card``) — the backgrounds
+// accent-coloured text sits on. Keep in sync when those change.
+const TEXT_BG_LIGHT = '#FFFFFF'
+const TEXT_BG_DARK = '#0F161F'
+
+/** Shifts ``hex`` towards white (dark mode) or black (light mode) until it
+ *  reaches WCAG AA (4.5:1) as text on the card surface — the same tuning
+ *  style.css applies to the default red (#F0303F in dark mode). */
+export function readableAccent(hex: string, darkMode: boolean): string {
+  const bg = darkMode ? TEXT_BG_DARK : TEXT_BG_LIGHT
+  let color = hex
+  for (let step = 1; step <= 20 && contrastRatio(color, bg) < 4.5; step++) {
+    color = darkMode ? lighten(hex, step * 0.05) : darken(hex, step * 0.05)
   }
+  return color
 }
 
-function toRgbString(hex: string): string {
-  const rgb = hexToRgb(hex)
-  if (!rgb) return '0, 0, 0'
-  return `${rgb.r}, ${rgb.g}, ${rgb.b}`
-}
+const appliedProps = new Set<string>()
 
-function lighten(hex: string, amount: number): string {
-  const rgb = hexToRgb(hex)
-  if (!rgb) return hex
-  const r = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * amount))
-  const g = Math.min(255, Math.round(rgb.g + (255 - rgb.g) * amount))
-  const b = Math.min(255, Math.round(rgb.b + (255 - rgb.b) * amount))
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
-}
+// The accent as chosen — not read back from ``--color-primary``, which holds
+// the contrast-tuned text variant and would drift on every mode switch.
+let currentAccent = DEFAULT_ACCENT
 
-function darken(hex: string, amount: number): string {
-  const rgb = hexToRgb(hex)
-  if (!rgb) return hex
-  const r = Math.max(0, Math.round(rgb.r * (1 - amount)))
-  const g = Math.max(0, Math.round(rgb.g * (1 - amount)))
-  const b = Math.max(0, Math.round(rgb.b * (1 - amount)))
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
-}
-
-function rgba(hex: string, alpha: number): string {
-  return `rgba(${toRgbString(hex)}, ${alpha})`
-}
-
-function isDarkMode(): boolean {
-  return document.documentElement.classList.contains('dark')
-}
-
-export function applyAccentColor(hex: string) {
+/** Removes every inline override set by ``applyAccentColor``. */
+export function clearAccentColor() {
   const root = document.documentElement.style
-  const light   = lighten(hex, 0.2)
-  const dark    = darken(hex, 0.35)
-  const darker  = darken(hex, 0.55)
-  const darkest = darken(hex, 0.65)
-  const darkMode = isDarkMode()
+  appliedProps.forEach(p => root.removeProperty(p))
+  appliedProps.clear()
+}
 
-  // ── Core brand tokens (both modes) ────────────────────────────
-  root.setProperty('--color-primary',        hex)
-  root.setProperty('--color-primary-light',  light)
-  root.setProperty('--color-primary-dark',   dark)
+/** Re-applies the current accent, e.g. after a light/dark switch — several
+ *  derived values differ per mode. */
+export function reapplyAccentColor() {
+  applyAccentColor(currentAccent)
+}
 
-  root.setProperty('--color-secondary',      dark)
-  root.setProperty('--color-secondary-light', hex)
-  root.setProperty('--color-secondary-dark', darker)
+export function applyAccentColor(input: string) {
+  const hex = resolveAccentColor(input)
+  currentAccent = hex
+  // Start from a clean slate every time: values set for the other mode (or a
+  // previous preview) must never linger and shadow style.css.
+  clearAccentColor()
+  // Default accent: let style.css do its job — inline values would override
+  // the dark-mode tuning there (e.g. the lighter primary for text contrast).
+  if (hex === DEFAULT_ACCENT) return
 
-  root.setProperty('--color-highlight',      hex)
-  root.setProperty('--color-highlight-light', light)
-  root.setProperty('--color-highlight-dark', dark)
-
-  // ── Buttons (both modes) ───────────────────────────────────────
-  root.setProperty('--color-btn-primary',       hex)
-  root.setProperty('--color-btn-primary-hover', dark)
-  root.setProperty('--color-btn-ghost-text',    darkMode ? light : hex)
-  root.setProperty('--color-btn-ghost-hover',   rgba(hex, 0.08))
-  if (darkMode) {
-    root.setProperty('--color-btn-secondary',       rgba(hex, 0.15))
-    root.setProperty('--color-btn-secondary-hover', rgba(hex, 0.25))
-    root.setProperty('--color-btn-secondary-text',  '#FFFFFF')
-  } else {
-    root.setProperty('--color-btn-secondary',       lighten(hex, 0.88))
-    root.setProperty('--color-btn-secondary-hover', lighten(hex, 0.80))
-    root.setProperty('--color-btn-secondary-text',  dark)
+  const root = document.documentElement.style
+  const set = (prop: string, value: string) => {
+    root.setProperty(prop, value)
+    appliedProps.add(prop)
   }
+  const darkMode = document.documentElement.classList.contains('dark')
+  const dark     = darken(hex, 0.35)
+  const darkest  = darken(hex, 0.65)
+  // ``--color-primary`` doubles as text colour (``text-primary``), so it gets
+  // the contrast-tuned variant; filled buttons keep the raw accent.
+  const text     = readableAccent(hex, darkMode)
 
-  // ── Text & borders (both modes) ────────────────────────────────
-  root.setProperty('--color-content-link',  darkMode ? light : hex)
-  root.setProperty('--color-border-focus',  hex)
-  root.setProperty('--color-nav-indicator', hex)
+  // ── Brand, buttons, text ──────────────────────────────────────
+  set('--color-primary',           text)
+  set('--color-primary-dark',      dark)
+  set('--color-btn-primary',       hex)
+  set('--color-btn-primary-hover', dark)
+  set('--color-btn-ghost-text',    text)
+  set('--color-btn-ghost-hover',   rgba(hex, 0.08))
+  set('--color-btn-secondary',       darkMode ? rgba(hex, 0.15) : lighten(hex, 0.88))
+  set('--color-btn-secondary-hover', darkMode ? rgba(hex, 0.25) : lighten(hex, 0.80))
+  set('--color-content-link',      text)
+  set('--color-border-focus',      hex)
 
-  // ── Navigation (both modes) ────────────────────────────────────
-  root.setProperty('--color-nav-text-active', darkMode ? '#FFFFFF' : dark)
-  root.setProperty('--color-nav-bg-hover',    rgba(hex, darkMode ? 0.10 : 0.07))
-  root.setProperty('--color-nav-bg-active',   rgba(hex, darkMode ? 0.25 : 0.10))
-
-  // ── Header border (both modes) ─────────────────────────────────
-  root.setProperty('--color-header-border',
+  // ── Navigation & header ───────────────────────────────────────
+  set('--color-nav-indicator',  hex)
+  set('--color-nav-bg-hover',   rgba(hex, darkMode ? 0.10 : 0.07))
+  set('--color-nav-bg-active',  rgba(hex, darkMode ? 0.25 : 0.10))
+  set('--color-header-border',
     `linear-gradient(90deg, ${hex} 0%, ${rgba(hex, 0.35)} 38%, ${rgba(hex, 0)} 78%)`)
 
-  // ── Hero background (both modes — dark gradient uses accent hue) ─
-  root.setProperty('--color-hero-bg',
-    `linear-gradient(135deg, ${darken(hex, 0.20)} 0%, ${darken(hex, 0.55)} 60%, ${darken(hex, 0.70)} 100%)`)
+  // ── Background mesh & dashboard decoration ────────────────────
+  set('--color-mesh-spot-1', rgba(hex, darkMode ? 0.25 : 0.06))
+  set('--color-mesh-spot-2', rgba(hex, darkMode ? 0.15 : 0.08))
+  set('--color-mesh-spot-4', rgba(hex, darkMode ? 0.06 : 0.04))
 
-  // ── Mesh background spots (both modes) ────────────────────────
-  root.setProperty('--color-mesh-spot-1', rgba(hex, darkMode ? 0.25 : 0.06))
-  root.setProperty('--color-mesh-spot-2', rgba(hex, darkMode ? 0.15 : 0.08))
-  root.setProperty('--color-mesh-spot-4', rgba(hex, darkMode ? 0.06 : 0.04))
-
-  // ── Dashboard — Mark decoration (both modes) ───────────────────
-  root.setProperty('--color-dash-mark-drop-shadow', rgba(hex, darkMode ? 0.20 : 0.38))
-  root.setProperty('--color-dash-mark-halo-inner',  rgba(hex, darkMode ? 0.35 : 0.20))
-  root.setProperty('--color-dash-mark-halo-outer',  rgba(hex, darkMode ? 0.15 : 0.07))
-  root.setProperty('--color-dash-mark-ring',        rgba(hex, darkMode ? 0.30 : 0.16))
-  root.setProperty('--color-dash-mark-orbit',       rgba(hex, darkMode ? 0.35 : 0.22))
-  root.setProperty('--color-dash-mark-plate',       rgba(hex, darkMode ? 0.30 : 0.16))
-  root.setProperty('--color-dash-mark-plate-outer', rgba(hex, darkMode ? 0.10 : 0.03))
-
+  set('--color-dash-mark-drop-shadow', rgba(hex, darkMode ? 0.20 : 0.38))
+  set('--color-dash-mark-halo-inner',  rgba(hex, darkMode ? 0.35 : 0.20))
+  set('--color-dash-mark-halo-outer',  rgba(hex, darkMode ? 0.15 : 0.07))
+  set('--color-dash-mark-ring',        rgba(hex, darkMode ? 0.30 : 0.16))
+  set('--color-dash-mark-orbit',       rgba(hex, darkMode ? 0.35 : 0.22))
+  set('--color-dash-mark-plate',       rgba(hex, darkMode ? 0.30 : 0.16))
+  set('--color-dash-mark-plate-outer', rgba(hex, darkMode ? 0.10 : 0.03))
   // In dark mode, reduce the overlay so the banner bg stays dark/neutral
-  root.setProperty('--color-dash-hero-overlay', rgba(hex, darkMode ? 0.06 : 0.12))
+  set('--color-dash-hero-overlay',     rgba(hex, darkMode ? 0.06 : 0.12))
+  set('--color-dash-kpi-red-glow',     rgba(hex, 0.14))
 
-  // ── Dashboard — KPI glow (both modes) ─────────────────────────
-  root.setProperty('--color-dash-kpi-red-glow',  rgba(hex, 0.14))
-  root.setProperty('--color-dash-kpi-icon-red',  darkMode ? light : dark)
-  root.setProperty('--color-dash-kpi-arrow-hover', darkMode ? light : dark)
-
-  // ── Dashboard — Quota icon (both modes) ───────────────────────
-  root.setProperty('--color-dash-quota-icon-bg',
+  set('--color-dash-quota-icon-bg',
     `linear-gradient(135deg, ${rgba(hex, darkMode ? 0.18 : 0.10)} 0%, ${rgba(hex, darkMode ? 0.06 : 0.03)} 100%)`)
-  root.setProperty('--color-dash-quota-icon-text',  darkMode ? light : dark)
-
-  // ── Dashboard — Activity list (both modes) ─────────────────────
-  root.setProperty('--color-dash-activity-row-hover',
+  set('--color-dash-activity-row-hover',
     `linear-gradient(90deg, ${rgba(hex, darkMode ? 0.10 : 0.06)} 0%, ${rgba(hex, darkMode ? 0.02 : 0.01)} 100%)`)
-  root.setProperty('--color-dash-activity-arrow-hover', darkMode ? light : dark)
-  root.setProperty('--color-dash-activity-all-text',    darkMode ? light : dark)
-  root.setProperty('--color-dash-activity-all-hover',   rgba(hex, darkMode ? 0.08 : 0.04))
-  root.setProperty('--color-dash-empty-icon-bg',
+  set('--color-dash-activity-all-hover', rgba(hex, darkMode ? 0.08 : 0.04))
+  set('--color-dash-empty-icon-bg',
     `linear-gradient(135deg, ${rgba(hex, darkMode ? 0.20 : 0.12)} 0%, ${rgba(hex, darkMode ? 0.06 : 0.03)} 100%)`)
-  root.setProperty('--color-dash-empty-icon-text', darkMode ? light : dark)
-
-  // ── Dashboard — Panel head (both modes) ───────────────────────
-  root.setProperty('--color-dash-panel-head-bg',
+  set('--color-dash-panel-head-bg',
     `linear-gradient(90deg, ${rgba(hex, darkMode ? 0.10 : 0.05)} 0%, ${rgba(hex, 0)} 60%)`)
 
-  // ── Light mode only: surface tints ────────────────────────────
-  if (darkMode) {
-    // Remove any inline overrides set during a previous light-mode apply
-    // so the dark-mode values from style.css take over again.
-    const lightOnlyProps = [
-      '--color-surface-page', '--color-surface-input', '--color-surface-hover',
-      '--color-sidebar-border', '--color-card-border', '--color-border',
-      '--color-border-strong', '--color-card-shadow',
-      '--color-surface-sidebar-grad', '--color-surface-header',
-      '--color-hero-bg-light', '--color-dash-hero-bg', '--color-dash-hero-border',
-      '--color-dash-hero-greeting', '--color-dash-hero-shadow', '--color-dash-hero-shape',
-      '--color-dash-cta-ghost-text', '--color-dash-cta-ghost-border',
-      '--color-dash-cta-ghost-border-hover',
-      '--color-dash-kpi-shadow', '--color-dash-kpi-border', '--color-dash-kpi-border-hover',
-      '--color-dash-panel-shadow', '--color-dash-panel-border',
-      '--color-dash-quota-border', '--color-dash-quota-track-bg', '--color-dash-quota-track-shadow',
-    ]
-    lightOnlyProps.forEach(p => root.removeProperty(p))
-  } else {
-    root.setProperty('--color-surface-page',   lighten(hex, 0.97))
-    root.setProperty('--color-surface-input',  lighten(hex, 0.94))
-    root.setProperty('--color-surface-hover',  lighten(hex, 0.90))
-    root.setProperty('--color-sidebar-border', lighten(hex, 0.88))
-    root.setProperty('--color-card-border',    lighten(hex, 0.85))
-    root.setProperty('--color-border',         lighten(hex, 0.82))
-    root.setProperty('--color-border-strong',  lighten(hex, 0.72))
-    root.setProperty('--color-card-shadow',    rgba(hex, 0.06))
+  // Dark mode stops here: its surfaces are neutral, and the dashboard's
+  // accent text (icons, arrows, "all" link …) already reads
+  // ``var(--color-content-link)`` in style.css, which is set above.
+  if (darkMode) return
 
-    root.setProperty('--color-surface-sidebar-grad',
-      `linear-gradient(180deg, #ffffff 0%, ${lighten(hex, 0.97)} 45%, ${lighten(hex, 0.92)} 100%)`)
-    root.setProperty('--color-surface-header',
-      `linear-gradient(90deg, #ffffff 0%, ${lighten(hex, 0.98)} 50%, ${lighten(hex, 0.94)} 100%)`)
-    root.setProperty('--color-hero-bg-light',
-      `linear-gradient(135deg, ${lighten(hex, 0.97)} 0%, ${lighten(hex, 0.90)} 40%, ${lighten(hex, 0.82)} 100%)`)
-    root.setProperty('--color-dash-hero-bg',
-      `linear-gradient(120deg, ${lighten(hex, 0.97)} 0%, ${lighten(hex, 0.92)} 55%, ${lighten(hex, 0.88)} 100%)`)
-    root.setProperty('--color-dash-hero-border',     lighten(hex, 0.82))
-    root.setProperty('--color-dash-hero-greeting',   dark)
-    root.setProperty('--color-dash-hero-shadow',     rgba(darkest, 0.30))
-    root.setProperty('--color-dash-hero-shape',      rgba(hex, 0.05))
-    root.setProperty('--color-dash-cta-ghost-text',  dark)
-    root.setProperty('--color-dash-cta-ghost-border', lighten(hex, 0.80))
-    root.setProperty('--color-dash-cta-ghost-border-hover', hex)
-    root.setProperty('--color-dash-hero-overlay',    rgba(hex, 0.12))
-    root.setProperty('--color-dash-hero-cta-shadow', rgba(hex, 0.85))
-    root.setProperty('--color-dash-hero-cta-shadow-hover', rgba(hex, 0.9))
+  // ── Light mode only: accent text with fixed values in style.css ─
+  set('--color-btn-secondary-text',   dark)
+  set('--color-nav-text-active',      dark)
+  set('--color-dash-hero-greeting',   dark)
+  set('--color-dash-cta-ghost-text',  dark)
+  set('--color-dash-kpi-icon-red',    dark)
+  set('--color-dash-kpi-arrow-hover', dark)
+  set('--color-dash-quota-icon-text', dark)
+  set('--color-dash-activity-arrow-hover', dark)
+  set('--color-dash-activity-all-text',    dark)
+  set('--color-dash-empty-icon-text',      dark)
 
-    root.setProperty('--color-dash-kpi-shadow',       rgba(darkest, 0.16))
-    root.setProperty('--color-dash-kpi-border',       lighten(hex, 0.88))
-    root.setProperty('--color-dash-kpi-border-hover', lighten(hex, 0.80))
-    root.setProperty('--color-dash-panel-shadow',     rgba(darkest, 0.16))
-    root.setProperty('--color-dash-panel-border',     lighten(hex, 0.88))
-    root.setProperty('--color-dash-quota-border',     lighten(hex, 0.88))
-    root.setProperty('--color-dash-quota-track-bg',
-      `linear-gradient(90deg, ${lighten(hex, 0.92)} 0%, ${lighten(hex, 0.88)} 100%)`)
-    root.setProperty('--color-dash-quota-track-shadow', rgba(darkest, 0.07))
-  }
+  // ── Light mode only: accent-tinted surfaces and borders ────────
+  set('--color-surface-page',   lighten(hex, 0.97))
+  set('--color-surface-input',  lighten(hex, 0.94))
+  set('--color-surface-hover',  lighten(hex, 0.90))
+  set('--color-sidebar-border', lighten(hex, 0.88))
+  set('--color-card-border',    lighten(hex, 0.85))
+  set('--color-border',         lighten(hex, 0.82))
+  set('--color-border-strong',  lighten(hex, 0.72))
+  set('--color-surface-sidebar-grad',
+    `linear-gradient(180deg, #ffffff 0%, ${lighten(hex, 0.97)} 45%, ${lighten(hex, 0.92)} 100%)`)
+  set('--color-surface-header',
+    `linear-gradient(90deg, #ffffff 0%, ${lighten(hex, 0.98)} 50%, ${lighten(hex, 0.94)} 100%)`)
+
+  set('--color-dash-hero-bg',
+    `linear-gradient(120deg, ${lighten(hex, 0.97)} 0%, ${lighten(hex, 0.92)} 55%, ${lighten(hex, 0.88)} 100%)`)
+  set('--color-dash-hero-border',      lighten(hex, 0.82))
+  set('--color-dash-hero-shadow',      rgba(darkest, 0.30))
+  set('--color-dash-hero-shape',       rgba(hex, 0.05))
+  set('--color-dash-cta-ghost-border', lighten(hex, 0.80))
+  set('--color-dash-kpi-shadow',       rgba(darkest, 0.16))
+  set('--color-dash-kpi-border',       lighten(hex, 0.88))
+  set('--color-dash-kpi-border-hover', lighten(hex, 0.80))
+  set('--color-dash-panel-shadow',     rgba(darkest, 0.16))
+  set('--color-dash-panel-border',     lighten(hex, 0.88))
+  set('--color-dash-quota-border',     lighten(hex, 0.88))
+  set('--color-dash-quota-track-bg',
+    `linear-gradient(90deg, ${lighten(hex, 0.92)} 0%, ${lighten(hex, 0.88)} 100%)`)
+  set('--color-dash-quota-track-shadow', rgba(darkest, 0.07))
 }
 
-export async function initAccentColor() {
-  const color = await fetchAccentColor()
-  applyAccentColor(color)
+/** Applies the accent configured via ``VITE_ACCENT_COLOR`` (default: none). */
+export function initAccentColor() {
+  applyAccentColor(env.ACCENT_COLOR)
 }
