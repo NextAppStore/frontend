@@ -1,4 +1,5 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { reapplyAccentColor } from '@/composables/useAccentColor'
 
 export type ColorScheme = 'auto' | 'light' | 'dark'
 
@@ -14,6 +15,8 @@ function applyScheme(value: ColorScheme) {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const useDark = value === 'dark' || (value === 'auto' && prefersDark)
   document.documentElement.classList.toggle('dark', useDark)
+  // Re-apply accent after mode switch — surface tints differ per mode.
+  reapplyAccentColor()
 }
 
 // Apply once on module load so the class is set before Vue mounts.
