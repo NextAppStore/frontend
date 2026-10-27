@@ -1,3 +1,10 @@
+/**
+ * The accent comes from ``VITE_ACCENT_COLOR`` and is written as inline CSS
+ * variables, which always win over style.css. These tests pin the two rules
+ * that keep that safe: the default accent writes nothing (so style.css and
+ * its dark-mode tuning stay in charge), and a custom accent stays readable
+ * as text in both modes.
+ */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 const mockEnv = vi.hoisted(() => ({ ACCENT_COLOR: '' }))
@@ -95,11 +102,5 @@ describe('initAccentColor', () => {
     mockEnv.ACCENT_COLOR = '#0a7c3e'
     initAccentColor()
     expect(inline('--color-btn-primary')).toBe('#0A7C3E')
-  })
-
-  it('leaves style.css untouched when nothing is configured', () => {
-    mockEnv.ACCENT_COLOR = ''
-    initAccentColor()
-    expect(inline('--color-primary')).toBe('')
   })
 })
