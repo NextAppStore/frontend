@@ -3,7 +3,7 @@ export default {
     login: {
       title: "Login",
       emailLabel: "E-Mail",
-      emailPlaceholder: "name@six7.de",
+      emailPlaceholder: "name{'@'}example.de",
       userLabel: "Username",
       userPlaceholder: "your.username",
       passwordLabel: "Password",
@@ -27,7 +27,7 @@ export default {
     help: "Help",
     config: "Configuration",
     approvals: "Approvals",
-    adminSettings: "Admin Settings",
+    adminSettings: "Settings",
     profile: "Profile",
     logout: "Log out",
     openSidebar: "Open sidebar",
@@ -38,6 +38,7 @@ export default {
     back: "Back",
     close: "Close",
     cancel: "Cancel",
+    save: "Save",
   },
 
   // Error texts used when the backend provides no message of its own. They
@@ -669,11 +670,11 @@ export default {
     title: "User Profile",
     subtitle: "Personal information & account settings",
 
-    name: "Prof. Dr. Eichberg",
+    name: "Prof. Dr. Lecturer",
     edit: "Edit Profile",
 
     emailLabel: "E-Mail",
-    emailValue: "eichberg@six7.de",
+    emailValue: "lecturer{'@'}example.de",
 
     roleLabel: "Role",
 
@@ -734,6 +735,35 @@ export default {
     emptyNoSubmissionsTitle: "No pending approvals",
     emptyNoSubmissionsDesc: "No app versions are waiting for approval right now. When someone submits a new version, it will show up here.",
     emptyShowAll: "Show all apps",
+  },
+
+  AdminSettingsView: {
+    title: "Platform Settings",
+    subtitle: "Global defaults for all deployments.",
+    status: {
+      loading: "Loading …",
+      noneTitle: "No default network configured",
+      noneHint: "Deployments without their own network selection will keep failing until a default is set.",
+      configured: "Default network: {name}",
+      mode: "Mode: {mode}",
+      lastUpdated: "last changed on {time}",
+    },
+    fields: {
+      networkLabel: "Default network",
+      networkHint: "Used for any {'@'}openstack:network variable a user leaves empty when deploying.",
+      modeLabel: "Value format",
+      modeHint: "Controls whether deployments receive the network ID or the name — depending on what the given app variable expects.",
+      modeId: "UUID",
+      modeName: "Name",
+    },
+    save: "Save",
+    saving: "Saving …",
+    errors: {
+      missingSelection: "Please select a network.",
+    },
+    toasts: {
+      saveSuccess: "Default network saved.",
+    },
   },
 
   deployment: {
@@ -846,8 +876,8 @@ export default {
       sectionDesc: 'Configuration for this environment',
       imageGroup: 'Image',
       showInfo: 'Show info',
-      markerErrorTitle: '⚠ @openstack marker faulty',
-      markerErrorToast: '{count} faulty @openstack marker(s) — the affected variables will be rendered as free-text:\n{lines}',
+      markerErrorTitle: "{'@'}openstack marker faulty",
+      markerErrorToast: "{count} faulty {'@'}openstack marker(s) — the affected variables will be rendered as free-text:\n{lines}",
       commaSeparated: 'Separate multiple values with commas',
       required: 'Required',
       activated: 'Activated',
@@ -874,6 +904,7 @@ export default {
       terraform: 'Terraform',
     },
     summary: {
+      renameTitle: "Rename deployment",
       scopeLabel: "(Scope: {scope})",
       uploadedFiles: "Uploaded files",
       title: 'Recommended Configuration',

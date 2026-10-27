@@ -11,7 +11,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
-  Settings2,
+  Settings,
 } from 'lucide-vue-next'
 
 import { useI18n } from 'vue-i18n'
@@ -112,7 +112,7 @@ const navItems = computed(() => [
   { to: '/apps', label: 'nav.apps', icon: Layers },
   { to: '/courses', label: 'nav.courses', icon: GraduationCap, visible: isStaff.value },
   { to: '/admin/apps', label: 'nav.approvals', icon: ShieldCheck, visible: isAdmin.value },
-  { to: '/admin/settings', label: 'nav.adminSettings', icon: Settings2, visible: isAdmin.value },
+  { to: '/admin/settings', label: 'nav.adminSettings', icon: Settings, visible: isAdmin.value },
   { to: '/help', label: 'nav.help', icon: HelpCircle },
 ].filter(item => item.visible !== false))
 </script>

@@ -14,6 +14,7 @@
  * This is the automated counterpart to the i18n checkbox in the PR template.
  */
 import { describe, it, expect } from 'vitest'
+import { createI18n } from 'vue-i18n'
 
 import de from '@/i18n/locales/de'
 import en from '@/i18n/locales/en'
@@ -55,5 +56,29 @@ describe('i18n locale parity', () => {
       )
     }
     expect([...empty(de, 'de'), ...empty(en, 'en')]).toEqual([])
+  })
+
+  // A literal "@" in a message string is vue-i18n's linked-message syntax
+  // (`@:key`) — an untouched "@openstack:..." marker example compiles fine
+  // as a JS string but throws at render time. Force compilation of every
+  // leaf message for both locales so a regression like that fails here
+  // instead of showing up as a blank picker in the browser.
+  it('kompiliert jede Nachricht ohne vue-i18n-Fehler', () => {
+    const i18n = createI18n({ legacy: false, locale: 'de', fallbackLocale: 'en', messages: { de, en } })
+    const t = i18n.global.t
+
+    const errors: string[] = []
+    const originalConsoleError = console.error
+    console.error = (...args: unknown[]) => {
+      errors.push(args.map(String).join(' '))
+    }
+    try {
+      for (const key of deKeys) t(key)
+      for (const key of enKeys) t(key)
+    } finally {
+      console.error = originalConsoleError
+    }
+
+    expect(errors, `vue-i18n-Kompilierfehler:\n  ${errors.join('\n  ')}`).toEqual([])
   })
 })
