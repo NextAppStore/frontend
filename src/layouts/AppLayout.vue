@@ -21,10 +21,7 @@ import { useRole } from '@/composables/useRole'
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useColorScheme } from '@/composables/useColorScheme'
-
-import logo from '@/assets/ScholarStackLogo.png'
-import logoDark from '@/assets/ScholarStackLogo-Hell.png'
-import logoMark from '@/assets/ScholarStackLogo(S).png'
+import ScholarStackLogo from '@/components/ScholarStackLogo.vue'
 
 const { locale, t } = useI18n()
 const authStore = useAuthStore()
@@ -135,15 +132,10 @@ const navItems = computed(() => [
           class="flex items-center justify-center"
           :style="{ height: sidebarCollapsed ? '40px' : '84px', width: '100%', overflow: 'visible' }"
         >
-          <img
-            :src="sidebarCollapsed ? logoMark : (isDark ? logoDark : logo)"
-            alt="ScholarStack Click'n Deploy"
-            :style="{
-              position: 'relative',
-              zIndex: 30,
-              height: sidebarCollapsed ? '40px' : '84px',
-              maxWidth: 'none',
-            }"
+          <ScholarStackLogo
+            :mark="sidebarCollapsed"
+            class="relative z-30 w-auto"
+            :class="sidebarCollapsed ? 'h-8' : 'h-[72px]'"
           />
         </RouterLink>
       </div>
