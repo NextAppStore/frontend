@@ -238,6 +238,10 @@ bleibt die Stelle bei einem anderen Akzent rot. Ausnahme: Statusfarben (`status-
 - Tailwind-Utilities. **Kein** `#hex` im Template, **kein** `bg-[#2E5C46]`, **kein**
   `style="…"`, **kein neuer** `<style>`-Block. Keine Tailwind-Standardfarben
   (`bg-gray-400`, `text-white`) — sie ignorieren den Darkmode.
+- Verläufe ebenfalls als Variable in `style.css` (`--gradient-*`) und in der Config unter
+  `backgroundImage` abbilden (Bsp. `bg-accent-hue`, die Spur des Akzent-Sliders). Nach einer
+  Änderung an `tailwind.config.js` den Dev-Server neu starten (`make dev-restart-frontend`) —
+  sonst erzeugt Tailwind die neue Klasse dort nicht.
 - Spacing, Typo, Radius, Shadow: Tailwind-Defaults. Es gibt dafür bewusst keine eigenen Tokens.
 - Statusfarben (`success`/`failed`/`paused`/…): Referenz ist `getStatusColor` in
   `DeploymentsListView.vue` (`status-*`/`tag-*`-Tokens). Neue Statusfarben dort abgleichen,
@@ -315,6 +319,13 @@ Grund: Das Produktions-Image wird einmal gebaut und pro Umgebung konfiguriert.
 `docker-entrypoint.sh` rendert `public/env-config.js` per `envsubst` zu `window.__ENV__`;
 `env.ts` liest das und fällt auf `import.meta.env` plus Default zurück. Hardcodierte URLs
 brechen genau dieses Verfahren.
+
+Eine neue Variable braucht **drei** Stellen hier: `env.ts` (Typ + Getter),
+`public/env-config.js` und die `envsubst`-Liste in `docker-entrypoint.sh` — fehlt die letzte,
+bleibt der Platzhalter im Prod-Image stehen. Dazu im `deployment`-Repo der Eintrag beim
+Frontend-Service in den Compose-Dateien, sonst kommt der Wert nie im Container an. Bestand: Keycloak-URL/-Realm/-Client, `APP_URL`, `API_URL` und
+`VITE_ACCENT_COLOR` (Akzentfarbe `#RRGGBB`, leer = ScholarStack-Rot; gesetzt über
+`composables/useAccentColor.ts` als `--color-brand`).
 
 ---
 

@@ -15,6 +15,11 @@
     --color-brand:            #E10210;   /* ScholarStack red */
     --color-brand-shade:      color-mix(in srgb, var(--color-brand) 47%, black);  /* tinted shadows */
 
+    /* Track of the accent hue slider (admin settings): what
+     * ``accentFromHue`` yields every 30°, so the track shows the colours
+     * the slider really picks. Generated — a unit test keeps it in sync. */
+    --gradient-accent-hue:    linear-gradient(90deg, #D41111 0%, #AA5C0E 8.33%, #757509 16.67%, #457F0A 25%, #0B8A0B 33.33%, #0A7F45 41.67%, #0A7F7F 50%, #1173D4 58.33%, #1111D4 66.67%, #7311D4 75%, #C910C9 83.33%, #D41173 91.67%, #D41111 100%);
+
     /* ── Brand colors ──────────────────────────────────────────── */
     --color-primary:          var(--color-brand);
     --color-primary-light:    color-mix(in srgb, var(--color-brand) 80%, white);

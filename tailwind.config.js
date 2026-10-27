@@ -120,6 +120,11 @@ export default {
         },
       },
 
+      // ── Gradients ──────────────────────────────────────────────
+      backgroundImage: {
+        'accent-hue': 'var(--gradient-accent-hue)',
+      },
+
       // Map the typography plugin's palette onto our tokens so rendered
       // Markdown (tables, bold, lists, quotes …) follows light/dark mode
       // instead of the plugin's fixed light-mode greys.
