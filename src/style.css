@@ -294,8 +294,8 @@
     --color-dash-hero-overlay:    color-mix(in srgb, var(--color-brand) 18%, transparent);
     --color-dash-hero-cta-shadow: color-mix(in srgb, var(--color-primary) 70%, transparent);
     --color-dash-hero-cta-shadow-hover: color-mix(in srgb, var(--color-primary) 80%, transparent);
-    --color-dash-mark-drop-shadow: color-mix(in srgb, var(--color-brand) 50%, transparent);
-    --color-dash-mark-halo-inner: color-mix(in srgb, var(--color-brand) 30%, transparent);
+    --color-dash-mark-drop-shadow: rgba(0, 0, 0, 0.55);
+    --color-dash-mark-halo-inner: color-mix(in srgb, var(--color-surface-page) 85%, transparent);
     --color-dash-mark-halo-outer: color-mix(in srgb, var(--color-brand) 10%, transparent);
     --color-dash-mark-ring:       color-mix(in srgb, var(--color-brand) 22%, transparent);
     --color-dash-mark-orbit:      color-mix(in srgb, var(--color-brand) 28%, transparent);
