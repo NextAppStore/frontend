@@ -164,7 +164,7 @@ const goToDetail = (courseId: string) => {
             </h3>
           </div>
 
-          <p class="text-content-secondary text-sm mb-6 flex-grow leading-relaxed text-left flex items-center gap-2">
+          <p class="text-content-secondary text-sm flex-grow leading-relaxed text-left flex items-center gap-2">
             <template v-if="isStaff">
               <Users :size="14" class="text-content-disabled" />
               <span>
@@ -176,16 +176,6 @@ const goToDetail = (courseId: string) => {
               {{ $t('CoursesView.openToView') }}
             </span>
           </p>
-
-          <div class="mt-auto">
-            <BaseButton
-                variant="green"
-                class="w-full flex items-center justify-center gap-2"
-                @click.stop="goToDetail(course.courseId)"
-            >
-              {{ $t('CoursesView.openDetails') }}
-            </BaseButton>
-          </div>
         </Card>
       </div>
     </EntityListState>
