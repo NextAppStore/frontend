@@ -137,8 +137,8 @@
     --color-btn-primary:       var(--color-brand);
     --color-btn-primary-hover: color-mix(in srgb, var(--color-brand) 72%, black);
     --color-btn-primary-text:  #FFFFFF;
-    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 11%, white);
-    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 21%, white);
+    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 20%, white);
+    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 30%, white);
     --color-btn-secondary-text:  color-mix(in srgb, var(--color-brand) 72%, black);
     --color-btn-ghost:         transparent;
     --color-btn-ghost-hover:   color-mix(in srgb, var(--color-brand) 11%, white);
