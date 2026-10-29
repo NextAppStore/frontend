@@ -21,12 +21,16 @@
  * * ``connectionState`` — high-level state machine surface for the
  *   detail view to show "connecting" / "live" / "reconnecting" /
  *   "ended" badges.
+ * * ``labResult`` — the one-time password of a Kubernetes-App lab task
+ *   (add student, reset/passwd with a new password), taken from its
+ *   ``succeeded`` event. The backend never stores it anywhere else.
  */
 
 import { ref, type Ref } from 'vue'
 import { getActiveAccessToken } from '@/composables/useLtiSession'
 import { currentLocale } from '@/i18n/locale'
 import { env } from '@/env'
+import type { LabResult } from '@/types'
 
 export interface LogEntry {
   timestamp: string
@@ -64,6 +68,18 @@ export interface SnapshotEvent {
   type: string | null
 }
 
+export interface StartOptions {
+  /**
+   * Replay the latest task's events from its first one, even if it has
+   * already finished. A fresh connect to a finished task only gets the
+   * snapshot; sending ``Last-Event-ID: 0`` makes the backend treat it as
+   * a reconnect and send everything, terminal event included. Lab tasks
+   * often finish before the stream connects, and their terminal event is
+   * the only place the generated password ever appears.
+   */
+  replay?: boolean
+}
+
 export type ConnectionState = 'idle' | 'connecting' | 'live' | 'reconnecting' | 'ended' | 'error'
 
 const MAX_LOG_BUFFER = 100
@@ -94,7 +110,9 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
   const totalLogCount = ref<number>(0)
   const connectionState = ref<ConnectionState>('idle')
   const lastError = ref<string | null>(null)
+  const labResult = ref<LabResult | null>(null)
 
+  let replayFromStart = false
   let abortController: AbortController | null = null
   let reconnectAttempt = 0
   let reconnectTimer: number | null = null
@@ -112,6 +130,7 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
     liveLogs.value = []
     totalLogCount.value = 0
     lastError.value = null
+    labResult.value = null
   }
 
   const pushLog = (entry: LogEntry) => {
@@ -194,6 +213,10 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
     }
 
     if (eventName === 'succeeded' || eventName === 'failed' || eventName === 'revoked') {
+      const result = (data as { lab_result?: unknown } | null)?.lab_result
+      if (eventName === 'succeeded' && isLabResult(result)) {
+        labResult.value = result
+      }
       connectionState.value = 'ended'
       return
     }
@@ -220,6 +243,7 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
           // hier nicht — die Sprache muss eigens mitgegeben werden. Sonst
           // bliebe ausgerechnet der Live-Log in der Backend-Standardsprache.
           'Accept-Language': currentLocale(),
+          ...(replayFromStart ? { 'Last-Event-ID': '0' } : {}),
         },
       })
     } catch (err) {
@@ -294,8 +318,9 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
     }, delay)
   }
 
-  const start = () => {
+  const start = (options: StartOptions = {}) => {
     reset()
+    replayFromStart = options.replay ?? false
     reconnectAttempt = 0
     connect()
   }
@@ -320,9 +345,16 @@ export function useDeploymentStream(deploymentId: Ref<string | null>) {
     totalLogCount,
     connectionState,
     lastError,
+    labResult,
     start,
     stop,
   }
+}
+
+function isLabResult(value: unknown): value is LabResult {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  return typeof v.username === 'string' && typeof v.generated_password === 'string'
 }
 
 /**

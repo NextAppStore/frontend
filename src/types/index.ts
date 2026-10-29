@@ -9,7 +9,11 @@ export type UserRole = 'student' | 'teacher' | 'admin'
 
 export type DeploymentStatus = 'pending' | 'running' | 'success' | 'failed' | 'destroying' | 'destroyed' | 'cancelled' | 'pausing' | 'paused' | 'resuming' | 'pause_failed' | 'resume_failed'
 
-export type TaskType = 'deploy' | 'destroy' | 'update' | 'pause' | 'resume' | 'redeploy'
+export type TaskType =
+  | 'deploy' | 'destroy' | 'update' | 'pause' | 'resume' | 'redeploy'
+  // Kubernetes-App student-pod management (backend ``TaskType.LAB_*``).
+  // ``passwd`` has no own type: the backend runs it as ``lab_reassign``.
+  | 'lab_reassign' | 'lab_reset' | 'lab_add_student' | 'lab_remove_student'
 
 export type TaskStatus = 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
 
@@ -245,6 +249,53 @@ export interface DeploymentUserAccount {
 export interface MyAccessResponse {
   user_accounts: Record<string, DeploymentUserAccount>;
   team_vms: Record<string, { url?: string; floating_ip?: string; fixed_ip?: string; fixed_ip_v6?: string }>;
+}
+
+// ----------------------------------------------------------------
+// LAB TYPES (Kubernetes-App student pods)
+//
+// Mirrors the "LAB SCHEMAS" block in ``backend/app/schemas.py``. The lab
+// routes are not in ``backend/openapi.json`` yet, so schemas.py is the
+// contract until it is regenerated.
+// ----------------------------------------------------------------
+
+// Same contract as ``LAB_USERNAME_PATTERN`` (labctl's username rule).
+export const LAB_USERNAME_PATTERN = /^[a-z]([a-z0-9-]{0,28}[a-z0-9])?$/
+export const LAB_NODE_PORT_MIN = 30000
+export const LAB_NODE_PORT_MAX = 32767
+
+// One row of ``GET .../lab/teams/{team_id}/students`` (``labctl list``).
+export interface LabStudent {
+  username: string
+  port: number | null
+  generation: number | null
+  pod_name: string | null
+  pod_phase: string | null
+  pod_age: string | null
+  ready: boolean
+}
+
+export interface LabAddStudentRequest {
+  username: string
+  // Omitted → the worker generates one and reports it once via SSE.
+  password?: string
+  // Omitted → the worker picks a free NodePort.
+  port?: number
+}
+
+// 202 body shared by every mutating lab route.
+export interface LabActionAccepted {
+  task_id: string
+  status: string
+}
+
+// ``lab_result`` on the terminal ``succeeded`` SSE event of a lab task
+// that generated or rotated a password. Never persisted by the backend —
+// this event is the only place it ever appears.
+export interface LabResult {
+  username: string
+  generated_password: string
+  port?: number
 }
 
 export interface DeploymentCreate {
