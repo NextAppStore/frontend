@@ -111,7 +111,6 @@ export default {
     memberSingular: "Mitglied",
     memberPlural: "Mitglieder",
     deleteTitle: "Löschen",
-    openDetails: "Details öffnen",
     openToView: "Kurs öffnen für Details",
     createModal: {
       title: "Neuer Kurs",
