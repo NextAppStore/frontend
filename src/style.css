@@ -137,8 +137,8 @@
     --color-btn-primary:       var(--color-brand);
     --color-btn-primary-hover: color-mix(in srgb, var(--color-brand) 72%, black);
     --color-btn-primary-text:  #FFFFFF;
-    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 11%, white);
-    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 21%, white);
+    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 20%, white);
+    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 30%, white);
     --color-btn-secondary-text:  color-mix(in srgb, var(--color-brand) 72%, black);
     --color-btn-ghost:         transparent;
     --color-btn-ghost-hover:   color-mix(in srgb, var(--color-brand) 11%, white);
@@ -332,8 +332,8 @@
     --color-btn-primary:       var(--color-brand);
     --color-btn-primary-hover: color-mix(in srgb, var(--color-brand) 80%, black);
     --color-btn-primary-text:  #FFFFFF;
-    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 15%, var(--color-surface-card));
-    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 22%, var(--color-surface-card));
+    --color-btn-secondary:     color-mix(in srgb, var(--color-brand) 28%, var(--color-surface-card));
+    --color-btn-secondary-hover: color-mix(in srgb, var(--color-brand) 38%, var(--color-surface-card));
     --color-btn-secondary-text:  #FFFFFF;
     --color-btn-ghost:         transparent;
     --color-btn-ghost-hover:   #1A2535;
