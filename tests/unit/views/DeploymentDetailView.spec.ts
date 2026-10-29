@@ -47,6 +47,8 @@ vi.mock('lucide-vue-next', () => {
     'Package', 'AlertCircle', 'CheckCircle', 'XCircle', 'StopCircle',
     'Flame', 'Copy', 'Check', 'Send', 'PauseCircle', 'PlayCircle',
     'RefreshCw', 'Server', 'Network', 'Shield', 'Eye', 'EyeOff', 'Info',
+    // KubernetesStudentsPanel
+    'Boxes', 'Download', 'KeyRound', 'Plus', 'RotateCcw', 'UserMinus',
   ]
   return Object.fromEntries(
     names.map((n) => [n, icon(`icon-${n.toLowerCase()}`)]),
@@ -121,6 +123,7 @@ vi.mock('@/composables/useDeploymentStream', () => ({
     liveLogs: mockStreamLiveLogs,
     totalLogCount: mockStreamTotalLogCount,
     connectionState: mockStreamConnectionState,
+    labResult: ref(null),
     start: mocks.mockStartStream,
     stop: mocks.mockStopStream,
   }),
@@ -475,5 +478,72 @@ describe('DeploymentDetailView.vue — member self-access', () => {
     await flushPromises()
 
     expect(mocks.mockGetMyAccess).not.toHaveBeenCalled()
+  })
+})
+describe('DeploymentDetailView.vue — Kubernetes-App Studierenden-Panel', () => {
+  const mountComponent = () =>
+    mount(DeploymentDetailView, {
+      global: {
+        mocks: {
+          $t: (key: string, vars?: Record<string, unknown>) =>
+            vars ? `${key} ${JSON.stringify(vars)}` : key,
+        },
+        stubs: {
+          RouterLink: true,
+          BaseButton: { template: '<button><slot /></button>' },
+          Modal: {
+            props: ['show'],
+            template: '<div v-if="$props.show" class="modal"><slot /></div>',
+          },
+          KubernetesStudentsPanel: {
+            props: ['teams'],
+            template: '<div data-testid="k8s-panel-stub">{{ teams.map((t) => t.name).join(",") }}</div>',
+          },
+        },
+      },
+    })
+
+  // Terraform-Output-Form: ``outputs.raw.<name>.value``. Der Teamname ist
+  // der Schlüssel, über den das Panel die Teams zuordnet.
+  const kubernetesOutputs = {
+    raw: { kubeconfigs: { value: { 'Team Alpha': 'apiVersion: v1' } } },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockIsTeacherOrAdmin.value = false
+    mockAuthUserId.value = 'user-owner'
+    mocks.mockListTasksByDeployment.mockResolvedValue({ data: [] })
+    mocks.mockGetMyAccess.mockResolvedValue({ data: { user_accounts: {}, team_vms: {} } })
+  })
+
+  it('zeigt das Panel für den Owner, wenn die App kubeconfigs ausgibt', async () => {
+    mockDeployment.value = baseDeployment({ outputs: kubernetesOutputs })
+
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const panel = wrapper.find('[data-testid="k8s-panel-stub"]')
+    expect(panel.exists()).toBe(true)
+    expect(panel.text()).toBe('Team Alpha')
+  })
+
+  it('zeigt das Panel nicht für Apps ohne kubeconfigs-Output', async () => {
+    mockDeployment.value = baseDeployment({ outputs: { raw: { team_vms: { value: {} } } } })
+
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="k8s-panel-stub"]').exists()).toBe(false)
+  })
+
+  it('zeigt das Panel nicht für Team-Mitglieder', async () => {
+    mockAuthUserId.value = 'member-1'
+    mockDeployment.value = baseDeployment({ outputs: kubernetesOutputs })
+
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="k8s-panel-stub"]').exists()).toBe(false)
   })
 })

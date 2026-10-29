@@ -27,6 +27,8 @@ import { useDeploymentInfrastructure } from '@/composables/deployment/useDeploym
 import { useDeploymentTasks } from '@/composables/deployment/useDeploymentTasks'
 import { useIpVersionPreference } from '@/composables/useIpVersionPreference'
 import RdpClientHelpPopover from '@/components/RdpClientHelpPopover.vue'
+import KubernetesStudentsPanel from '@/components/deployment/KubernetesStudentsPanel.vue'
+import { isLabTaskType, taskTypeLabelKey } from '@/i18n/task-type-labels'
 
 const { ipVersion, setIpVersion } = useIpVersionPreference()
 
@@ -241,6 +243,7 @@ const {
     liveLogs: streamLiveLogs,
     totalLogCount: streamTotalLogCount,
     connectionState: streamConnectionState,
+    labResult: streamLabResult,
     start: startStream,
     stop: stopStream,
 } = useDeploymentStream(deploymentIdRef)
@@ -498,7 +501,9 @@ watch(
     isStreamRelevant,
     (relevant, wasRelevant) => {
         if (relevant && !wasRelevant) {
-            startStream()
+            // Lab tasks carry their one-time password on the terminal
+            // event, and they are often done before we connect — replay.
+            startStream({ replay: isLabTaskType(activeTask.value?.type) })
         } else if (!relevant && wasRelevant) {
             stopStream()
             // Refresh the task list once on completion so the final
@@ -596,6 +601,34 @@ watch(streamConnectionState, async (state) => {
 onBeforeUnmount(() => {
     stopStream()
 })
+
+// ----------------------------------------------------------------
+// KUBERNETES-APP STUDENTS
+// ----------------------------------------------------------------
+// Shown for apps whose deploy outputs a ``kubeconfigs`` map (team name →
+// kubeconfig) — the Kubernetes-App's own contract, no app-name check.
+// Read from ``deployment.outputs`` (latest task *with* outputs), not
+// ``latestTaskOutputs``: lab tasks write no outputs, so after the first
+// student action the latest task would hide the panel.
+const labTeams = computed(() => {
+    const kubeconfigs = deployment.value?.outputs?.raw?.kubeconfigs?.value
+    if (!kubeconfigs || typeof kubeconfigs !== 'object') return []
+    return (deployment.value?.teams ?? []).filter((team) => team.name in kubeconfigs)
+})
+
+// A lab action was queued: pick up its task and attach the stream. Lab
+// tasks can finish before the task list comes back, in which case
+// ``isStreamRelevant`` never flips — replay the finished task's events
+// so its one-time password still arrives.
+const onLabActionStarted = async () => {
+    await loadTasks()
+    if (!isStreamRelevant.value) startStream({ replay: true })
+}
+
+const taskTypeLabel = (type: string | null | undefined): string => {
+    const key = taskTypeLabelKey(type)
+    return key ? t(key) : (type ?? '')
+}
 
 // Pretty phase label for the progress bar header. Keeps the enum
 // naming convention from the worker (UPPER_SNAKE_CASE) but renders
@@ -1068,8 +1101,7 @@ const formatDate = formatDateTime
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="text-sm font-semibold text-content-primary capitalize">{{ activeTask.type
-                                }}</span>
+                                <span class="text-sm font-semibold text-content-primary">{{ taskTypeLabel(activeTask.type) }}</span>
                                 <span class="text-xs font-medium text-content-secondary">·</span>
                                 <span class="text-xs text-content-secondary">{{ $t('DeploymentDetailView.runningSince', { date: formatDate(activeTask.started_at || activeTask.created_at) }) }}</span>
                             </div>
@@ -1433,6 +1465,15 @@ const formatDate = formatDateTime
             </div>
         </div>
 
+        <!-- Kubernetes-App: student pods per team (owner view only). -->
+        <KubernetesStudentsPanel v-if="isOwnerView && labTeams.length > 0"
+            :deployment-id="deploymentId"
+            :teams="labTeams"
+            :busy="isDeploymentBusy"
+            :tasks="tasks"
+            :lab-result="streamLabResult"
+            @action-started="onLabActionStarted" />
+
         <!-- Infrastructure section — per-VM cards + read-only listings.
              Owner-only (the backend gates it the same way); members
              skip the section entirely so they don't see an empty/
@@ -1622,7 +1663,7 @@ const formatDate = formatDateTime
                                     task.status === 'running' ? 'text-tag-info' : 'text-status-warning'" />
                             <div class="flex-1">
                                 <div class="flex items-center gap-3 mb-1">
-                                    <span class="font-medium text-content-primary capitalize">{{ task.type }}</span>
+                                    <span class="font-medium text-content-primary">{{ taskTypeLabel(task.type) }}</span>
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border capitalize"
                                         :class="getStatusStyles(task.status).badgeClass">
@@ -1650,7 +1691,7 @@ const formatDate = formatDateTime
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             <div>
                                 <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskType') }}</div>
-                                <div class="text-sm font-medium text-content-primary capitalize">{{ selectedTask.type }}</div>
+                                <div class="text-sm font-medium text-content-primary">{{ taskTypeLabel(selectedTask.type) }}</div>
                             </div>
                             <div>
                                 <div class="text-xs text-content-secondary uppercase tracking-wide mb-1">{{ $t('DeploymentDetailView.taskStatusLabel') }}</div>
